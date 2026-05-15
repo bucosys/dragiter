@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dragiter"
+version = "0.0.1"
+description = "Placeholder for the dragiter project: Deterministic RAG Iterator."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Michael Buchold", email = "michael.buchold@bucosys.com" }
+]
+
+[project.urls]
+Homepage = "https://dragiter.com"
