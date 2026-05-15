@@ -1,0 +1,66 @@
+.DS_Store
+run/
+dist/
+# --- Python Essentials ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Environments & Dependencies ---
+.env
+.venv
+venv/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- IDEs (PyCharm & VS Code) ---
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.project
+.pydevproject
+.settings/
+
+# --- Project Specifics (dragator) ---
+# Keine API-Keys oder lokale Configs einchecken!
+config.json
+secrets.yaml
+.dragator_config/
+
+# --- Logs & Traces ---
+# Da Logging eine Stärke von dragator ist, entstehen viele Files.
+# Diese sollten lokal bleiben.
+*.log
+activity_file.jsonl
+dragator_activity.jsonl
+traces/
+
+# --- Large Data / Chunks ---
+# Falls du Test-Materialien lokal speicherst
+data/raw/
+data/processed/
+*.csv
+*.json
+
+
