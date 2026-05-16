@@ -1,0 +1,18 @@
+The 1990s: From Hidden Progress to Intelligent Agents
+
+The nineties were a decade of transition for AI. While the "AI Winter" still cast a shadow, the era laid the groundwork for the modern data-driven world through increased computing power and new algorithmic approaches.
+
+1. The Emergence of Intelligent Agents
+In the mid-90s, the focus shifted toward "Intelligent Agents." An agent is a system that perceives its environment and takes actions to achieve goals. This was a move away from isolated expert systems toward autonomous software. These agents began to appear in early search engines and complex logistics software, operating quietly in the background of the growing World Wide Web.
+
+2. Deep Blue and the Triumph of Brute Force
+The most public milestone of the decade occurred in 1997. IBM's Deep Blue defeated the reigning world chess champion, Garry Kasparov. While some critics argued that Deep Blue used "brute force" calculations rather than "true" intelligence, the victory was a powerful demonstration of how specialized hardware and search algorithms could finally surpass human performance in a highly complex domain.
+
+3. The Rise of Machine Learning and Statistics
+During this decade, the field began to move away from purely logic-based AI toward probabilistic and statistical methods. Researchers started using hidden Markov models for speech recognition and support vector machines for pattern classification. This "Quiet Revolution" shifted the goal from "understanding" language to "predicting" sequences, a foundation for today's LLMs.
+
+4. Affective Computing and Human-Robot Interaction
+In 1997, Rosalind Picard published "Affective Computing," suggesting that for a machine to be truly intelligent, it must be able to recognize and simulate human emotions. At the same time, Sony's AIBO and the MIT Cog project explored social robotics. These attempts showed that intelligence is not just about solving puzzles, but also about navigating social and emotional spaces.
+
+5. The Internet as a Massive Data Source
+By the late 90s, the explosion of the Internet provided AI researchers with something they never had before: massive amounts of digital text and data. This solved the "knowledge acquisition bottleneck" of the 80s. Instead of hand-coding every rule, machines could eventually begin to "learn" from the vast ocean of information being uploaded by millions of users worldwide.

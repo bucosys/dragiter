@@ -1,0 +1,19 @@
+Open your terminal window.
+
+First, navigate to the example directory by typing:
+cd examples/02_md_sample
+
+To avoid typing your API key and model name every time, you can set them in a configuration file in standard locations.
+ dragiter automatically looks for a default user config file at ~/.config/dragiter/config.toml.
+
+ Alternatively, you can use the -c flag to point to a specific TOML config file, or use environment variables like DRAGITER_API_KEY.
+
+ It is highly recommended to run a simulation first.
+ This allows you to verify the workflow without making actual API calls or spending credits.
+ You can do this by adding the -s flag to your command.
+
+Run the simulation by typing:
+dragiter -s -p prompt_c_sample_02.toml -r resource_c_sample_02.toml
+
+Once you confirm the simulation output looks correct, run the actual process by removing the -s flag:
+dragiter -p prompt_c_sample_02.toml -r resource_c_sample_02.toml

@@ -1,0 +1,5 @@
+# dragiter Configuration Template
+api_key = "YOUR-API-KEY"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+model_name = "gemini-2.5-flash"
+debug = false

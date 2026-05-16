@@ -1,0 +1,13 @@
+#
+[config01]
+#base_directory="examples"
+glob_patterns = ["**/ai_history.md", "**/ai_80s_expert_systems.md"]
+# OR use wildcards:
+# file_paths = ["*.md"]
+regex_pattern = '(^#+\s+.*$)'
+
+[config02]
+#base_directory="examples"
+glob_patterns = ["**/ai_90s_agents.txt"]
+# Matches lines starting with a number followed by a dot (e.g., "1. ")
+regex_pattern = '(^\d+\.\s+.*$)'

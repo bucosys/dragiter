@@ -1,0 +1,6 @@
+# dragiter Configuration Template
+api_key = "Ollama"
+base_url = "http://localhost:11434/v1"
+#model_name = "gemma3:4b"
+model_name = "qwen3:8b"
+debug = false

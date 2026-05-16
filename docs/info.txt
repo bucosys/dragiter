@@ -1,0 +1,94 @@
+dragiter(1)                      April 2026                        dragiter(1)
+
+NAME
+       dragiter - deterministic RAG iterator – command line tool for structured LLM-based
+       processing of materials with prompts and looping
+
+SYNOPSIS
+       dragiter [OPTIONS]
+       dragiter-gen-docs [PATH]
+       dragiter-gen-examples [PATH]
+
+DESCRIPTION
+       dragiter is a command-line tool that allows controlled, reproducible
+       calls to LLM services (OpenAI compatible APIs and others) while
+       combining:
+
+       * input material (documents, chunks, JSONL, ...)
+       * prompt templates
+       * optional looping / iteration logic
+       * configurable output routing (file, directory, append/overwrite)
+
+       Configuration values are read in the following order of precedence:
+
+           1. Command-line arguments
+           2. TOML configuration file (specified via -C / --config-file)
+           3. Environment variables (dragiter_...)
+           4. Default user config (~/.config/dragiter/config.toml)
+           5. Hard-coded program defaults
+
+OPTIONS
+       General Flags
+           -d, --debug                Enable debug logging
+           -s, --simulate             Simulation mode (no real API calls)
+           -v, --verbose              Verbose mode for detailed message output
+           -C, --config-file PATH     Read configuration from a specific file
+           -b, --base-directory PATH  Base directory for all relative file
+                                      operations
+
+       API & Connection Configuration
+           -k, --api-key KEY          API key for the LLM service
+           -u, --base-url URL         Base URL to the AI service endpoint
+           -m, --model-name MODEL     Model identifier (e.g. gpt-4o, qwen3:8b)
+           -n, --max-tokens INT       Max number of tokens to fetch
+           -c, --chars-per-token FLT  Estimated characters per token for
+                                      chunking
+
+       Task & Prompt Control
+           -p, --prompt-file PATH     Read instruction and task template file
+           -t, --task TEXT            Ask a specific explicit task
+
+       Input Files (Materials & Loops)
+           -l, --loop-file PATH       Read JSONL file for iteration items
+           -r, --resource-file PATH   Read resource definition file
+
+       Output Control & Logging
+           -M, --output-mode CHAR     Output mode:
+                                      w=overwrite, a=append, x=exclusive
+           -o, --output-file PATH     Write output to a single file
+           -O, --output-directory DIR Write outputs to a specified directory
+           -a, --activity-file PATH   Write detailed activity trace to file
+
+       Help & Utilities
+           -h, --help                 Show this help message and exit
+           dragiter-gen-docs [PATH]       Extract documentation to folder
+           dragiter-gen-examples [PATH]   Extract examples to folder
+
+EXIT STATUS
+       0      Success
+       1      Configuration or critical error
+       130    Process interrupted by user (KeyboardInterrupt)
+
+ENVIRONMENT
+       DRAGITER_DEBUG, DRAGITER_SIMULATE, DRAGITER_VERBOSE (TRUE / FALSE)
+       DRAGITER_API_KEY, DRAGITER_BASE_URL, DRAGITER_MODEL_NAME
+       DRAGITER_MAX_TOKENS, DRAGITER_CHARS_PER_TOKEN
+       DRAGITER_OUTPUT_MODE (w / a / x)
+       DRAGITER_BASE_DIRECTORY, DRAGITER_CONFIG_FILE
+       DRAGITER_PROMPT_FILE, DRAGITER_LOOP_FILE, DRAGITER_RESOURCES_FILE
+       DRAGITER_OUTPUT_FILE, DRAGITER_OUTPUT_DIRECTORY, DRAGITER_ACTIVITY_FILE
+       DRAGITER_CONFIG (Overrides default config search path)
+
+REPORTING BUGS
+       dragiter is a community-driven tool. If you encounter a bug, you are
+       cordially invited to fix it yourself—after all, you have the ultimate
+       AI toolkit at your fingertips! Feel free to let your favorite LLM
+       analyze the code and suggest a patch.
+
+       For major issues that even the AI cannot solve, contact:
+       Michael Buchold <michael.buchold@bucosys.com>
+
+AUTHOR
+       Michael Buchold <michael.buchold@bucosys.com>
+
+dragiter(1)                      April 2026                        dragiter(1)

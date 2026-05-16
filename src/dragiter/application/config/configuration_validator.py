@@ -1,0 +1,147 @@
+import os
+
+from dragiter.application.config.settings import *
+from dragiter.application.core.xdi import *
+
+logger = logging.getLogger(__name__)
+
+# Configuration Validator Issue (CVI)
+@dataclass
+class ConfigurationValidatorFinding:
+    rule: str
+    finding: str
+    description: str = None
+
+
+
+
+class ConfigurationValidator:
+    def __init__(self) -> None:
+        """Modify and validate the configuration"""
+
+    def run(self, api_key_string_setting: ApiKeyStringSetting,
+            base_url_string_setting: BaseURLStringSetting,
+            model_name_string_setting: ModelNameStringSetting,
+            output_mode_string_setting: OutputModeStringSetting,
+            task_string_setting: TaskStringSetting,
+            activity_file_path_setting: ActivityFilePathSetting,
+            base_directory_path_setting: BaseDirectoryPathSetting,
+            config_file_path_setting: ConfigFilePathSetting,
+            prompt_file_path_setting: PromptFilePathSetting,
+            loop_file_path_setting: LoopFilePathSetting,
+            resource_file_path_setting: ResourceFilePathSetting,
+            output_file_path_setting: OutputFilePathSetting,
+            output_directory_path_setting: OutputDirectoryPathSetting,
+            simulate_bool_setting: SimulateBoolSetting,
+            verbose_bool_setting: VerboseBoolSetting
+            ) -> list[ValueSetting]:
+
+        try:
+
+            CVF = ConfigurationValidatorFinding #shorthand
+            cvfs: list[CVF] = []
+
+            # check I: must-have-settings
+            if base_directory_path_setting.is_set == False:
+                base_directory_path_setting.value = Path.cwd()
+
+            # rebase all if nessessary
+            if base_directory_path_setting.value != Path.cwd():
+                # stage 1 check for reading a file or director
+                settings_to_rebase: list[PathSetting] = [
+                    activity_file_path_setting,
+                    prompt_file_path_setting,
+                    loop_file_path_setting,
+                    resource_file_path_setting,
+                    output_file_path_setting,
+                    output_directory_path_setting]
+
+                logger.debug(f"<Rebase path settings to: {base_directory_path_setting.value}>")
+                for setting in settings_to_rebase:
+                    if setting.is_set:
+                        setting.rebase(base_directory_path_setting.value)
+                        logger.debug(f"[{setting.key}: {setting.value}]")
+
+
+            if task_string_setting.is_set:  # so if user choose that param
+                if task_string_setting.value.strip() == '':
+                    cvfs.append(CVF(task_string_setting.key, "value not set", "No task recognizable"))
+            else:    # there will no prompt file read in...
+                if not prompt_file_path_setting.is_set:
+                    cvfs.append(CVF(prompt_file_path_setting.key, "value not set", "Path to prompt file is mandatory."))
+                else:
+                    pfps_value = prompt_file_path_setting.value
+                    if not os.access(pfps_value, os.R_OK):
+                        cvfs.append(CVF(prompt_file_path_setting.key,
+                                        f"File not readable: {pfps_value}",
+                                        "Path to prompt file is mandatory. The given file is not readable."))
+
+
+            if not simulate_bool_setting.value and not base_url_string_setting.is_set:
+                cvfs.append(CVF(base_url_string_setting.key, "value not set", "Path to LLM is mandatory."))
+
+
+
+
+            # check II get file access modifier
+            # set default to 'x'
+            if not output_mode_string_setting.is_set: output_mode_string_setting.value = "x"
+            if not output_mode_string_setting.value in {'a', 'x', 'w'} :
+                cvfs.append(CVF(output_mode_string_setting.key,
+                                f"If file open mode is set, use one of a (append), w (overwrite) or x (exclusive)"))
+
+
+            # stage 1 check for reading a file or director
+            input_path_settings_to_check = [base_directory_path_setting, loop_file_path_setting,
+                                            resource_file_path_setting, output_directory_path_setting]
+
+            cvfs.extend([
+                CVF(setting.key, f"Path not readable: {setting.value}")
+                for setting in input_path_settings_to_check
+                if setting.is_set and not os.access(setting.value, os.R_OK)
+            ])
+
+            # stage II check for wrinting a sinle file, check directory
+            output_path_settings_to_check = [activity_file_path_setting, output_file_path_setting]
+
+            cvfs.extend([
+                CVF(setting.key, f"Directory not readable: {setting.value.parent}")
+                for setting in output_path_settings_to_check
+                if setting.is_set and not os.access(setting.value.parent, os.R_OK)
+            ])
+
+
+
+            if len(cvfs) > 0: raise ConfigurationValidatorError(cvfs)
+
+
+            all_checked_elements = [
+                base_url_string_setting,
+                model_name_string_setting,
+                output_mode_string_setting,
+                task_string_setting,
+                activity_file_path_setting,
+                base_directory_path_setting,
+                config_file_path_setting,
+                prompt_file_path_setting,
+                loop_file_path_setting,
+                resource_file_path_setting,
+                output_file_path_setting,
+                output_directory_path_setting,
+                simulate_bool_setting]
+
+            if verbose_bool_setting.value:
+                for element in all_checked_elements:
+                    logger.debug(f"QC PASSED: [{element.key}: {element.value}]")
+
+            return all_checked_elements
+
+        except ConfigurationValidatorError as exc:
+            raise   #
+        except Exception as e:
+            raise ConfigurationValidatorError(f"Unexpected exception occured: {e}") from e
+
+
+
+class ConfigurationValidatorError(Exception):
+    pass

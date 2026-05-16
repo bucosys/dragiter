@@ -1,0 +1,36 @@
+Open your terminal.
+
+First, navigate to the example directory by typing:
+cd examples/01_md_sample
+
+To avoid typing your API key and model name every time, you can store them in a configuration file. By default, dragiter
+looks for a default user config file at ~/.config/dragiter/config.toml.
+
+If you prefer to keep your actual configuration file in a specific project folder or under version control, you can
+create a soft link (symlink) from the default user configuration path to your real file.
+
+To create the symbolic link, use the ln command by typing:
+ln -s /path/to/your/real/config.toml ~/.config/dragiter/config.toml
+
+This allows dragiter to automatically find your settings without needing to move the file or type the -c flag every time
+you run a command.
+
+Alternatively, you can use the -c flag to point to a specific TOML config file, or use environment variables
+like DRAGITER_API_KEY.
+
+It is highly recommended to run a simulation first.
+This allows you to verify the workflow without making actual API calls or spending credits.
+
+You can do this by adding the -s flag to your command.
+
+Run the simulation by typing:
+dragiter -s -p prompt_md_sample_01.toml -r resource_md_sample_01.toml -l loop_md_sample_01.txt
+
+You might add output parameters like
+dragiter -s -p prompt_md_sample_01.toml -r resource_md_sample_01.toml -l loop_md_sample_01.txt -o output.txt -a activity.txt
+
+Once you confirm the simulation output looks correct, run the actual process by removing the -s flag:
+dragiter -p prompt_md_sample_01.toml -r resource_md_sample_01.toml -l loop_md_sample_01.txt -o output.txt -a activity.txt
+
+Start from outside example directory:
+dragiter -s -d -v -b ./examples/01_md_sample -p prompt_md_sample_01.toml -r resource_md_sample_01.toml -l loop_md_sample_01.txt -o ${PWD}/out.txt -a ${PWD}/activity.txt

@@ -23,13 +23,13 @@ pip install dragiter
 
 ## Quick Start
 
-The core philosophy of dragiter is to keep your materials (context) and your prompts (instructions) separate.
+The core philosophy of dragiter is to keep your resources (material, context) and your prompts (instructions) separate.
 
 1.  Create a Configuration (Optional but recommended):
     Store your credentials so you don't have to type them out every time.
 
-export dragiter\_API\_KEY="your\_api\_key"
-export dragiter\_MODEL\_NAME="your\_preferred\_model"
+export DRAGITER_API_KEY="your_api_key"
+export DRAGITER_MODEL_NAME="your_preferred_model"
 
 2.  Run your first workflow:
     It is highly recommended to use the -s (simulate) flag first to verify your file routing without spending API credits.
@@ -45,11 +45,6 @@ dragiter -p prompt\_template.toml -r code\_resource.toml -o final\_report.md
 ## Tool Chaining (The Unix Way)
 
 dragiter is built to play nicely with other CLI tools. You can fetch live data and pipe it straight to your AI workflow:
-
-# Download a webpage and analyze it instantly
-
-curl -s [https://example.com/data](https://www.google.com/search?q=https://example.com/data) \> /tmp/data.html
-dragiter -p summarize.toml -m /tmp/data.html -o analysis.txt
 
 ## Acknowledgements
 

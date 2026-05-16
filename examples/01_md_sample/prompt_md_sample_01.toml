@@ -1,0 +1,45 @@
+# Example of an AI configuration file
+# Configuration Syntax:
+# The tool supports dynamic placeholders.
+# Use [MATERIAL] as a reserved keyword to specify where the reference files should be injected.
+# Use [STDIN] to define the target location for the input data.
+# e.g.
+# --- START OF FILE: main.py / stdin---
+# import os
+# print("Hello World")
+# --- END OF FILE ---
+
+[system]
+instruction = """
+You are a precise analyst.
+Always answer in English and use Markdown tables.
+"""
+
+[task]
+first = """
+### REFERENCE MATERIAL
+Use the following material as a knowledge base:
+"""
+
+material = """
+ID: {CHUNK_NUM_ID:04d}
+FILE: {CHUNK_FILE_NAME}
+SECTION: {CHUNK_SECTION_NAME}
+SECTION NUM ID: {CHUNK_SECTION_NUM_ID}
+CONTENT:
+
+{CHUNK_CONTENT}
+"""
+
+synthesis = """
+Analyze the following text for year {LOOP_CONTENT}:
+
+Create an overview of the essential aspects!
+"""
+
+temperature = 0.0
+sequential_processing = false
+
+[output]
+output_delimiter = "\n---\n"
+output_filename_schema = "sample_01.txt"

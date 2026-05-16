@@ -4,13 +4,67 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragiter"
-version = "0.0.1"
-description = "Placeholder for the dragiter project: Deterministic RAG Iterator."
+version = "0.2026.05.17"
+description = "dragiter - Deterministic RAG Iterator."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [
-    { name = "Michael Buchold", email = "michael.buchold@bucosys.com" }
+    { name = "Michael Buchold", email = "team@dragitor.app" }
 ]
 
+keywords = ["cli", "python", "ai", "llm", "automation", "workflow"]
+
+# Added Classifiers for PyPI indexing
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+# List libraries that your tool requires here
+dependencies = [
+    "openai>=1.0.0"
+]
+
+
+# Option 2: Using the license table for more detail (PEP 621 compliant)
+[project.license]
+text = "AGPL-3.0-or-later and Proprietary Custom License. See LICENSE file for details."
+
+
 [project.urls]
-Homepage = "https://dragiter.com"
+Homepage = "https://gitlab.com/bucosys/dragiter"
+Repository = "https://gitlab.com/bucosys/dragiter.git"
+Issues = "https://gitlab.com/bucosys/dragiter/-/issues"
+
+# This is the crucial part for your command "dragiter"
+[project.scripts]
+dragiter = "dragiter.cli:main"
+dragiter-gen-docs = "dragiter.cli:gen_docs"
+dragiter-gen-examples = "dragiter.cli:gen_examples"
+
+# Hatch configuration: We explicitly state that the code is located in "src"
+[tool.hatch.build.targets.wheel]
+packages = ["src/dragiter"]
+
+# Hier erzwingen wir, dass die Ordner IM Paket landen
+[tool.hatch.build.targets.wheel.force-include]
+"examples" = "dragiter/examples"
+"docs" = "dragiter/docs"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/examples",
+    "/docs",
+    "/ABOUT-de.md",
+    "/ABOUT-en.md",
+    "/README.de",
+    "/LICENSE",
+    "/LICENSE.AGPL-3.0",
+    "/pyproject.toml"
+]
