@@ -1,42 +1,45 @@
-# Example of an AI configuration file
-# Configuration Syntax:
-# The tool supports dynamic placeholders.
-# Use [MATERIAL] as a reserved keyword to specify where the reference files should be injected.
-# Use [STDIN] to define the target location for the input data.
-# e.g.
-# --- START OF FILE: main.py / stdin---
-# import os
-# print("Hello World")
-# --- END OF FILE ---
-
 [system]
 instruction = """
-You are a precise software architect and a premium developer.
-Always answer in English.
+You are a Principal Software Security Auditor and a distinguished C/C++ architect.
+You analyse legacy code with ruthless precision. You do not tolerate missing pointer validations or potential memory leaks. Always answer in British English, maintaining a highly professional, objective, and analytical tone.
 """
 
 [task]
+
 first = """
 ### REFERENCE MATERIAL
-Use the following material as a knowledge base:
+Conduct a rigorous review of the following legacy C codebase fragments:
 """
 
 material = """
+==================================================
 ID: {CHUNK_NUM_ID:04d}
 FILE: {CHUNK_FILE_NAME}
 SECTION: {CHUNK_SECTION_NAME}
 CONTENT:
 
 {CHUNK_CONTENT}
+==================================================
 """
 
 synthesis = """
-Create an overview of the essential aspects!
+Perform a strict static code analysis on the provided source code chunk.
+
+Your audit must explicitly address the following:
+1. **Vulnerability Assessment:** Identify any memory safety issues, missing `NULL` pointer checks, or lack of array bounds validation.
+2. **Refactored Implementation:** Provide a modernised, robust version of the function that includes proper defensive programming practices (e.g., input validation).
+3. **Architectural Verdict:** Give a brief assessment of the code's readiness for production in a modern, secure system.
+
+Structure your response strictly with clear Markdown headings.
 """
 
-#temperature = 0.0
+temperature = 0.0
 
+# CRITICAL: Ensures that each code chunk is evaluated individually.
+# Feeding the entire codebase into a single prompt leads to shallow analysis and missed vulnerabilities.
+# Isolated, sequential processing guarantees maximum analytical depth per function.
 sequential_processing = true
 
 [output]
-output_filename_schema = "sample_02.txt"
+output_filename_schema = "security_audit_report.md"
+output_delimiter = "\n\n---\n\n"
