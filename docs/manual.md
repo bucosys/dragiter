@@ -26,12 +26,12 @@ command.
 
 Run the simulation by typing:
 
-    dragiter -s -p prompt_md_sample_01.toml -r resource_md_sample_01.toml -l loop_md_sample_01.txt
+    dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 
 Once you confirm the simulation output looks correct, run the actual process 
 by removing the -s flag:
 
-    dragiter -p prompt_md_sample_01.toml -r resource_md_sample_01.toml -l loop_md_sample_01.txt
+    dragiter -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 
 
 Streamlining Your Configuration

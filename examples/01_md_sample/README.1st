@@ -24,13 +24,13 @@ This allows you to verify the workflow without making actual API calls or spendi
 You can do this by adding the -s flag to your command.
 
 Run the simulation by typing:
-dragiter -s -p 01_prompt_md_sample.toml -r 01_resource_md_sample.toml -l 01_loop_md_sample.txt
+dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 
 You might add output parameters like
-dragiter -s -p 01_prompt_md_sample.toml -r 01_resource_md_sample.toml -l 01_loop_md_sample.txt -o 01_output.txt -a 01_activity.txt
+dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt -o 01_output.txt -a 01_activity.txt
 
 Once you confirm the simulation output looks correct, run the actual process by removing the -s flag:
-dragiter -p 01_prompt_md_sample.toml -r 01_resource_md_sample.toml -l 01_loop_md_sample.txt -o 01_output.txt -a 01_activity.txt
+dragiter -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt -o 01_output.txt -a 01_activity.txt
 
 Start from outside example directory:
-dragiter -s -d -v -b ./examples/01_md_sample -p 01_prompt_md_sample.toml -r 01_resource_md_sample.toml -l 01_loop_md_sample.txt -o ${PWD}/01_output.txt -a ${PWD}/01_activity.txt
+dragiter -s -d -v -b ./examples/01_md_sample -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt -o ${PWD}/01_output.txt -a ${PWD}/01_activity.txt
