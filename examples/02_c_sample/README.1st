@@ -13,7 +13,7 @@ To avoid typing your API key and model name every time, you can set them in a co
  You can do this by adding the -s flag to your command.
 
 Run the simulation by typing:
-dragiter -s -p prompt_c_sample_02.toml -r resource_c_sample_02.toml
+dragiter -s -p 02_prompt_c_sample.toml -r 02_resource_c_sample.toml
 
 Once you confirm the simulation output looks correct, run the actual process by removing the -s flag:
-dragiter -p prompt_c_sample_02.toml -r resource_c_sample_02.toml
+dragiter -p 02_prompt_c_sample.toml -r 02_resource_c_sample.toml

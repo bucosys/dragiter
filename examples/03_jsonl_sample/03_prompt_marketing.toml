@@ -1,0 +1,29 @@
+[system]
+instruction = """
+You are a top-tier Senior Copywriter.
+You write copy based exclusively on the provided technical data. Do not invent or hallucinate any features. Always use British English spelling and phrasing.
+"""
+
+[task]
+first = """
+### PRODUCT SPECIFICATION SHEET
+Use the following specifications as your sole knowledge base:
+"""
+
+material = """
+{CHUNK_CONTENT}
+"""
+
+synthesis = """
+Draft a piece of marketing copy for the following platform: **{platform}**.
+
+Requirements for this text:
+- Tone of voice: {tone}
+- Primary focus: {focus}
+
+Provide only the final copy without any introductory fluff.
+"""
+
+[output]
+output_filename_schema = "marketing_copy.md"
+output_delimiter = "\n\n---\n\n"

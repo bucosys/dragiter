@@ -1,0 +1,13 @@
+Discourse on the Method - Part V: On Automata and Human Reason
+René Descartes (Translation by John Veitch)
+
+If there were machines which bore a resemblance to our bodies and imitated our actions as closely as possible for all practical purposes, we should still have two very certain means of recognizing that they were not real men.
+
+1. The Barrier of Language and Interaction
+The first is that they could never use words, or put together signs, as we do in order to declare our thoughts to others. For we can certainly conceive of a machine so constructed that it utters words, and even utters words that correspond to bodily actions causing a change in its organs. But it is not conceivable that such a machine should produce different arrangements of words so as to give an appropriately meaningful answer to whatever is said in its presence, as the dullest of men can do.
+
+2. The Lack of Universal Reason
+Secondly, even though such machines might do some things as well as we do them, or perhaps even better, they would inevitably fail in others, which would reveal that they were acting not from understanding, but only from the disposition of their organs. For whereas reason is a universal instrument which can be used in all kinds of situations, these organs need some particular disposition for each particular action.
+
+3. The Moral Impossibility of Mechanical Versatility
+Hence it is for all practical purposes impossible for a machine to have enough different organs to make it act in all the contingencies of life in the way in which our reason makes us act. Through these two means we can also know the difference between men and brutes.

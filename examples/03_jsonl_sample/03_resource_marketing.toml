@@ -1,0 +1,3 @@
+[product_specs]
+glob_patterns = ["*.md"]
+regex_pattern = '(^#+\s+.*$)'

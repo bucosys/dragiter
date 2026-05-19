@@ -1,7 +1,7 @@
 Open your terminal.
 
 First, navigate to the example directory by typing:
-cd examples/01_md_sample
+cd examples/03_md_sample
 
 To avoid typing your API key and model name every time, you can store them in a configuration file. By default, dragiter
 looks for a default user config file at ~/.config/dragiter/config.toml.
@@ -24,13 +24,13 @@ This allows you to verify the workflow without making actual API calls or spendi
 You can do this by adding the -s flag to your command.
 
 Run the simulation by typing:
-dragiter -s -p 01_prompt_md_sample.toml -r 01_resource_md_sample.toml -l 01_loop_md_sample.txt
+dragiter -s -p 03_prompt_marketing.toml -r 03_resource_marketing.toml -l 03_loop_marketing.txt
 
 You might add output parameters like
-dragiter -s -p 01_prompt_md_sample.toml -r 01_resource_md_sample.toml -l 01_loop_md_sample.txt -o 01_output.txt -a 01_activity.txt
+dragiter -s -p 03_prompt_marketing.toml -r 03_resource_marketing.toml -l 03_loop_marketing.txt -o 03_output.txt -a 03_activity.txt
 
 Once you confirm the simulation output looks correct, run the actual process by removing the -s flag:
-dragiter -p 01_prompt_md_sample.toml -r 01_resource_md_sample.toml -l 01_loop_md_sample.txt -o 01_output.txt -a 01_activity.txt
+dragiter -p 03_prompt_marketing.toml -r 03_resource_marketing.toml -l 03_loop_marketing.txt -o 03_output.txt -a 03_activity.txt
 
 Start from outside example directory:
-dragiter -s -d -v -b ./examples/01_md_sample -p 01_prompt_md_sample.toml -r 01_resource_md_sample.toml -l 01_loop_md_sample.txt -o ${PWD}/01_output.txt -a ${PWD}/01_activity.txt
+dragiter -s -d -v -b ./examples/03_jsonl_sample -p 03_prompt_marketing.toml -r 03_resource_marketing.toml -l 03_loop_marketing.txt -o ${PWD}/03_output.txt -a ${PWD}/03_activity.txt

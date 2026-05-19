@@ -1,13 +1,4 @@
-# Example of an AI configuration file
-# Configuration Syntax:
-# The tool supports dynamic placeholders.
-# Use [MATERIAL] as a reserved keyword to specify where the reference files should be injected.
-# Use [STDIN] to define the target location for the input data.
-# e.g.
-# --- START OF FILE: main.py / stdin---
-# import os
-# print("Hello World")
-# --- END OF FILE ---
+# example prompt template file
 
 [system]
 instruction = """
@@ -32,9 +23,11 @@ CONTENT:
 """
 
 synthesis = """
-Analyze the following text for year {LOOP_CONTENT}:
+As a precise analyst, evaluate the provided historical reference material to answer the following core question:
 
-Create an overview of the essential aspects!
+**"{LOOP_CONTENT}"**
+
+Extract the key arguments from the text and present your findings strictly as a Markdown table with the columns: "Historical Concept", "Core Argument", and "Meaning for Modern AI".
 """
 
 temperature = 0.0
