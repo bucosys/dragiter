@@ -1,7 +1,16 @@
 import argparse
 import os
+from pathlib import Path
 
-from dragiter.application.config.settings import *
+from dragiter.domain.models.settings import (
+    DebugBoolSetting, SimulateBoolSetting, VerboseBoolSetting,
+    ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
+    OutputModeStringSetting, TaskStringSetting, MaxInputTokensIntSetting, MaxOutputTokensIntSetting,
+    CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
+    PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
+    ResourceFilePathSetting, ValueSetting, TemperatureFloatSetting, RetryDelayIntSetting, MaxRetryIntSetting)
+
+from dragiter.application.config.configuration_decorators import *
 from dragiter.application.core.xdi import *
 from dragiter.infrastructure.io.io_services import read_from_toml
 
@@ -14,16 +23,20 @@ class ConfigurationLoader:
             BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Debug behaviour"),
             BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s", help="Simulation mode"),
             BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose mode"),
-            StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), short_key="k", help="API key"),
-            StringSettingArgumentDecorator(BaseURLStringSetting("base_url"), short_key="u", help="base URL to AI service"),
-            StringSettingArgumentDecorator(ModelNameStringSetting("model_name"), short_key="m", help="model name"),
-            StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="M", help="Output mode: w=overwrite, a=append, x=exclusive"),
+            StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key"),
+            StringSettingArgumentDecorator(BaseURLStringSetting("base_url"), help="base URL to AI service"),
+            StringSettingArgumentDecorator(ModelNameStringSetting("model_name"), help="model name"),
+            StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m", help="Output mode: w=overwrite, a=append, x=exclusive"),
             StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t", help="Ask a specific task"),
-            IntegerSettingArgumentDecorator(MaxTokenIntSetting("max_tokens"), short_key="n", help="Max number of tokens to fetch"),
-            FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"), short_key="c", help="Chars per token"),
+            IntegerSettingArgumentDecorator(MaxInputTokensIntSetting("max_input_tokens"), help="Max number of input tokens"),
+            IntegerSettingArgumentDecorator(MaxOutputTokensIntSetting("max_output_tokens"), help="Max number of output tokens"),
+            FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"), help="Chars per token"),
+            FloatSettingArgumentDecorator(TemperatureFloatSetting("temperatur"), help="llm temperature"),
+            IntegerSettingArgumentDecorator(RetryDelayIntSetting("retry_delay"), help="pause retry delay for <num> seconds"),
+            IntegerSettingArgumentDecorator(MaxRetryIntSetting("max_retry"), help="Amount of retry"),
             PathSettingArgumentDecorator(BaseDirectoryPathSetting("base_directory"), short_key="b", help="Base directory to fetch"),
             PathSettingArgumentDecorator(ActivityFilePathSetting("activity_file"), short_key="a", help="Write activity to file"),
-            PathSettingArgumentDecorator(ConfigFilePathSetting("config_file"), short_key="C", help="Read configuration from file"),
+            PathSettingArgumentDecorator(ConfigFilePathSetting("config_file"), short_key="c", help="Read configuration from file"),
             PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p", help="Read instruction and task template file"),
             PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l", help="Read JSONL loop file"),
             PathSettingArgumentDecorator(ResourceFilePathSetting("resource_file"), short_key="r", help="Read material definition file"),
@@ -210,19 +223,24 @@ class ConfigurationLoader:
             if value_setting_object.is_set:
                 continue  # --> operate on next item in list
 
-            cmd_long_key = "--" + item.long_key.replace('_', '-')
-            cmd_short_key = "-" + item.short_key
+            args: list[str] = [f"--{item.long_key.replace('_', '-')}"]
+            if not item.short_key == "-":
+                args.append(f"-{item.short_key}")
+
             cmd_help = item.help
 
-            # 4 if found, then ...
+            type_mapping: dict[str, any] = {}
+
             if (isinstance(value_setting_object, BoolSetting)):
-                parser.add_argument(cmd_short_key, cmd_long_key, action="store_true", default=None, help=cmd_help)
+                type_mapping = {"action" : "store_true", "default" : None, "help" : cmd_help}
             elif (isinstance(value_setting_object, StringSetting)):
-                parser.add_argument(cmd_short_key, cmd_long_key, type=str, default= None, required=False, help=cmd_help)
+                type_mapping = {"type": str, "default" : None, "required" : False, "help" : cmd_help}
             elif (isinstance(value_setting_object, PathSetting)):
-                parser.add_argument(cmd_short_key, cmd_long_key, type=Path, default=None, required=False, help=cmd_help)
+                type_mapping = {"type": Path, "default": None, "required": False, "help": cmd_help}
             else:
                 pass
+
+            parser.add_argument(*args, **type_mapping)
 
 
         parsed_dict = vars(parser.parse_args())

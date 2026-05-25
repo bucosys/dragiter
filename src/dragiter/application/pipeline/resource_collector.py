@@ -1,14 +1,13 @@
 import re
 from pathlib import Path
 
-from dragiter.application.config.settings import ResourceFilePathSetting, BaseDirectoryPathSetting
+from dragiter.domain.models.settings import ResourceFilePathSetting, BaseDirectoryPathSetting, PathSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.material import Material, Chunk
 from dragiter.domain.models.resources import Resources, ResourceSection
 from dragiter.domain.ports.file_checker import FileChecker
 from dragiter.infrastructure.io.io_services import read_from_toml
 from dragiter.domain.models.text_file import TextFile
-from dragiter.application.config.settings import PathSetting
 
 logger = logging.getLogger(__name__)
 

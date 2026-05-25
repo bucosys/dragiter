@@ -1,6 +1,18 @@
 import os
+from dataclasses import dataclass
+from pathlib import Path
 
-from dragiter.application.config.settings import *
+from dragiter.domain.models.ai_service_parameters import AIServiceParameters
+from dragiter.domain.models.settings import (
+    DebugBoolSetting, SimulateBoolSetting, VerboseBoolSetting,
+    ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
+    OutputModeStringSetting, TaskStringSetting, MaxInputTokensIntSetting, MaxOutputTokensIntSetting,
+    CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
+    PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
+    ResourceFilePathSetting, ValueSetting, PathSetting, TemperatureFloatSetting, RetryDelayIntSetting,
+    MaxRetryIntSetting, RetryDelayIntSetting)
+
+#from dragiter.application.config.configuration_decorators import *
 from dragiter.application.core.xdi import *
 
 logger = logging.getLogger(__name__)
@@ -19,11 +31,18 @@ class ConfigurationValidator:
     def __init__(self) -> None:
         """Modify and validate the configuration"""
 
-    def run(self, api_key_string_setting: ApiKeyStringSetting,
+    def run(self,
+            api_key_string_setting: ApiKeyStringSetting,
             base_url_string_setting: BaseURLStringSetting,
             model_name_string_setting: ModelNameStringSetting,
             output_mode_string_setting: OutputModeStringSetting,
             task_string_setting: TaskStringSetting,
+            chars_per_token_float_setting: CharsPerTokenFloatSetting,
+            max_output_token_int_setting: MaxOutputTokensIntSetting,
+            max_input_token_int_setting: MaxInputTokensIntSetting,
+            temperature_float_setting: TemperatureFloatSetting,
+            retry_delay_int_setting: RetryDelayIntSetting,
+            max_retries_int_setting: MaxRetryIntSetting,
             activity_file_path_setting: ActivityFilePathSetting,
             base_directory_path_setting: BaseDirectoryPathSetting,
             config_file_path_setting: ConfigFilePathSetting,
@@ -36,13 +55,15 @@ class ConfigurationValidator:
             verbose_bool_setting: VerboseBoolSetting
             ) -> list[ValueSetting]:
 
+
+
         try:
 
             CVF = ConfigurationValidatorFinding #shorthand
             cvfs: list[CVF] = []
 
             # check I: must-have-settings
-            if base_directory_path_setting.is_set == False:
+            if not base_directory_path_setting.is_set:
                 base_directory_path_setting.value = Path.cwd()
 
             # rebase all if nessessary
@@ -111,6 +132,31 @@ class ConfigurationValidator:
             ])
 
 
+            # stage III: LLM settings
+            if max_retries_int_setting.is_set:
+                if max_retries_int_setting.value < 0 or max_retries_int_setting.value > 9:
+                    cvfs.append(CVF(max_retries_int_setting.key,
+                                    f"value should be between 0 and 9 inclusive, not {max_retries_int_setting.value}"))
+
+            if retry_delay_int_setting.is_set:
+                if retry_delay_int_setting.value < 0 or retry_delay_int_setting.value > 20:
+                    cvfs.append(CVF(retry_delay_int_setting.key,
+                                    f"value should be between 0 and 20 inclusive, not {retry_delay_int_setting.value}"))
+
+
+            if chars_per_token_float_setting.is_set:
+                if chars_per_token_float_setting.value <= 0.0:
+                    cvfs.append(CVF(chars_per_token_float_setting.key,
+                                    f"value should not be less than 0.0: {chars_per_token_float_setting.value}"))
+
+
+
+            # stage V: Create AIServiceParameters:
+            ai_service_parameters: AIServiceParameters = AIServiceParameters(
+                api_key_string_setting, base_url_string_setting, model_name_string_setting, max_input_token_int_setting,
+                max_output_token_int_setting, temperature_float_setting, retry_delay_int_setting, max_retries_int_setting
+            )
+
 
             if len(cvfs) > 0: raise ConfigurationValidatorError(cvfs)
 
@@ -120,6 +166,8 @@ class ConfigurationValidator:
                 model_name_string_setting,
                 output_mode_string_setting,
                 task_string_setting,
+                max_retries_int_setting,
+                retry_delay_int_setting,
                 activity_file_path_setting,
                 base_directory_path_setting,
                 config_file_path_setting,

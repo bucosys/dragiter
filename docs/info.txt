@@ -32,17 +32,19 @@ OPTIONS
            -d, --debug                Enable debug logging
            -s, --simulate             Simulation mode (no real API calls)
            -v, --verbose              Verbose mode for detailed message output
-           -C, --config-file PATH     Read configuration from a specific file
+           -c, --config-file PATH     Read configuration from a specific file
            -b, --base-directory PATH  Base directory for all relative file
                                       operations
 
        API & Connection Configuration
-           -k, --api-key KEY          API key for the LLM service
-           -u, --base-url URL         Base URL to the AI service endpoint
-           -m, --model-name MODEL     Model identifier (e.g. gpt-4o, qwen3:8b)
-           -n, --max-tokens INT       Max number of tokens to fetch
-           -c, --chars-per-token FLT  Estimated characters per token for
+           --api-key KEY              API key for the LLM service
+           --base-url URL             Base URL to the AI service endpoint
+           --model-name MODEL         Model identifier (e.g. gpt-4o, qwen3:8b)
+           --chars-per-token FLT      Estimated characters per token for
                                       chunking
+           --max-input-tokens INT     Reserved numbers for input
+           --max-output-tokens INT    Reserved numbers for output
+           --temperatur FLT           LLM temperature
 
        Task & Prompt Control
            -p, --prompt-file PATH     Read instruction and task template file
@@ -53,7 +55,7 @@ OPTIONS
            -r, --resource-file PATH   Read resource definition file
 
        Output Control & Logging
-           -M, --output-mode CHAR     Output mode:
+           -m, --output-mode CHAR     Output mode:
                                       w=overwrite, a=append, x=exclusive
            -o, --output-file PATH     Write output to a single file
            -O, --output-directory DIR Write outputs to a specified directory

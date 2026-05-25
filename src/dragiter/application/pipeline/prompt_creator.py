@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from dragiter.application.config.settings import PromptFilePathSetting, TaskStringSetting
+from dragiter.domain.models.settings import PromptFilePathSetting, TaskStringSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.infrastructure.io.io_services import read_from_toml, read_stdin_content
@@ -30,7 +30,7 @@ class PromptCreator:
                 task_sec = toml_result_dict["task"]
 
                 if task_sec.get("first"):
-                    task_sec["first"] = self.merge_stdin_into_string(task_sec["first"], std_in)
+                    task_sec["first"] = self._merge_stdin_into_string(task_sec["first"], std_in)
 
                 output_sec = toml_result_dict["output"]
 
@@ -42,7 +42,7 @@ class PromptCreator:
             raise PromptBuilderError(f"PromptCreator::run failed: {e}") from e
 
 
-    def merge_stdin_into_string(self, target_string: str, stdin_content: str) -> str:
+    def _merge_stdin_into_string(self, target_string: str, stdin_content: str) -> str:
         """
         Replaces {STDIN} placeholder with content if present.
         If placeholder is missing, returns the original string.

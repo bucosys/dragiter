@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
 
-from dragiter.domain.models.extendes_message import ExtendedMessage
+from dragiter.domain.models.extended_message import ExtendedMessage
+from dragiter.domain.models.chat_message import ChatMessages, ChatMessage
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,23 @@ class ConversationHistory:
                 m.processed_at = current_time
 
         return chat_messages
+
+
+    def generate_chat_messages_list(self) -> list[ChatMessages]:
+        # convenience method to generate a list of all input messages (Class ChatMessages) for all chats        # TODO: introduce exceptions
+        chat_input_messages: list[ChatMessages] = []
+        current_chat_messages: ChatMessages = ChatMessages()
+
+        for m in self.message_extensions:
+            if m.type == 'R':
+                current_chat_messages.chat_message_list.append(ChatMessage(m.role, m.content))
+                chat_input_messages.append(current_chat_messages)       #store last one
+                current_chat_messages: ChatMessages = ChatMessages()    #new one
+            else:
+                current_chat_messages.chat_message_list.append(ChatMessage(m.role, m.content))
+
+        return chat_input_messages
+
 
     def __repr__(self):
         # Das hier wird im Logger angezeigt

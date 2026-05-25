@@ -107,7 +107,7 @@ This is particularly helpful for reproducible workflows, version-controlled proj
                      Meaning: Enables verbose mode for detailed progress 
                               tracking during execution.
 
--C, --config-file    Environment: DRAGITER_CONFIG
+-c, --config-file    Environment: DRAGITER_CONFIG
                      Meaning: Path to a specific TOML configuration file, 
                               overriding the default path.
 
@@ -116,16 +116,16 @@ This is particularly helpful for reproducible workflows, version-controlled proj
 
 API and Connection Settings
 ---------------------------
--k, --api-key        Environment: DRAGITER_API_KEY
+--api-key        Environment: DRAGITER_API_KEY
                      Meaning: The API key used to authenticate with your 
                               chosen LLM service.
 
--u, --base-url       Environment: DRAGITER_BASE_URL
+--base-url       Environment: DRAGITER_BASE_URL
                      Meaning: The base URL of the AI service endpoint. This is 
                               especially useful if you are routing requests to 
                               a custom, proxy, or local LLM instance.
 
--m, --model-name     Environment: DRAGITER_MODEL_NAME
+--model-name     Environment: DRAGITER_MODEL_NAME
                      Meaning: The specific model identifier you want to query 
                               (e.g., gpt-4o, claude-3-5).
 
@@ -168,7 +168,7 @@ input options like material and loop files require the template mode (-p).
 
 Output Routing and Control
 --------------------------
--M, --output-mode    Environment: DRAGITER_OUTPUT_MODE
+-m, --output-mode    Environment: DRAGITER_OUTPUT_MODE
                      Meaning: Determines the file writing behavior. Valid 
                               single-character options are:
                                 w = Overwrite existing files
@@ -319,7 +319,7 @@ The Setup:
 
 The Command:
     dragiter -p extract_prompt.toml -r quarterly_reports.toml -l metrics_loop.txt \
-         -o final_summary.txt -M a
+         -o final_summary.txt -m a
 
 Result:
 dragiter iterates through the loop file. First, it asks the AI to find 
@@ -478,8 +478,8 @@ The Command:
 Once Ollama is running in the background, you instruct dragiter to bypass the cloud 
 and send the data to your localhost:
 
-    dragiter -p code_review.toml -r local_files.toml -u "http://localhost:11434/v1" \
-         -m "llama3" -k "dummy-key"
+    dragiter -p code_review.toml -r local_files.toml --base-url "http://localhost:11434/v1" \
+         --model-name "llama3" --api-key "dummy-key"
 
 Result:
 dragiter packages your prompt and material, but instead of sending it over the open 
@@ -497,16 +497,16 @@ For Grok (xAI):
 If you want to use xAI's Grok model, you simply point the Base URL to their 
 endpoint and provide your xAI API key.
 
-    dragiter -p analysis.toml -r data.toml -u "https://api.x.ai/v1" \
-         -m "grok-beta" -k "YOUR_XAI_KEY"
+    dragiter -p analysis.toml -r data.toml --base-url "https://api.x.ai/v1" \
+         --model-name "grok-beta" --api-key "YOUR_XAI_KEY"
 
 For Google Vertex AI or Other Services:
 While some services use their own unique SDKs, many offer compatibility layers 
 or intermediary proxy gateways (like LiteLLM). As long as you have the 
 compatible base URL, you can route dragiter to virtually any model on the market:
 
-    dragiter -p creative_prompt.toml -r context.toml -u "YOUR_PROVIDER_BASE_URL" \
-         -m "gemini-1.5-pro" -k "YOUR_API_KEY"
+    dragiter -p creative_prompt.toml -r context.toml --base-url "YOUR_PROVIDER_BASE_URL" \
+         --model-name "gemini-1.5-pro" --api-key "YOUR_API_KEY"
 
 By keeping the application logic separate from the LLM provider, dragiter ensures 
 your automated workflows are future-proof. If a faster, cheaper, or smarter 

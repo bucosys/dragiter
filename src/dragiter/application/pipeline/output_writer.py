@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from dragiter.application.config.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting, \
+from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting, \
     ActivityFilePathSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.application_result import ApplicationResult

@@ -1,6 +1,6 @@
 from json import JSONDecodeError, loads
 
-from dragiter.application.config.settings import LoopFilePathSetting
+from dragiter.domain.models.settings import LoopFilePathSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.loop import Loop
 from dragiter.infrastructure.io.io_services import read_stripped_lines_from_file

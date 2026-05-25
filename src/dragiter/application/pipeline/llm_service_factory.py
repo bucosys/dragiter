@@ -1,7 +1,7 @@
-from dragiter.application.config.settings import ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting
-from dragiter.application.config.settings import SimulateBoolSetting
+from dragiter.domain.models.settings import ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting
+from dragiter.domain.models.settings import SimulateBoolSetting
 from dragiter.domain.models.prompt_template import PromptTemplate
-from dragiter.domain.ports.llm_service_protocol import *
+from dragiter.domain.ports.llm_service import *
 from dragiter.infrastructure.llm.llm_service_adapter import LLMServiceAdapter
 from dragiter.infrastructure.llm.mockai_service import MockAIService
 from dragiter.infrastructure.llm.openai_service import OpenAIService
@@ -17,7 +17,7 @@ class LLMServiceFactory():
             model_name_string_setting: ModelNameStringSetting,
             prompt: PromptTemplate,
             simulation_boolean_setting: SimulateBoolSetting
-            ) -> LLMServiceProtocol:
+            ) -> LLMService:
 
         llmservice_protocol = None
 

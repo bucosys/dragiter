@@ -9,6 +9,7 @@ from dragiter.application.config.configuration_loader import ConfigurationLoader
 from dragiter.application.config.configuration_validator import ConfigurationValidator
 from dragiter.application.pipeline.application import Application
 from dragiter.application.pipeline.chat_manager import ChatManager
+from dragiter.application.pipeline.context_window_validator import ContextWindowValidator
 from dragiter.application.pipeline.llm_service_factory import LLMServiceFactory
 from dragiter.application.pipeline.loop_builder import LoopBuilder
 from dragiter.application.pipeline.material_tokenizer import MaterialTokenizer
@@ -21,6 +22,9 @@ from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileR
 from dragiter.infrastructure.cli.resource_exporter import ResourceExporter
 from dragiter.infrastructure.cli.info_presenter import InfoPresenter
 from dragiter.application.config.logging_configuration import LoggingConfiguration, LoggingConfigurator
+from dragiter.infrastructure.llm.mockai_service import MockAIService
+from dragiter.infrastructure.llm.openai_service import OpenAIService
+from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
 
 
 def gen_docs():
@@ -65,8 +69,8 @@ def main():
         app.register(LoopBuilder())
         app.register(PromptCreator())
         app.register(MessageBuilder())
-        app.register(LLMServiceFactory())
-        app.register(ChatManager())
+        app.register(ContextWindowValidator(SimplePayloadEstimator()))
+        app.register(ChatManager(OpenAIService()))
         app.register(OutputWriter())
         app.run()
 
