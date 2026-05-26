@@ -6,8 +6,9 @@ from typing import List, Dict
 from openai import OpenAI
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_result import ChatResult
-from dragiter.domain.ports.llm_service import LLMService
+
+from dragiter.domain.models.chat_message import ExtendedMessages, ChatResult
+from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class OpenAIPayload(TypedDict, total=False):
 
 class OpenAIService(LLMService):
 
-    def process_query(self, aisp: AIServiceParameters, messages: List[Dict[str, str]] = []) -> ChatResult:
+    def process_query(self, aisp: AIServiceParameters, extended_messages: ExtendedMessages) -> ChatResult:
 
         attempt = 0
         last_exception: Exception | None = None
@@ -37,7 +38,7 @@ class OpenAIService(LLMService):
         chat_result = ChatResult(role="assistent")
         chat_result.started_at = datetime.now()
 
-        logger.debug(f"(OpenAI SDK) values initialized. Model: {aisp.model_name_string.value}")
+        logger.debug(f"(OpenAI SDK) values initialized. Model: {aisp.model_name_string_setting.value}")
 
         # ... inside your adapter method ...
 
@@ -56,8 +57,6 @@ class OpenAIService(LLMService):
             # will instantly throw a red underline and fail the build.
             api_kwargs["max_tokens"] = aisp.max_output_tokens_int_setting.value
 
-        # 3. Execution
-        response = client.chat.completions.create(**api_kwargs)
 
         while attempt < aisp.max_retries_int_setting.value or 1:
 
@@ -96,9 +95,9 @@ class OpenAIService(LLMService):
                 time.sleep(wait_time)
 
         #final method path
-        raise OpenAI_Service_Error(f"Studio (OpenAI-SDK): Attempt {attempt} failed: {last_exception}")
+        raise OpenAIServiceError(f"Studio (OpenAI-SDK): Attempt {attempt} failed: {last_exception}")
 
 
 
-class OpenAI_Service_Error(Exception):
+class OpenAIServiceError(LLMServiceError):
     pass

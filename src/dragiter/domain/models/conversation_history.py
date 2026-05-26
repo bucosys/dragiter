@@ -1,8 +1,7 @@
 import logging
 from datetime import datetime
 
-from dragiter.domain.models.extended_message import ExtendedMessage
-from dragiter.domain.models.chat_message import ChatMessages, ChatMessage
+from dragiter.domain.models.chat_message import ChatMessages, ChatMessage, ExtendedMessage
 
 logger = logging.getLogger(__name__)
 

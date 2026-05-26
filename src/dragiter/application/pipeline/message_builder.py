@@ -3,7 +3,7 @@ import json
 from dragiter.domain.models.settings import VerboseBoolSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.conversation_history import ConversationHistory
-from dragiter.domain.models.extended_message import ExtendedMessage
+from dragiter.domain.models.chat_message import ExtendedMessage
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate

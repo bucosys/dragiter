@@ -182,6 +182,9 @@ class ConfigurationValidator:
                 for element in all_checked_elements:
                     logger.debug(f"QC PASSED: [{element.key}: {element.value}]")
 
+
+            #trick append ai_service_parameter at this time:
+            all_checked_elements.append(ai_service_parameters)
             return all_checked_elements
 
         except ConfigurationValidatorError as exc:

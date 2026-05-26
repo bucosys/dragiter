@@ -45,6 +45,9 @@ OPTIONS
            --max-input-tokens INT     Reserved numbers for input
            --max-output-tokens INT    Reserved numbers for output
            --temperatur FLT           LLM temperature
+           --max-retry INT            Retry <num> times
+           --retry-delay INT          Pause retry delay for <num> seconds
+
 
        Task & Prompt Control
            -p, --prompt-file PATH     Read instruction and task template file

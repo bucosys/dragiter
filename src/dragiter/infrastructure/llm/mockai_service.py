@@ -3,38 +3,59 @@ from datetime import datetime
 from typing import List, Dict
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_result import ChatResult
-from dragiter.domain.ports.llm_service import LLMService
+
+from dragiter.domain.models.chat_message import ExtendedMessages, ChatMessage, ChatResult, ExtendedMessage, ChatRoles
+from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
 
 
 class MockAIService(LLMService):
-    def __init__(self, ai_service_parameters: AIServiceParameters):
-        self.ai_service_parameters = ai_service_parameters
 
-        logger.debug(f"🔧 (Mock AI SDK) values initialized. Model: {self.model_name}")
-
-    def process_query(self, aisp: AIServiceParameters, messages: List[Dict[str, str]] = []) -> ChatResult:
+    def process_query(self, aisp: AIServiceParameters, extended_messages: ExtendedMessages) -> None:
         """
         Simulates an LLM response by echoing the last user message.
         Useful for verifying that prompts and materials were correctly merged.
         """
 
-        logger.debug(f"🔧 (Mock AI SDK) values initialized. Model: {aisp.model_name_string.value}")
+        logger.debug(f"🔧 (Mock AI SDK) values initialized. Model: {aisp.model_name_string_setting.value}")
+
+        #validation section:
+
+        if not aisp:
+            raise MockAIServiceError(f"MockAiService::process_query: AIServiceParameters is None.")
+
+        if not extended_messages:
+            raise MockAIServiceError(f"MockAiService::process_query: ExtendedMessages is None.")
+
+        if not extended_messages.extended_message_list:
+            raise MockAIServiceError(f"MockAiService::process_query: ExtendedMessages List is None or empty.")
+
+        if len(extended_messages.extended_message_list) == 1:
+            raise MockAIServiceError(f"MockAiService::process_query: ExtendedMessages contains only one message (likely the answer container).")
+
+
+        # generate messages but not the last one (this is the result...)
+        input_messages: List[Dict[str, str]] = [
+            {"role": msg.role, "content": msg.content}
+            for msg in extended_messages.extended_message_list[:-1]
+        ]
+
+        output_message: ExtendedMessage =  extended_messages.extended_message_list[-1]
+
 
         # Fallback if messages list is empty
-        if not messages:
-            logger.warning("Mock AI received an empty message list.")
-            return f"MOCK_AI: No input received at {datetime.now()}"
+        if not input_messages:
+            raise MockAIServiceError(f"MockAiService::process_query: Empty input message list.")
+
+
 
         # Get the last message (usually the user prompt with the injected material)
-        last_msg = messages[-1]
+        last_msg = input_messages[-1]
         role = last_msg.get("role", "unknown")
         content = last_msg.get("content", "")
-        chat_result = ChatResult(role="assistent")
 
-        chat_result.started_at = datetime.now()
+
 
         # Create a detailed response for debugging
         mock_response = (
@@ -47,10 +68,18 @@ class MockAIService(LLMService):
             f"[END OF MOCK]"
         )
 
-        logger.debug(f"Mock AI generated echo for role '{role}'")
-        chat_result.finis_response = "MOCK_AI"
+        output_message.role = ChatRoles.ASSISTANT
+        output_message.content = mock_response
+
+        chat_result = extended_messages.chat_result
+        chat_result.started_at = datetime.now()
+        chat_result.finish_response = "MOCK_AI"
         chat_result.content = mock_response
         chat_result.ended_at = datetime.now()
         chat_result.duration_ms = (chat_result.ended_at - chat_result.started_at).total_seconds()
 
-        return chat_result
+        logger.debug(f"Mock AI generated echo for role '{role}'")
+
+
+class MockAIServiceError(LLMServiceError):
+    pass
