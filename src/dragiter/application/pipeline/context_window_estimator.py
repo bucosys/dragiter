@@ -1,23 +1,22 @@
 from multiprocessing.util import debug
 
+from dragiter.domain.models.chat_sessions import ChatSessions, ChatSession
 from dragiter.domain.models.settings import CharsPerTokenFloatSetting, MaxInputTokensIntSetting, MaxOutputTokensIntSetting, SimulateBoolSetting, \
     VerboseBoolSetting
 from dragiter.application.core.xdi import *
-from dragiter.domain.models.conversation_history import ConversationHistory
-from dragiter.domain.models.chat_message import ChatMessages
-from dragiter.infrastructure.llm.llm_service_adapter import LLMServiceAdapter
 
 from dragiter.domain.ports.payload_estimator import PayloadEstimator
 
 
 logger = logging.getLogger(__name__)
 
-class ContextWindowValidator:
+class ContextWindowEstimator:
+
     def __init__(self, payload_estimator: PayloadEstimator) -> None:
         self._payload_estimator = payload_estimator
 
     def run(self,
-            conversation_history: ConversationHistory,
+            chat_sessions: ChatSessions,
             verbose_boolean_setting: VerboseBoolSetting,
             simulation_boolean_setting: SimulateBoolSetting,
             chars_per_token_float_setting: CharsPerTokenFloatSetting,
@@ -39,12 +38,13 @@ class ContextWindowValidator:
                          f"max-output-tokens: {max_output_tokens_int_setting.value}")
 
         try:
-            chat_messages_list: list[ChatMessages] = conversation_history.generate_chat_messages_list()
-            calc_input_token_amount: int = 0
 
+            calc_input_token_amount: int = 0
             counter: int = 0
-            for chat_messages in chat_messages_list:
-                calc_input_token_amount = self._payload_estimator.estimate(chat_messages)
+            for chat_session in chat_sessions.session_list:
+                calc_input_token_amount = self._payload_estimator.estimate(
+                    chat_session.input_chat_message_list,
+                    chars_per_token_float_setting.value)
 
 
                 if verbose_boolean_setting.value:

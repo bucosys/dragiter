@@ -6,8 +6,7 @@ from typing import List, Dict
 from openai import OpenAI
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-
-from dragiter.domain.models.chat_message import ExtendedMessages, ChatResult
+from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
@@ -30,22 +29,28 @@ class OpenAIPayload(TypedDict, total=False):
 
 class OpenAIService(LLMService):
 
-    def process_query(self, aisp: AIServiceParameters, extended_messages: ExtendedMessages) -> ChatResult:
+    def process_query(self, aisp: AIServiceParameters, chat_session: ChatSession) -> ChatSession:
 
-        attempt = 0
+        attempt:int = 0
         last_exception: Exception | None = None
-        retry_delay: int = aisp.retry_delay_int_setting.value
-        chat_result = ChatResult(role="assistent")
+        retry_delay: int = aisp.retry_delay_int_setting.value or 3
+        chat_result = chat_session.chat_result
         chat_result.started_at = datetime.now()
 
         logger.debug(f"(OpenAI SDK) values initialized. Model: {aisp.model_name_string_setting.value}")
 
         # ... inside your adapter method ...
+        # Result: [{"role": "user", "content": "Hello"}, ...]
+        dict_list = [
+            {"role": msg.role, "content": msg.content}
+            for msg in chat_session.input_chat_message_list
+        ]
+
 
         # 1. Type-hint the dictionary upon creation
         api_kwargs: OpenAIPayload = {
             "model": aisp.model_name_string_setting.value,
-            "messages": messages
+            "messages": dict_list
         }
 
         # 2. Dynamic injection
@@ -58,7 +63,7 @@ class OpenAIService(LLMService):
             api_kwargs["max_tokens"] = aisp.max_output_tokens_int_setting.value
 
 
-        while attempt < aisp.max_retries_int_setting.value or 1:
+        while attempt < (aisp.max_retries_int_setting.value or 1):
 
             try:
                 # Initialization of the OpenAI client
@@ -73,7 +78,7 @@ class OpenAIService(LLMService):
 
                 # Extract answer and save to history
                 answer = response.choices[0].message.content.strip() # strip() suggested by grok
-
+                chat_session.output_chat_message.content = answer or ""
                 chat_result.content = answer
                 chat_result.finish_reason = response.choices[0].finish_reason
                 chat_result.input_tokens = response.usage.prompt_tokens

@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 
+from dragiter.domain.models.chat_sessions import ChatSessions, ChatMessage
 from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting, \
     ActivityFilePathSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.application_result import ApplicationResult
-from dragiter.domain.models.conversation_history import ConversationHistory
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
@@ -18,7 +18,8 @@ class OutputWriter:
 
 
 
-    def run(self, conversation_history: ConversationHistory,
+    def run(self,
+            chat_sessions: ChatSessions,
             activity_file_path_setting: ActivityFilePathSetting,
             output_file_path_setting: OutputFilePathSetting,
             output_directory_path_setting: OutputDirectoryPathSetting,
@@ -32,7 +33,7 @@ class OutputWriter:
             application_result = ApplicationResult(0)
 
             # create simple list
-            content_list = [m.content for m in conversation_history.message_extensions if m.type == "R"]
+            content_list = [chat_session.output_chat_message.content for chat_session in chat_sessions.session_list]
 
             # if nothin to report - bail out ...
             out_data = " ".join(content_list)
@@ -69,13 +70,20 @@ class OutputWriter:
                 activity_dicts: list[dict[str, str]] = []
                 activity_lines: list[str] = []
 
-                for m in conversation_history.message_extensions:
+                chat_message_list: list[ChatMessage] = []
+                for chat_session in chat_sessions.session_list:
+                    for chat_message in chat_session.input_chat_message_list:
+                        activity_dicts.append(
+                            json.dumps({
+                                "TS": chat_session.chat_result.ended_at.isoformat() if chat_session.chat_result.ended_at else "",
+                                "RL": chat_message.role,
+                                "CT": chat_message.content}))
+
                     activity_dicts.append(
                         json.dumps({
-                            "TS": m.processed_at.isoformat() if m.processed_at else "",
-                            "TP": m.type,
-                            "RL": m.role,
-                            "CT": m.content}))
+                            "TS": chat_session.chat_result.ended_at.isoformat() if chat_session.chat_result.ended_at else "",
+                            "RL": chat_session.output_chat_message.role,
+                            "CT": chat_session.output_chat_message.content}))
 
                 write_or_append_lines_to_unique_file(activity_file_path_setting.value, open_mode, activity_dicts)
             # end of activity block
@@ -88,15 +96,6 @@ class OutputWriter:
             return ApplicationResult(0)
         except Exception as e:
             raise OutputWriterError(f"Output dispatcher failure.") from e
-
-
-
-    # def _one_result_to_file(self, file_path: Path, mode: str, results: list[str]) -> os.stat_result:
-    #     if mode == "a":
-    #         return append_lines_to_file(file_path, results)
-    #     else:
-    #         return write_lines_to_unique_file(file_path, (mode == "w"), results)
-    #
 
 
 class OutputWriterError(Exception):

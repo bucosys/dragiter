@@ -1,14 +1,13 @@
 import logging
 
-from dragiter.domain.models.chat_message import ChatMessages
+from dragiter.domain.models.chat_sessions import ChatMessage
 from dragiter.domain.ports.payload_estimator import PayloadEstimator, PayloadEstimatorError
-from dragiter.domain.models.conversation_history import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
 
 class SimplePayloadEstimator(PayloadEstimator):
-    def estimate(self, chat_messages: ChatMessages, chars_per_token: float) -> int:
+    def estimate(self, chat_messages: list[ChatMessage], chars_per_token: float) -> int:
 
 
         if len(chat_messages) < 1:

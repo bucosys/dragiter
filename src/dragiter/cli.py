@@ -1,28 +1,23 @@
 import logging
-import os
 import sys
-import shutil
-import importlib.resources
-from pathlib import Path
 
 from dragiter.application.config.configuration_loader import ConfigurationLoader
 from dragiter.application.config.configuration_validator import ConfigurationValidator
+from dragiter.application.config.logging_configuration import LoggingConfiguration, LoggingConfigurator
 from dragiter.application.pipeline.application import Application
 from dragiter.application.pipeline.chat_manager import ChatManager
-from dragiter.application.pipeline.context_window_validator import ContextWindowValidator
-from dragiter.application.pipeline.llm_service_factory import LLMServiceFactory
+from dragiter.application.pipeline.context_window_estimator import ContextWindowEstimator
 from dragiter.application.pipeline.loop_builder import LoopBuilder
 from dragiter.application.pipeline.material_tokenizer import MaterialTokenizer
-from dragiter.application.pipeline.resource_collector import ResourceCollector
 from dragiter.application.pipeline.message_builder import MessageBuilder
 from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.application.pipeline.prompt_creator import PromptCreator
+from dragiter.application.pipeline.resource_collector import ResourceCollector
+from dragiter.domain.services.chat_sessions_validator import ChatSessionsValidator
+from dragiter.infrastructure.cli.info_presenter import InfoPresenter
+from dragiter.infrastructure.cli.resource_exporter import ResourceExporter
 from dragiter.infrastructure.file.simple_file_checker import SimpleFileChecker
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
-from dragiter.infrastructure.cli.resource_exporter import ResourceExporter
-from dragiter.infrastructure.cli.info_presenter import InfoPresenter
-from dragiter.application.config.logging_configuration import LoggingConfiguration, LoggingConfigurator
-from dragiter.infrastructure.llm.mockai_service import MockAIService
 from dragiter.infrastructure.llm.openai_service import OpenAIService
 from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
 
@@ -37,10 +32,7 @@ def gen_examples():
     ResourceExporter.export("examples")
 
 
-
 def main():
-
-
     ## PRE SELECTOR
     # S1: No params ? show usage
 
@@ -53,7 +45,6 @@ def main():
     if any(arg.lower() in ("--info", "-info", "/info") for arg in sys.argv):
         return InfoPresenter.show_help()
 
-
     ## PRE TASK
     logconf: LoggingConfiguration = LoggingConfigurator.parse_and_configure()
     logger = logging.getLogger(__name__)
@@ -62,16 +53,16 @@ def main():
     try:
 
         app = Application()
-        app.register(ConfigurationLoader())
-        app.register(ConfigurationValidator())
-        app.register(ResourceCollector(SimpleFileChecker()))
-        app.register(MaterialTokenizer(SimpleTextFileReader()))
-        app.register(LoopBuilder())
-        app.register(PromptCreator())
-        app.register(MessageBuilder())
-        app.register(ContextWindowValidator(SimplePayloadEstimator()))
-        app.register(ChatManager(OpenAIService()))
-        app.register(OutputWriter())
+        app.register_worker(ConfigurationLoader())
+        app.register_worker(ConfigurationValidator())
+        app.register_worker(ResourceCollector(SimpleFileChecker()))
+        app.register_worker(MaterialTokenizer(SimpleTextFileReader()))
+        app.register_worker(LoopBuilder())
+        app.register_worker(PromptCreator())
+        app.register(MessageBuilder(), ChatSessionsValidator())
+        app.register_worker(ContextWindowEstimator(SimplePayloadEstimator()))
+        app.register_worker(ChatManager(OpenAIService()))
+        app.register_worker(OutputWriter())
         app.run()
 
         return 0
@@ -87,6 +78,7 @@ def main():
 
         logger.error(f"A critical error occurred: {e}", exc_info=logconf.verbose)
         return 1
+
 
 if __name__ == "__main__":
     # Pass the integer return value from main() directly to the OS
