@@ -10,8 +10,6 @@ logger = logging.getLogger(__name__)
 class MaterialTokenizer:
     def __init__(self, text_file_reader: TextFileReader) -> None:
         self.text_file_reader = text_file_reader
-        self.global_id: int = 0
-
 
     def run(self, resources: Resources) -> Material:
         all_chunks: list[Chunk] = []
@@ -29,7 +27,7 @@ class MaterialTokenizer:
 
     def _process_markdown_configs(self, rs: ResourceSection) -> list[Chunk]:
         section_chunks : list[Chunk] = []
-        self.global_id : int = 1
+        global_id : int = 1
 
         for path_obj in rs.file_paths:
             content = self.text_file_reader.read(path_obj)  # INHERITANCE TEXT_FILE SAVE READ FILE CONTENT ###
@@ -45,14 +43,14 @@ class MaterialTokenizer:
             preamble = parts[0].strip()
             if preamble:
                 section_chunks.append(Chunk(
-                    num_id=self.global_id,
+                    num_id=global_id,
                     filename=path_obj.path.as_posix(),
                     section_name=rs.section_name,
                     section_num_id=section_internal_id,
                     valid=self._is_content_valid(preamble, rs.exclude_filters, rs._include_filters),
                     content=preamble
                 ))
-                self.global_id += 1
+                global_id += 1
                 section_internal_id += 1
 
             # 2. HANDLE MATCHED CHAPTERS
@@ -65,14 +63,14 @@ class MaterialTokenizer:
 
                 if full_content:
                     section_chunks.append(Chunk(
-                        num_id=self.global_id,
+                        num_id=global_id,
                         filename=path_obj.path.as_posix(),
                         section_name=rs.section_name,
                         section_num_id=section_internal_id,
                         valid=self._is_content_valid(full_content, rs.exclude_filters, rs.include_filters),
                         content=full_content
                     ))
-                    self.global_id += 1
+                    global_id += 1
                     section_internal_id += 1
 
         return section_chunks

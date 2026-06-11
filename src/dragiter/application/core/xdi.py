@@ -144,9 +144,9 @@ class ApplicationManager:
                 args = self.validate_worker_dependencies(worker)
 
                 # 2. Execute worker
-                logger.debug(f"--- START WORKER: {worker.__class__.__name__} ---")
+                logger.info(f"--- Processing: {worker.__class__.__name__} ---")
                 result = worker.run(**args)
-                logger.debug(f"--- FINISH WORKER: {worker.__class__.__name__} Returning: {result} --- ")
+                logger.info(f"--- Completed>: {worker.__class__.__name__} -> {result} --- ")
 
 
                 if isinstance(result, (list, set, tuple)):

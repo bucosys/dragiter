@@ -76,7 +76,7 @@ def main():
     except Exception as e:
         # Log the full error message to stderr
 
-        logger.error(f"A critical error occurred: {e}", exc_info=logconf.verbose)
+        logger.error(f"A critical error occurred: {e}", exc_info=logconf.debug)
         return 1
 
 

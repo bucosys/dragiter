@@ -1,6 +1,7 @@
 from multiprocessing.util import debug
 
 from dragiter.domain.models.chat_sessions import ChatSessions, ChatSession
+from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.settings import CharsPerTokenFloatSetting, MaxInputTokensIntSetting, MaxOutputTokensIntSetting, SimulateBoolSetting, \
     VerboseBoolSetting
 from dragiter.application.core.xdi import *
@@ -37,33 +38,53 @@ class ContextWindowEstimator:
                          f"max-input-tokens: {max_input_tokens_int_setting.value}, "
                          f"max-output-tokens: {max_output_tokens_int_setting.value}")
 
+
+        out_tokens: int = max_output_tokens_int_setting.value
+        limit: int = max_input_tokens_int_setting.value + out_tokens
+
+        report = ContextValidationReport(
+            is_valid=True,
+            total_tokens=0,
+            max_tokens_limit=limit
+        )
+
         try:
 
-            calc_input_token_amount: int = 0
-            counter: int = 0
-            for chat_session in chat_sessions.session_list:
-                calc_input_token_amount = self._payload_estimator.estimate(
+            calc_input_tokens: int = 0
+
+            for index, chat_session in enumerate(chat_sessions.session_list):
+                calc_input_tokens = self._payload_estimator.estimate(
                     chat_session.input_chat_message_list,
                     chars_per_token_float_setting.value)
 
+                tot_tokens: int = calc_input_tokens + out_tokens
+
+                report.total_tokens += tot_tokens
+                report.session_token_counts[index] = tot_tokens
+
+                # Track the maximal value (High-Water Mark)
+                if tot_tokens > report.max_session_tokens:
+                    report.max_session_tokens = tot_tokens
+                    report.max_session_index = index
 
                 if verbose_boolean_setting.value:
-                    debug(f"Calculated input token amount: {calc_input_token_amount}")
+                    debug(f"Calculated input token amount: {calc_input_tokens}")
 
-                if calc_input_token_amount > max_input_tokens_int_setting.value:
-                    debug(f"Simulated input token amount: {calc_input_token_amount} is larger than max-input-tokens-int-setting value.")
+                if calc_input_tokens > max_input_tokens_int_setting.value:
+                    debug(f"Simulated input token amount: {calc_input_tokens} is larger than max-input-tokens-int-setting value.")
+                    failed_message = f"Token amount ({calc_input_tokens}) exceeds max limcalc_input_token_amountit ({max_input_tokens_int_setting.value})."
+                    report.is_valid = False
+                    report.simulation_warnings.append(failed_message)
                     if not simulation_boolean_setting.value:
                         # real life
-                        raise ContextWindowValidatorError(f"Validation failed at messages block index {counter}: ")
+                        raise ContextWindowValidatorError(f"Validation failed at messages block index {index}: ")
 
-                counter += 1
 
+            return report
 
         except Exception as e:
             raise ContextWindowValidatorError(f"Failed to validate context window due to that reason: {e}") from e
 
-        finally:
-            return None
 
 
 

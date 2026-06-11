@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragiter"
-version = "0.2026.05.18"
+version = "0.2026.06.09"
 description = "dragiter - Deterministic RAG Iterator."
 readme = "README.md"
 requires-python = ">=3.11"

@@ -50,7 +50,7 @@ automatically without needing the -c flag:
 
     ln -s /path/to/your/real/config.toml ~/.config/dragiter/config.toml
 
-The -C Flag:
+The -c Flag:
 Point dragiter directly to a specific TOML config file when running your command.
 
 Environment Variables:
@@ -189,6 +189,53 @@ Output Routing and Control
 -a, --activity-file  Environment: DRAGITER_ACTIVITY_FILE
                      Meaning: Path to write a detailed activity trace and log 
                               of the executed workflow for auditing purposes.
+
+Advanced LLM Settings
+---------------------
+
+--max-input-tokens   Environment: DRAGITER_MAX_INPUT_TOKENS
+                     Meaning: Sets the maximum number of input tokens allowed 
+                              to be transmitted to the AI service. This helps 
+                              limit the usage of the context window and 
+                              prevents unexpected API costs.
+
+--max-output-tokens  Environment: DRAGITER_MAX_OUTPUT_TOKENS
+                     Meaning: Specifies the maximum number of output tokens 
+                              that the model is permitted to generate for a 
+                              single response.
+
+--chars-per-token    Environment: DRAGITER_CHARS_PER_TOKEN
+                     Meaning: A floating-point value indicating the average 
+                              number of characters that correspond to one token. 
+                              Used internally by dragiter for estimating text 
+                              lengths and token consumption.
+
+--temperature        Environment: DRAGITER_TEMPERATURE
+                     Meaning: Controls the creativity or unpredictability of 
+                              the LLM's responses. A lower value (e.g. 0.0) 
+                              ensures deterministic, precise answers, whereas 
+                              higher values increase variance.
+
+
+Fault Tolerance and Rate Limits
+-------------------------------
+
+--retry-delay        Environment: DRAGITER_RETRY_DELAY
+                     Meaning: Determines the pause duration in seconds that 
+                              dragiter waits before retrying a failed API 
+                              call (e.g. when encountering rate limits).
+
+--max-retry          Environment: DRAGITER_MAX_RETRY
+                     Meaning: Configures the maximum number of times (<num>) 
+                              dragiter will retry a failed API call before 
+                              aborting the entire execution process.
+
+**A Note on Best Practices**
+Because these advanced parameters dictate the fundamental behaviour, connection limits, 
+and pacing of your AI workflow, they rarely change between individual runs. 
+It is highly recommended to define these values permanently within your `config.toml` 
+file rather than passing them via the command line every time.
+
 
 Chapter 3: Using Material and Prompt Templates
 ==============================================
@@ -459,9 +506,9 @@ The Magic Flags: Base URL and Model Name
 To switch AI engines, you primarily rely on three configuration flags (which 
 can also be set in your config.toml or environment variables):
 
-  * -u, --base-url   : This tells dragiter exactly where to send your prompt payload.
-  * -m, --model-name : This tells the receiving server which specific model to use.
-  * -k, --api-key    : The authentication token for the service.
+  * --base-url   : This tells dragiter exactly where to send your prompt payload.
+  * --model-name : This tells the receiving server which specific model to use.
+  * --api-key    : The authentication token for the service.
 
 
 Scenario 6: Zero-Cost, Private Local AI with Ollama

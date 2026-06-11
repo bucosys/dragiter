@@ -6,7 +6,7 @@ from typing import List, Dict
 from openai import OpenAI
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_sessions import ChatSession
+from dragiter.domain.models.chat_sessions import ChatSession, ChatResult
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class OpenAIPayload(TypedDict, total=False):
 
 class OpenAIService(LLMService):
 
-    def process_query(self, aisp: AIServiceParameters, chat_session: ChatSession) -> ChatSession:
+    def process_query(self, aisp: AIServiceParameters, chat_session: ChatSession) -> ChatResult:
 
         attempt:int = 0
         last_exception: Exception | None = None
@@ -62,14 +62,22 @@ class OpenAIService(LLMService):
             # will instantly throw a red underline and fail the build.
             api_kwargs["max_tokens"] = aisp.max_output_tokens_int_setting.value
 
+        # 1. Catch fatal configuration errors immediately (No Retries)
+        try:
+            client = OpenAI(
+                api_key=aisp.api_key_string_setting.value,
+                base_url=aisp.base_url_string_setting.value
+            )
+        except Exception as config_error:
+            # We wrap it in your custom error and stop immediately.
+            raise OpenAIServiceError(
+                f"Studio (OpenAI-SDK): Failed to initialize client. Check API key/URL. Details: {config_error}")
+
 
         while attempt < (aisp.max_retries_int_setting.value or 1):
 
             try:
                 # Initialization of the OpenAI client
-                client = OpenAI(
-                    api_key=aisp.api_key_string_setting.value,
-                    base_url=aisp.base_url_string_setting.value)
 
                 # We store the history locally, as the OpenAI SDK
                 # (unlike genai) does not maintain an internal chat state.

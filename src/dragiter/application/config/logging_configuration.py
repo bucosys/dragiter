@@ -33,7 +33,8 @@ class LoggingConfigurator:
             os.environ.get(env_verbose_variable, "").upper() in ("TRUE", "1", "YES")
         )
 
-        log_level = logging.DEBUG if debug else logging.INFO
+
+        log_level = logging.DEBUG if debug else (logging.INFO if verbose else logging.WARNING)
 
         # Logging config
         logging.basicConfig(

@@ -31,7 +31,7 @@ class ConfigurationLoader:
             IntegerSettingArgumentDecorator(MaxInputTokensIntSetting("max_input_tokens"), help="Max number of input tokens"),
             IntegerSettingArgumentDecorator(MaxOutputTokensIntSetting("max_output_tokens"), help="Max number of output tokens"),
             FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"), help="Chars per token"),
-            FloatSettingArgumentDecorator(TemperatureFloatSetting("temperatur"), help="LLM temperature"),
+            FloatSettingArgumentDecorator(TemperatureFloatSetting("temperature"), help="LLM temperature"),
             IntegerSettingArgumentDecorator(RetryDelayIntSetting("retry_delay"), help="Pause retry delay for <num> seconds"),
             IntegerSettingArgumentDecorator(MaxRetryIntSetting("max_retry"), help="Retry <num> times"),
             PathSettingArgumentDecorator(BaseDirectoryPathSetting("base_directory"), short_key="b", help="Base directory to fetch"),
