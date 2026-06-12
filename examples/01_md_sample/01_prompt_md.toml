@@ -30,9 +30,10 @@ As a precise analyst, evaluate the provided historical reference material to ans
 Extract the key arguments from the text and present your findings strictly as a Markdown table with the columns: "Historical Concept", "Core Argument", and "Meaning for Modern AI".
 """
 
+[behaviour]
 temperature = 0.0
 sequential_processing = false
 
-[output]
+[outcome]
 output_delimiter = "\n---\n"
 output_filename_schema = "sample_01.txt"

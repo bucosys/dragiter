@@ -3,9 +3,10 @@ import os
 from pathlib import Path
 
 from dragiter.domain.models.settings import (
-    DebugBoolSetting, SimulateBoolSetting, VerboseBoolSetting,
+    DebugBoolSetting, SimulateBoolSetting, VerboseBoolSetting, SequentialProcessingBoolSetting,
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
-    OutputModeStringSetting, TaskStringSetting, MaxInputTokensIntSetting, MaxOutputTokensIntSetting,
+    OutputDelimiterStringSetting, OutputFilenameSchemaStringSetting, OutputModeStringSetting, TaskStringSetting,
+    MaxInputTokensIntSetting, MaxOutputTokensIntSetting,
     CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
     ResourceFilePathSetting, ValueSetting, TemperatureFloatSetting, RetryDelayIntSetting, MaxRetryIntSetting)
@@ -23,9 +24,12 @@ class ConfigurationLoader:
             BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Debug behaviour"),
             BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s", help="Simulation mode"),
             BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose mode"),
+            BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"), help="Verbose mode"),
             StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key"),
             StringSettingArgumentDecorator(BaseURLStringSetting("base_url"), help="base URL to AI service"),
             StringSettingArgumentDecorator(ModelNameStringSetting("model_name"), help="model name"),
+            StringSettingArgumentDecorator(OutputDelimiterStringSetting("output_delimiter"), help="output delimiter"),
+            StringSettingArgumentDecorator(OutputFilenameSchemaStringSetting("output_filename_schema"), help="output filename schema"),
             StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m", help="Output mode: w=overwrite, a=append, x=exclusive"),
             StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t", help="Ask a specific task"),
             IntegerSettingArgumentDecorator(MaxInputTokensIntSetting("max_input_tokens"), help="Max number of input tokens"),

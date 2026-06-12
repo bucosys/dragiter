@@ -3,16 +3,16 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-@dataclass(frozen=True)
+@dataclass
 class PromptTemplate:
     instruction: str
     first: str
     material: str
     synthesis: str
-    temperature: float = 0.0
-    sequential_processing: bool = False
-    output_filename_schema: str = "dragiter-out.txt"
-    output_delimiter: str ="\n"
+    temperature: float
+    sequential_processing: bool
+    output_filename_schema: str
+    output_delimiter: str
 
     def merge_synthesis_with_loop_dict(self, loop_dict: dict) -> str:
         # validate or bail out
