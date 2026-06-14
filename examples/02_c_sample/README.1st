@@ -1,7 +1,7 @@
 Open your terminal window.
 
 First, navigate to the example directory by typing:
-cd examples/02_md_sample
+cd examples/02_c_sample
 
 To avoid typing your API key and model name every time, you can set them in a configuration file in standard locations.
  dragiter automatically looks for a default user config file at ~/.config/dragiter/config.toml.

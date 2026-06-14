@@ -33,6 +33,3 @@ class Chunk:
         }
 
         return result.format_map(d)
-
-
-

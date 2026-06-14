@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 class SimplePayloadEstimator(PayloadEstimator):
     def estimate(self, chat_messages: list[ChatMessage], chars_per_token: float) -> int:
 
-
         if len(chat_messages) < 1:
             raise SimplePayloadEstimatorError(f'Empty chat messages')
 
@@ -25,9 +24,9 @@ class SimplePayloadEstimator(PayloadEstimator):
 
         return estimated_tokens
 
+
 class SimplePayloadEstimatorError(PayloadEstimatorError):
     pass
-
 
     #     # check limits if demanded:
     #     if max_token_setting.is_set:

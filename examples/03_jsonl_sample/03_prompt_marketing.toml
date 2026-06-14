@@ -24,6 +24,6 @@ Requirements for this text:
 Provide only the final copy without any introductory fluff.
 """
 
-[output]
+[outcome]
 output_filename_schema = "marketing_copy.md"
 output_delimiter = "\n\n---\n\n"

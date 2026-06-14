@@ -1,6 +1,3 @@
-from abc import ABC, abstractmethod
-from typing import TypeVar, Generic
-
 from dragiter.domain.common.base_validator import BaseValidator
 from dragiter.domain.models.chat_sessions import ChatSessions
 
@@ -23,5 +20,3 @@ class ChatSessionsValidator(BaseValidator[ChatSessions]):
 
         if obj.session_list is None:
             raise TypeError(f'Object of type {type(obj.session_list)} cannot be None')
-
-

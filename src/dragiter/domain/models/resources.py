@@ -1,22 +1,20 @@
 import logging
-from pathlib import Path
-
-from pip._internal.configuration import Configuration
 
 from dragiter.domain.models.text_file import TextFile
 
 logger = logging.getLogger(__name__)
 
+
 class ResourceSection():
 
-
-    def __init__(self, section_name: str, text_files: list[TextFile], regex_pattern: str, exclude_filters: list[str], include_filters: list[str]) -> None:
+    def __init__(self, section_name: str, text_files: list[TextFile], regex_pattern: str, exclude_filters: list[str],
+                 include_filters: list[str]) -> None:
         """Initialise the configuration object and load settings."""
 
-        #member
+        # member
         self._file_paths: list[TextFile] = []
 
-        #params
+        # params
         if not section_name or section_name.strip() == "":
             raise ResourceSectionError("Section name cannot be None or empty string.")
 
@@ -29,7 +27,6 @@ class ResourceSection():
         self._exclude_filters: list[str] = exclude_filters or []
         self._include_filters: list[str] = include_filters or []
 
-
     @property
     def file_paths(self) -> list[TextFile]:
         return self._file_paths
@@ -37,7 +34,6 @@ class ResourceSection():
     @property
     def section_name(self) -> str:
         return self._section_name
-
 
     @property
     def regex_pattern(self) -> str:
@@ -50,7 +46,6 @@ class ResourceSection():
     @property
     def include_filters(self) -> list[str]:
         return self._include_filters
-
 
     def __repr__(self):
         # Das hier wird im Logger angezeigt
@@ -81,8 +76,6 @@ class Resources():
 
         return new_value
 
-
-
     def __repr__(self):
         # Das hier wird im Logger angezeigt
         return f"Resources(ResourceSection length ='{len(self._resource_sections)}'"
@@ -90,6 +83,7 @@ class Resources():
 
 class ResourceSectionError(Exception):
     pass
+
 
 class ResourcesError(Exception):
     pass

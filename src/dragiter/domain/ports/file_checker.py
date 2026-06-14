@@ -1,6 +1,5 @@
-import codecs
 import pathlib
-from typing import Union, List, Optional, Protocol
+from typing import Union, Protocol
 
 
 # --- Custom Exceptions ---
@@ -30,5 +29,3 @@ class FileChecker(Protocol):
         The implementation details are left to the concrete class.
         """
         ...  # Using an ellipsis (...) is the pythonic standard for Protocol bodies
-
-

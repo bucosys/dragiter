@@ -1,5 +1,6 @@
-from typing import Generic, TypeVar
 from dataclasses import dataclass
+from typing import Generic, TypeVar
+
 from dragiter.domain.models.settings import BoolSetting, IntegerSetting, StringSetting, FloatSetting, PathSetting
 
 T = TypeVar('T')
@@ -23,20 +24,21 @@ class ArgumentDecorator(Generic[T]):
 @dataclass
 class StringSettingArgumentDecorator(ArgumentDecorator[StringSetting]): ...
 
+
 @dataclass
 class BoolSettingArgumentDecorator(ArgumentDecorator[BoolSetting]): ...
+
 
 @dataclass
 class PathSettingArgumentDecorator(ArgumentDecorator[PathSetting]): ...
 
+
 @dataclass
 class FloatSettingArgumentDecorator(ArgumentDecorator[FloatSetting]): ...
 
+
 @dataclass
 class IntegerSettingArgumentDecorator(ArgumentDecorator[IntegerSetting]): ...
-
-
-
 
 
 class DecoratorError(Exception):

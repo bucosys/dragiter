@@ -1,11 +1,13 @@
 # --- Concrete Implementation ---
-from typing import Optional, List, Union
 import codecs
 import logging
 import pathlib
+from typing import Optional, List, Union
+
 from dragiter.domain.ports.file_checker import FileChecker, BinaryFileError, EmptyFileError
 
 logger = logging.getLogger(__name__)
+
 
 class SimpleFileChecker(FileChecker):
     """
@@ -59,4 +61,3 @@ class SimpleFileChecker(FileChecker):
         if raw_data.startswith(codecs.BOM_UTF16_LE) or raw_data.startswith(codecs.BOM_UTF16_BE): return "utf-16"
         if raw_data.startswith(codecs.BOM_UTF32_LE) or raw_data.startswith(codecs.BOM_UTF32_BE): return "utf-32"
         return None
-

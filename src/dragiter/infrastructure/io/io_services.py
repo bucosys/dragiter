@@ -46,6 +46,7 @@ def read_from_jsonl(file_path: Path) -> list[dict]:
 
     return result_list
 
+
 def read_stripped_lines_from_file(file_path: Path) -> list[str]:
     """
     Reads a .jsonl file and returns a list of dictionaries.
@@ -87,16 +88,13 @@ def write_lines_to_unique_file(file_path: Path, overwrite: bool, lines: list[str
 
         logger.debug(f"{len(lines)} entries written to {file_path}.")
 
-        return file_path.stat()     # ---> return file stat info
+        return file_path.stat()  # ---> return file stat info
 
     except Exception as e:
         raise IOServiceError(f"Failed to write file content: {file_path}.") from e
 
 
-
-
 def append_jsonl_to_file(file_path: Path, lines: list[dict]) -> os.stat_result:
-
     debug_string = "Appended" if file_path.exists() else "Write"
 
     try:
@@ -111,11 +109,10 @@ def append_jsonl_to_file(file_path: Path, lines: list[dict]) -> os.stat_result:
 
         logger.debug(f"{debug_string} {len(lines)} entries to {file_path}.")
 
-        return file_path.stat()     # ---> return file stat info
+        return file_path.stat()  # ---> return file stat info
 
     except Exception as e:
         raise IOServiceError(f"Failed to append file content: {file_path}.") from e
-
 
 
 def write_or_append_lines_to_unique_file(file_path: Path, output_mode: str, lines: list[str]) -> os.stat_result:
@@ -124,16 +121,15 @@ def write_or_append_lines_to_unique_file(file_path: Path, output_mode: str, line
 
     # preconditions
     match output_mode:
-        case "x": #exclusive, not overwrite
+        case "x":  # exclusive, not overwrite
             if file_path.exists(): raise IOServiceError(f"File already exists: {file_path.name}.")
         case "a":
-            #check if output file has content, then load content
+            # check if output file has content, then load content
             if file_path.exists():
                 current_file_content = file_path.read_text()
                 # and put the content at the beginning of lines - array
                 if (current_file_content):
                     lines.insert(0, current_file_content)
-
 
     temp_path = file_path.with_suffix(f".tmp_{os.getpid()}")
 
@@ -150,7 +146,7 @@ def write_or_append_lines_to_unique_file(file_path: Path, output_mode: str, line
         os.replace(temp_path, file_path)
         logger.debug(f"{len(lines)} entries written to {file_path}.")
 
-        return file_path.stat()     # ---> return file stat info
+        return file_path.stat()  # ---> return file stat info
 
     except Exception as e:
         raise IOServiceError(f"Failed to write file content: {file_path}.") from e
@@ -198,8 +194,6 @@ def read_stdin_content(max_size_bytes: int = 10 * 1024 * 1024, encoding: str = "
         raise IOServiceError(f"I/O error during stdin read: {e}") from e
     except Exception as e:
         raise IOServiceError(f"Unexpected error while reading stdin: {e}") from e
-
-
 
 
 class IOServiceError(Exception):

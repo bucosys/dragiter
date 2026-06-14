@@ -1,6 +1,5 @@
-import codecs
-import pathlib
-from typing import Union, List, Optional, Protocol
+from typing import Protocol
+
 from dragiter.domain.models.text_file import TextFile
 
 

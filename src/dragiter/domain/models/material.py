@@ -4,10 +4,11 @@ from dragiter.domain.models.chunk import Chunk
 
 logger = logging.getLogger(__name__)
 
+
 class Material():
     def __init__(self, chunks: list[Chunk]):
         """Initialise the configuration object and load settings."""
-        #super().__init__()
+        # super().__init__()
 
         self._chunks: list[Chunk] = chunks
 
@@ -25,7 +26,6 @@ class Material():
         # if config.debug:
         #     print(f"Loaded {len(self._chunks)} chunks.")
 
-
     @property
     def chunks(self):
         return self._chunks
@@ -33,4 +33,3 @@ class Material():
     def __repr__(self):
         # Das hier wird im Logger angezeigt
         return f"Material(chunks length ='{len(self._chunks)}'"
-

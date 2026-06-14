@@ -2,6 +2,8 @@ import argparse
 import os
 from pathlib import Path
 
+from dragiter.application.config.configuration_decorators import *
+from dragiter.application.core.xdi import *
 from dragiter.domain.models.settings import (
     DebugBoolSetting, SimulateBoolSetting, VerboseBoolSetting, SequentialProcessingBoolSetting,
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
@@ -10,12 +12,47 @@ from dragiter.domain.models.settings import (
     CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
     ResourceFilePathSetting, ValueSetting, TemperatureFloatSetting, RetryDelayIntSetting, MaxRetryIntSetting)
-
-from dragiter.application.config.configuration_decorators import *
-from dragiter.application.core.xdi import *
 from dragiter.infrastructure.io.io_services import read_from_toml
 
 logger = logging.getLogger(__name__)
+
+#####
+# self.config_values: list[ArgumentDecorator] = [
+#     BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Enable debug logging"),
+#     BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s", help="Simulation mode (no API calls)"),
+#     BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose output"),
+#     BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"),
+#                                  help="Process chunks sequentially (one by one)"),
+#
+#     StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key for the LLM service"),
+#     StringSettingArgumentDecorator(BaseURLStringSetting("base_url"),
+#                                    help="Base URL of the AI API endpoint (e.g. for Ollama or Grok)"),
+#     StringSettingArgumentDecorator(ModelNameStringSetting("model_name"),
+#                                    help="Model name (e.g. gpt-4o, llama3, grok-beta)"),
+#
+#     StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m",
+#                                    help="Output mode: w=overwrite, a=append, x=exclusive (default: x)"),
+#     StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t",
+#                                    help="Direct task text (alternative to -p)"),
+#
+#     PathSettingArgumentDecorator(BaseDirectoryPathSetting("base_directory"), short_key="b",
+#                                  help="Base directory for all relative paths"),
+#     PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p",
+#                                  help="Path to prompt template (.toml)"),
+#     PathSettingArgumentDecorator(ResourceFilePathSetting("resource_file"), short_key="r",
+#                                  help="Path to resource definition (.toml)"),
+#     PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l",
+#                                  help="Path to loop file (txt or .jsonl)"),
+#
+#     PathSettingArgumentDecorator(OutputFilePathSetting("output_file"), short_key="o",
+#                                  help="Write all output to a single file"),
+#     PathSettingArgumentDecorator(OutputDirectoryPathSetting("output_directory"), short_key="O",
+#                                  help="Write outputs to directory (recommended for loops)"),
+#     # ... rest bleibt gleich
+#]
+
+####
+
 
 class ConfigurationLoader:
     def __init__(self) -> None:
@@ -24,35 +61,46 @@ class ConfigurationLoader:
             BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Debug behaviour"),
             BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s", help="Simulation mode"),
             BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose mode"),
-            BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"), help="Verbose mode"),
+            BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"), help="Process chunks sequentially (one by one)"),
             StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key"),
             StringSettingArgumentDecorator(BaseURLStringSetting("base_url"), help="base URL to AI service"),
             StringSettingArgumentDecorator(ModelNameStringSetting("model_name"), help="model name"),
             StringSettingArgumentDecorator(OutputDelimiterStringSetting("output_delimiter"), help="output delimiter"),
-            StringSettingArgumentDecorator(OutputFilenameSchemaStringSetting("output_filename_schema"), help="output filename schema"),
-            StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m", help="Output mode: w=overwrite, a=append, x=exclusive"),
+            StringSettingArgumentDecorator(OutputFilenameSchemaStringSetting("output_filename_schema"),
+                                           help="output filename schema"),
+            StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m",
+                                           help="Output mode: w=overwrite, a=append, x=exclusive"),
             StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t", help="Ask a specific task"),
-            IntegerSettingArgumentDecorator(MaxInputTokensIntSetting("max_input_tokens"), help="Max number of input tokens"),
-            IntegerSettingArgumentDecorator(MaxOutputTokensIntSetting("max_output_tokens"), help="Max number of output tokens"),
+            IntegerSettingArgumentDecorator(MaxInputTokensIntSetting("max_input_tokens"),
+                                            help="Max number of input tokens"),
+            IntegerSettingArgumentDecorator(MaxOutputTokensIntSetting("max_output_tokens"),
+                                            help="Max number of output tokens"),
             FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"), help="Chars per token"),
             FloatSettingArgumentDecorator(TemperatureFloatSetting("temperature"), help="LLM temperature"),
-            IntegerSettingArgumentDecorator(RetryDelayIntSetting("retry_delay"), help="Pause retry delay for <num> seconds"),
+            IntegerSettingArgumentDecorator(RetryDelayIntSetting("retry_delay"),
+                                            help="Pause retry delay for <num> seconds"),
             IntegerSettingArgumentDecorator(MaxRetryIntSetting("max_retry"), help="Retry <num> times"),
-            PathSettingArgumentDecorator(BaseDirectoryPathSetting("base_directory"), short_key="b", help="Base directory to fetch"),
-            PathSettingArgumentDecorator(ActivityFilePathSetting("activity_file"), short_key="a", help="Write activity to file"),
-            PathSettingArgumentDecorator(ConfigFilePathSetting("config_file"), short_key="c", help="Read configuration from file"),
-            PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p", help="Read instruction and task template file"),
+            PathSettingArgumentDecorator(BaseDirectoryPathSetting("base_directory"), short_key="b",
+                                         help="Base directory to fetch"),
+            PathSettingArgumentDecorator(ActivityFilePathSetting("activity_file"), short_key="a",
+                                         help="Write activity to file"),
+            PathSettingArgumentDecorator(ConfigFilePathSetting("config_file"), short_key="c",
+                                         help="Read configuration from file"),
+            PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p",
+                                         help="Read instruction and task template file"),
             PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l", help="Read JSONL loop file"),
-            PathSettingArgumentDecorator(ResourceFilePathSetting("resource_file"), short_key="r", help="Read material definition file"),
-            PathSettingArgumentDecorator(OutputFilePathSetting("output_file"), short_key="o", help="Write output to file"),
-            PathSettingArgumentDecorator(OutputDirectoryPathSetting("output_directory"), short_key="O", help="Write output to directory")]
-
+            PathSettingArgumentDecorator(ResourceFilePathSetting("resource_file"), short_key="r",
+                                         help="Read material definition file"),
+            PathSettingArgumentDecorator(OutputFilePathSetting("output_file"), short_key="o",
+                                         help="Write output to file"),
+            PathSettingArgumentDecorator(OutputDirectoryPathSetting("output_directory"), short_key="O",
+                                         help="Write output to directory")]
 
     def run(self, **kwargs: Any) -> list[ValueSetting]:
 
         try:
             # 1. read arguments
-            self._get_args()    # first of all - read args, get all params
+            self._get_args()  # first of all - read args, get all params
             # resolve the config path using our logic to get a path object
 
             # for item in self.config_values:
@@ -60,16 +108,15 @@ class ConfigurationLoader:
             #     logger.debug(f"Object type: {type(obj)} | Target type: {ConfigFilePathSetting}")
             #     logger.debug(f"IDs match? {id(type(obj)) == id(ConfigFilePathSetting)}")
 
-
             # This looks for the decorator where the inner object is an instance of ConfigFilePathSetting
             target_decorator = next(
-                (item for item in self.config_values if isinstance(item.value_setting_object, ConfigFilePathSetting)), None
+                (item for item in self.config_values if isinstance(item.value_setting_object, ConfigFilePathSetting)),
+                None
             )
 
             # Must have been found so now we extract the inner object
 
             config_setting = target_decorator.value_setting_object.value
-
 
             # check config value
             real_config_path = self._calculate_config_path(config_setting)
@@ -90,32 +137,27 @@ class ConfigurationLoader:
         except Exception as e:
             raise ConfigurationLoaderError(f"Failed to read configuration: {e}") from e
 
-
-
-
-
     def _set_settings_from_config(self, config_dict: dict) -> None:
 
         """ set a particular value"""
         for item in self.config_values:
 
-            #1 get the value an
+            # 1 get the value an
             value_setting_object = item.value_setting_object
 
-            #2 check if already set -> leave !
+            # 2 check if already set -> leave !
             if value_setting_object.is_set:
-                continue    # --> operate on next item in list
+                continue  # --> operate on next item in list
 
-
-            #3 check is config file value could be found:
+            # 3 check is config file value could be found:
             key = item.long_key
             config_file_value = config_dict.get(key)
 
             if config_file_value is None:
-                continue    # --> operate on next item in list
+                continue  # --> operate on next item in list
 
-            #4 if found, then ...
-            if(isinstance(value_setting_object, BoolSetting)):
+            # 4 if found, then ...
+            if (isinstance(value_setting_object, BoolSetting)):
                 if config_file_value:
                     value_setting_object.value = True
                     logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
@@ -129,13 +171,11 @@ class ConfigurationLoader:
             elif (isinstance(value_setting_object, FloatSetting)):
                 value_setting_object.value = config_file_value
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif(isinstance(value_setting_object, PathSetting)):
+            elif (isinstance(value_setting_object, PathSetting)):
                 value_setting_object.value = Path(config_file_value.strip())
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
             else:
                 pass
-
-
 
     def _set_settings_from_environment(self) -> None:
         block_name = "PARSE ENVIRONMENT"
@@ -143,7 +183,6 @@ class ConfigurationLoader:
 
         """ set a particular value"""
         env_key: str = None
-
 
         for item in self.config_values:
 
@@ -157,25 +196,23 @@ class ConfigurationLoader:
             env_key = "dragiter_" + item.long_key.upper()
             env_value = os.environ.get(env_key)
             if env_value is None:
-                continue # --> operate on next item in list
+                continue  # --> operate on next item in list
 
-            #4 if found, then ...
-            if(isinstance(value_setting_object, BoolSetting)):
+            # 4 if found, then ...
+            if (isinstance(value_setting_object, BoolSetting)):
                 value_setting_object.value = env_value.strip().lower() == "true"
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
             elif (isinstance(value_setting_object, StringSetting)):
                 value_setting_object.value = env_value.strip()
                 display_value = "********" if "key" in item.long_key else value_setting_object.value
                 logger.debug(f"[{item.long_key}: {display_value}]")
-            elif(isinstance(value_setting_object, PathSetting)):
+            elif (isinstance(value_setting_object, PathSetting)):
                 value_setting_object.value = Path(env_value.strip())
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
             else:
                 pass
 
         logger.debug(f"--- FINISH BLOCK: {block_name} ---")
-
-
 
     def _calculate_config_path(self, config_path: Path) -> Path | None:
         """
@@ -236,9 +273,9 @@ class ConfigurationLoader:
             type_mapping: dict[str, any] = {}
 
             if (isinstance(value_setting_object, BoolSetting)):
-                type_mapping = {"action" : "store_true", "default" : None, "help" : cmd_help}
+                type_mapping = {"action": "store_true", "default": None, "help": cmd_help}
             elif (isinstance(value_setting_object, StringSetting)):
-                type_mapping = {"type": str, "default" : None, "required" : False, "help" : cmd_help}
+                type_mapping = {"type": str, "default": None, "required": False, "help": cmd_help}
             elif (isinstance(value_setting_object, PathSetting)):
                 type_mapping = {"type": Path, "default": None, "required": False, "help": cmd_help}
             else:
@@ -246,16 +283,14 @@ class ConfigurationLoader:
 
             parser.add_argument(*args, **type_mapping)
 
-
         parsed_dict = vars(parser.parse_args())
 
         for item in self.config_values:
             cmd_parsed_value = parsed_dict.get(item.long_key)
             if cmd_parsed_value is None:
                 continue
-            #very important: Use .value to prevent overwrinting class var !!
+            # very important: Use .value to prevent overwrinting class var !!
             item.value_setting_object.value = cmd_parsed_value
-
 
             # Masking sensitive data like API keys is a "pro" move
             display_value = "********" if "key" in item.long_key else cmd_parsed_value

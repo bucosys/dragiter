@@ -1,16 +1,17 @@
 import json
+import textwrap
 
-from dragiter.domain.models.chat_sessions import ChatSessions, ChatSession
-from dragiter.domain.models.chunk import Chunk
-from dragiter.domain.models.settings import VerboseBoolSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.chat_sessions import ChatMessage
+from dragiter.domain.models.chat_sessions import ChatSessions, ChatSession
+from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate
-import textwrap
+from dragiter.domain.models.settings import VerboseBoolSetting
 
 logger = logging.getLogger(__name__)
+
 
 class MessageBuilder:
     def __init__(self) -> None:
@@ -22,11 +23,9 @@ class MessageBuilder:
             chat_message_list.extend(chat_session.input_chat_message_list)
             chat_message_list.append(chat_session.output_chat_message)
 
-        return chat_message_list    # --->
+        return chat_message_list  # --->
 
-
-
-    def _createChatSession(self, prompt: PromptTemplate, dict_line: dict, *chunks: Chunk)-> ChatSession:
+    def _createChatSession(self, prompt: PromptTemplate, dict_line: dict, *chunks: Chunk) -> ChatSession:
         cs: ChatSession = ChatSession()
 
         if prompt.instruction is not None:
@@ -43,7 +42,6 @@ class MessageBuilder:
             if prompt.material is not None:
                 cs.input_chat_message_list.append(ChatMessage(role="user", content=prompt.material))
 
-
         if prompt.synthesis is not None:
             formatted_synthesis = prompt.synthesis
 
@@ -54,8 +52,7 @@ class MessageBuilder:
 
         # Not necessary to set output element
 
-        return cs   # -->
-
+        return cs  # -->
 
     def run(self,
             material: Material,
@@ -64,7 +61,7 @@ class MessageBuilder:
             verbose_setting: VerboseBoolSetting
             ) -> ChatSessions:
 
-        #me_list: list[ExtendedMessage] = []
+        # me_list: list[ExtendedMessage] = []
 
         chat_sessions: ChatSessions = ChatSessions()
         answers: list[str] = []
@@ -76,7 +73,7 @@ class MessageBuilder:
 
                 # branch a - loop lines exist
                 for dict_line in loop.lines:
-                    #we start with a new ChatSession
+                    # we start with a new ChatSession
                     cs: ChatSession = self._createChatSession(prompt, dict_line, chunk)
                     if cs: chat_sessions.session_list.append(cs)
 
@@ -99,7 +96,6 @@ class MessageBuilder:
                 cs: ChatSession = self._createChatSession(prompt, None, *material.chunks)
                 if cs: chat_sessions.session_list.append(cs)
 
-
         # final: debuglog and return
         if verbose_setting.value:
             cm_flat_list: list[Chunk] = self._create_chat_message_list(chat_sessions)
@@ -112,9 +108,9 @@ class MessageBuilder:
 
         return chat_sessions
 
-
     def create_json(self, line: str) -> dict:
         return json.loads(line)
+
 
 class MessageBuilderError(Exception):
     pass

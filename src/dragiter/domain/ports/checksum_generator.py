@@ -13,4 +13,3 @@ class ChecksumGenerator(Protocol):
         Optimized checksum calculation
         """
         ...  # Using an ellipsis (...) is the pythonic standard for Protocol bodies
-

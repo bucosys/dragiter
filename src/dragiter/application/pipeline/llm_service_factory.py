@@ -1,6 +1,6 @@
+from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.settings import ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting
 from dragiter.domain.models.settings import SimulateBoolSetting
-from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.ports.llm_service import *
 from dragiter.infrastructure.llm.llm_service_adapter import LLMServiceAdapter
 from dragiter.infrastructure.llm.mockai_service import MockAIService
@@ -43,5 +43,3 @@ class LLMServiceFactory():
 
 class LLMServiceFactoryError(Exception):
     pass
-
-

@@ -4,9 +4,6 @@ Verantwortlich für das Exportieren von Package-Ressourcen (docs + examples)
 """
 
 import importlib.resources
-import shutil
-import sys
-from pathlib import Path
 
 
 class InfoPresenter:
@@ -31,12 +28,11 @@ class InfoPresenter:
             # help_path = Path("dragiter").parent / "docs" / "info.txt"
             # help_path = Path(__file__).parent.parent.parent.parent.parent / "docs" / "info.txt"
 
-#            help_path = importlib.resources.files("dragiter").parent.parent / "docs" / "info.txt"
+            #            help_path = importlib.resources.files("dragiter").parent.parent / "docs" / "info.txt"
             help_path = importlib.resources.files("dragiter") / "docs" / "info.txt"
 
             # Zugriff auf die Ressourcen im installierten Package
             ##pkg_files = importlib.resources.files("dragiter") / resource_name
-
 
             md_text = help_path.read_text(encoding="utf-8")
 

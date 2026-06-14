@@ -39,5 +39,3 @@ class ResourceExporter:
         except Exception as e:
             print(f"❌ Error exporting {resource_name}: {e}", file=sys.stderr)
             sys.exit(1)
-
-

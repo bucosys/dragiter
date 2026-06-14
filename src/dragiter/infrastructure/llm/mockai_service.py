@@ -1,12 +1,8 @@
 import logging
 from datetime import datetime
-from typing import List, Dict
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-
-from dragiter.domain.models.chat_sessions import ChatMessage, ChatRoles
-
-from dragiter.domain.models.chat_sessions import ChatSession
+from dragiter.domain.models.chat_sessions import ChatSession, ChatResult
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
@@ -14,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class MockAIService(LLMService):
 
-    def process_query(self, aisp: AIServiceParameters, chat_session: ChatSession) -> ChatSession:
+    def process_query(self, aisp: AIServiceParameters, chat_session: ChatSession) -> ChatResult:
         """
         Simulates an LLM response by echoing the last user message.
         Useful for verifying that prompts and materials were correctly merged.
@@ -22,7 +18,7 @@ class MockAIService(LLMService):
 
         logger.debug(f"🔧 (Mock AI SDK) values initialized. Model: {aisp.model_name_string_setting.value}")
 
-        #validation section:
+        # validation section:
 
         if not aisp:
             raise MockAIServiceError(f"MockAiService::process_query: AIServiceParameters is None.")
@@ -40,8 +36,6 @@ class MockAIService(LLMService):
             last_msg = chat_session.input_chat_message_list[-1]
             role = last_msg.role or ""
             content = last_msg.content or ""
-
-
 
             # Create a detailed response for debugging
             mock_response = (
@@ -64,12 +58,10 @@ class MockAIService(LLMService):
             chat_result.duration_ms = (chat_result.ended_at - chat_result.started_at).total_seconds()
 
             logger.debug(f"Mock AI generated echo for role '{role}'")
-            return chat_session
+            return chat_result
 
         except Exception as e:
             raise MockAIServiceError(f"Failed to process mock service: {e}") from e
-
-
 
 
 class MockAIServiceError(LLMServiceError):

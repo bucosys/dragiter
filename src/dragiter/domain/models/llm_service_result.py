@@ -8,7 +8,6 @@ class LLMServiceResult:
         """Initialise the configuration object and load settings."""
         self._results = results
 
-
     # Properties for clean access
     @property
     def results(self):

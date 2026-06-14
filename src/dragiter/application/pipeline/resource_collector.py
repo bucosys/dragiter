@@ -1,23 +1,21 @@
-import re
 from pathlib import Path
 
-from dragiter.domain.models.settings import ResourceFilePathSetting, BaseDirectoryPathSetting, PathSetting
 from dragiter.application.core.xdi import *
-from dragiter.domain.models.material import Material, Chunk
 from dragiter.domain.models.resources import Resources, ResourceSection
+from dragiter.domain.models.settings import ResourceFilePathSetting, BaseDirectoryPathSetting, PathSetting
+from dragiter.domain.models.text_file import TextFile
 from dragiter.domain.ports.file_checker import FileChecker
 from dragiter.infrastructure.io.io_services import read_from_toml
-from dragiter.domain.models.text_file import TextFile
 
 logger = logging.getLogger(__name__)
+
 
 class ResourceCollector:
     def __init__(self, file_checker: FileChecker) -> None:
         self._file_checker = file_checker
 
-
-
-    def run(self, resource_file_path_setting: ResourceFilePathSetting, base_directory_file_path: BaseDirectoryPathSetting) -> Resources:
+    def run(self, resource_file_path_setting: ResourceFilePathSetting,
+            base_directory_file_path: BaseDirectoryPathSetting) -> Resources:
 
         res: Resources = Resources()
         try:
@@ -45,12 +43,11 @@ class ResourceCollector:
 
                     if text_files:
                         rs = ResourceSection(section_name=s_name,
-                            text_files=text_files,
-                            regex_pattern=settings.get("regex_pattern"),
-                            exclude_filters=settings.get("exclude_filters"),
-                            include_filters=settings.get("include_filters"))
+                                             text_files=text_files,
+                                             regex_pattern=settings.get("regex_pattern"),
+                                             exclude_filters=settings.get("exclude_filters"),
+                                             include_filters=settings.get("include_filters"))
                         res.append_resource_section(rs)
-
 
             logger.debug(f"Loaded {res}")
             return res
@@ -58,9 +55,10 @@ class ResourceCollector:
         except Exception as e:
             raise MaterialCollectorError(f"Failed to load material chunks: {e}") from e
 
-    def _find_valid_textfiles(self, text_files: list[TextFile], glob_patterns: list[str], base_directory_file_path: BaseDirectoryPathSetting) -> None:
+    def _find_valid_textfiles(self, text_files: list[TextFile], glob_patterns: list[str],
+                              base_directory_file_path: BaseDirectoryPathSetting) -> None:
 
-        root_path = base_directory_file_path.value # Path.cwd().resolve()
+        root_path = base_directory_file_path.value  # Path.cwd().resolve()
         logger.debug(f"Use root path: {root_path}")
 
         resolved_files = []
@@ -94,8 +92,7 @@ class ResourceCollector:
             valid_files = self._check_matches(absolute_matches)
             text_files.extend(valid_files)
 
-
-    #remark: absolute paths required !!
+    # remark: absolute paths required !!
     def _check_matches(self, paths: list[Path]) -> list[TextFile]:
         textfiles: list[TextFile] = []
         for path in paths:
@@ -108,6 +105,7 @@ class ResourceCollector:
                 continue
 
         return textfiles
+
 
 class MaterialCollectorError(Exception):
     pass

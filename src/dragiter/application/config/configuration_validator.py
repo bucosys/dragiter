@@ -2,20 +2,20 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+# from dragiter.application.config.configuration_decorators import *
+from dragiter.application.core.xdi import *
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
 from dragiter.domain.models.settings import (
-    DebugBoolSetting, SimulateBoolSetting, VerboseBoolSetting,
+    SimulateBoolSetting, VerboseBoolSetting,
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
     OutputModeStringSetting, TaskStringSetting, MaxInputTokensIntSetting, MaxOutputTokensIntSetting,
     CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
-    ResourceFilePathSetting, ValueSetting, PathSetting, TemperatureFloatSetting, RetryDelayIntSetting,
-    MaxRetryIntSetting, RetryDelayIntSetting)
-
-#from dragiter.application.config.configuration_decorators import *
-from dragiter.application.core.xdi import *
+    ResourceFilePathSetting, ValueSetting, PathSetting, TemperatureFloatSetting, MaxRetryIntSetting,
+    RetryDelayIntSetting)
 
 logger = logging.getLogger(__name__)
+
 
 # Configuration Validator Issue (CVI)
 @dataclass
@@ -23,8 +23,6 @@ class ConfigurationValidatorFinding:
     rule: str
     finding: str
     description: str = None
-
-
 
 
 class ConfigurationValidator:
@@ -55,11 +53,9 @@ class ConfigurationValidator:
             verbose_bool_setting: VerboseBoolSetting
             ) -> list[ValueSetting]:
 
-
-
         try:
 
-            CVF = ConfigurationValidatorFinding #shorthand
+            CVF = ConfigurationValidatorFinding  # shorthand
             cvfs: list[CVF] = []
 
             # check I: must-have-settings
@@ -83,11 +79,10 @@ class ConfigurationValidator:
                         setting.rebase(base_directory_path_setting.value)
                         logger.debug(f"[{setting.key}: {setting.value}]")
 
-
             if task_string_setting.is_set:  # so if user choose that param
                 if task_string_setting.value.strip() == '':
                     cvfs.append(CVF(task_string_setting.key, "value not set", "No task recognizable"))
-            else:    # there will no prompt file read in...
+            else:  # there will no prompt file read in...
                 if not prompt_file_path_setting.is_set:
                     cvfs.append(CVF(prompt_file_path_setting.key, "value not set", "Path to prompt file is mandatory."))
                 else:
@@ -97,20 +92,15 @@ class ConfigurationValidator:
                                         f"File not readable: {pfps_value}",
                                         "Path to prompt file is mandatory. The given file is not readable."))
 
-
             if not simulate_bool_setting.value and not base_url_string_setting.is_set:
                 cvfs.append(CVF(base_url_string_setting.key, "value not set", "Path to LLM is mandatory."))
-
-
-
 
             # check II get file access modifier
             # set default to 'x'
             if not output_mode_string_setting.is_set: output_mode_string_setting.value = "x"
-            if not output_mode_string_setting.value in {'a', 'x', 'w'} :
+            if not output_mode_string_setting.value in {'a', 'x', 'w'}:
                 cvfs.append(CVF(output_mode_string_setting.key,
                                 f"If file open mode is set, use one of a (append), w (overwrite) or x (exclusive)"))
-
 
             # stage 1 check for reading a file or director
             input_path_settings_to_check = [base_directory_path_setting, loop_file_path_setting,
@@ -131,7 +121,6 @@ class ConfigurationValidator:
                 if setting.is_set and not os.access(setting.value.parent, os.R_OK)
             ])
 
-
             # stage III: LLM settings
             if max_retries_int_setting.is_set:
                 if max_retries_int_setting.value < 0 or max_retries_int_setting.value > 9:
@@ -143,23 +132,19 @@ class ConfigurationValidator:
                     cvfs.append(CVF(retry_delay_int_setting.key,
                                     f"value should be between 0 and 20 inclusive, not {retry_delay_int_setting.value}"))
 
-
             if chars_per_token_float_setting.is_set:
                 if chars_per_token_float_setting.value <= 0.0:
                     cvfs.append(CVF(chars_per_token_float_setting.key,
                                     f"value should not be less than 0.0: {chars_per_token_float_setting.value}"))
 
-
-
             # stage V: Create AIServiceParameters:
             ai_service_parameters: AIServiceParameters = AIServiceParameters(
                 api_key_string_setting, base_url_string_setting, model_name_string_setting, max_input_token_int_setting,
-                max_output_token_int_setting, temperature_float_setting, retry_delay_int_setting, max_retries_int_setting
+                max_output_token_int_setting, temperature_float_setting, retry_delay_int_setting,
+                max_retries_int_setting
             )
 
-
             if len(cvfs) > 0: raise ConfigurationValidatorError(cvfs)
-
 
             all_checked_elements = [
                 base_url_string_setting,
@@ -182,16 +167,14 @@ class ConfigurationValidator:
                 for element in all_checked_elements:
                     logger.debug(f"QC PASSED: [{element.key}: {element.value}]")
 
-
-            #trick append ai_service_parameter at this time:
+            # trick append ai_service_parameter at this time:
             all_checked_elements.append(ai_service_parameters)
             return all_checked_elements
 
         except ConfigurationValidatorError as exc:
-            raise   #
+            raise  #
         except Exception as e:
             raise ConfigurationValidatorError(f"Unexpected exception occured: {e}") from e
-
 
 
 class ConfigurationValidatorError(Exception):

@@ -1,22 +1,21 @@
 import json
 from pathlib import Path
 
-from dragiter.domain.models.chat_sessions import ChatSessions, ChatMessage
-from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting, \
-    ActivityFilePathSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.application_result import ApplicationResult
+from dragiter.domain.models.chat_sessions import ChatSessions, ChatMessage
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.prompt_template import PromptTemplate
+from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting, \
+    ActivityFilePathSetting
 from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
 
 logger = logging.getLogger(__name__)
 
+
 class OutputWriter:
     def __init__(self) -> None:
         pass
-
-
 
     def run(self,
             chat_sessions: ChatSessions,
@@ -37,19 +36,17 @@ class OutputWriter:
 
             # if nothin to report - bail out ...
             out_data = " ".join(content_list)
-            if out_data == "": return application_result   # --> out 0
+            if out_data == "": return application_result  # --> out 0
 
             # printable_value = "\n\n\n\n".join(content_list)
             printable_value = prompt.output_delimiter.join(content_list)
             # write result to one file
             if output_file_path_setting.is_set:
-                write_or_append_lines_to_unique_file(output_file_path_setting.value, open_mode, [printable_value] )
-
-
+                write_or_append_lines_to_unique_file(output_file_path_setting.value, open_mode, [printable_value])
 
             # write to many files (all loops, use numbered prompt file name as output filename
             if output_directory_path_setting.is_set:
-                #calc filename
+                # calc filename
                 name_of_file_path: Path = None
 
                 if loop.lines:
@@ -57,8 +54,10 @@ class OutputWriter:
                     counter: int = 0
                     for line in content_list:
                         counter += 1
-                        numbered_file_name: Path = Path(f"{name_of_file_path.stem}_{counter:03d}{name_of_file_path.suffix}")
-                        write_or_append_lines_to_unique_file(output_directory_path_setting.value / numbered_file_name, open_mode, [line] )
+                        numbered_file_name: Path = Path(
+                            f"{name_of_file_path.stem}_{counter:03d}{name_of_file_path.suffix}")
+                        write_or_append_lines_to_unique_file(output_directory_path_setting.value / numbered_file_name,
+                                                             open_mode, [line])
 
                 else:
                     name_of_file_path = Path(prompt.output_filename_schema)
@@ -88,10 +87,8 @@ class OutputWriter:
                 write_or_append_lines_to_unique_file(activity_file_path_setting.value, open_mode, activity_dicts)
             # end of activity block
 
-
             # finally put data to std_out
             print(printable_value)  # to std_out
-
 
             return ApplicationResult(0)
         except Exception as e:

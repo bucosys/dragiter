@@ -7,6 +7,7 @@ from dragiter.domain.ports.text_file_reader import TextFileReader
 
 logger = logging.getLogger(__name__)
 
+
 class MaterialTokenizer:
     def __init__(self, text_file_reader: TextFileReader) -> None:
         self.text_file_reader = text_file_reader
@@ -16,18 +17,16 @@ class MaterialTokenizer:
 
         try:
             for ressec in resources.resource_sections:
-               all_chunks.extend(self._process_markdown_configs(ressec))
-
+                all_chunks.extend(self._process_markdown_configs(ressec))
 
             return Material(chunks=all_chunks)
 
         except Exception as e:
             raise MaterialTokenizerError(f"Failed to create chunks.") from e
 
-
     def _process_markdown_configs(self, rs: ResourceSection) -> list[Chunk]:
-        section_chunks : list[Chunk] = []
-        global_id : int = 1
+        section_chunks: list[Chunk] = []
+        global_id: int = 1
 
         for path_obj in rs.file_paths:
             content = self.text_file_reader.read(path_obj)  # INHERITANCE TEXT_FILE SAVE READ FILE CONTENT ###

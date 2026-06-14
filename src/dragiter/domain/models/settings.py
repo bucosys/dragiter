@@ -1,9 +1,9 @@
-from typing import Generic, Optional, TypeVar
 from dataclasses import dataclass, field
 from pathlib import Path
-
+from typing import Generic, Optional, TypeVar
 
 T = TypeVar('T')
+
 
 # the base class
 
@@ -39,19 +39,21 @@ class ValueSetting(Generic[T]):
     #     return self
 
 
-#typed inheritance
+# typed inheritance
 
 @dataclass
 class StringSetting(ValueSetting[str]): ...
 
+
 @dataclass
 class BoolSetting(ValueSetting[bool]): ...
+
+
 #    def __bool__(self) -> bool:
 #        return self.is_set and bool(self._value)
 
-#@dataclass
-#class PathSetting(ValueSetting[Path]): ...
-
+# @dataclass
+# class PathSetting(ValueSetting[Path]): ...
 
 
 @dataclass
@@ -75,7 +77,7 @@ class PathSetting(ValueSetting[Path]):
     def value(self) -> Path:
         """Always returns an absolute path (as stored in _value)."""
         if not self.is_set:
-            return None # raise AttributeError("Value has not been set yet")
+            return None  # raise AttributeError("Value has not been set yet")
         return self._value
 
     @value.setter
@@ -131,22 +133,27 @@ class PathSetting(ValueSetting[Path]):
             )
         return f"PathSetting(key={self.key!r}, <not set>)"
 
+
 @dataclass
 class FloatSetting(ValueSetting[float]): ...
+
 
 @dataclass
 class IntegerSetting(ValueSetting[int]): ...
 
 
-#bool first ####
+# bool first ####
 @dataclass
 class DebugBoolSetting(BoolSetting): ...
+
 
 @dataclass
 class SimulateBoolSetting(BoolSetting): ...
 
+
 @dataclass
 class VerboseBoolSetting(BoolSetting): ...
+
 
 @dataclass
 class SequentialProcessingBoolSetting(BoolSetting): ...
@@ -156,6 +163,7 @@ class SequentialProcessingBoolSetting(BoolSetting): ...
 @dataclass
 class ApiKeyStringSetting(StringSetting): ...
 
+
 @dataclass
 class BaseURLStringSetting(StringSetting): ...
 
@@ -163,11 +171,14 @@ class BaseURLStringSetting(StringSetting): ...
 @dataclass
 class ModelNameStringSetting(StringSetting): ...
 
+
 @dataclass
 class OutputDelimiterStringSetting(StringSetting): ...
 
+
 @dataclass
 class OutputFilenameSchemaStringSetting(StringSetting): ...
+
 
 @dataclass
 class OutputModeStringSetting(StringSetting): ...
@@ -176,22 +187,28 @@ class OutputModeStringSetting(StringSetting): ...
 @dataclass
 class TaskStringSetting(StringSetting): ...
 
+
 #### at the end numbers ####
 
 @dataclass
 class CharsPerTokenFloatSetting(FloatSetting): ...
 
+
 @dataclass
 class MaxInputTokensIntSetting(IntegerSetting): ...
+
 
 @dataclass
 class MaxOutputTokensIntSetting(IntegerSetting): ...
 
+
 @dataclass
 class MaxRetryIntSetting(FloatSetting): ...
 
+
 @dataclass
 class RetryDelayIntSetting(IntegerSetting): ...
+
 
 @dataclass
 class TemperatureFloatSetting(FloatSetting): ...
@@ -205,20 +222,26 @@ class ActivityFilePathSetting(PathSetting): ...
 @dataclass
 class ConfigFilePathSetting(PathSetting): ...
 
+
 @dataclass
 class PromptFilePathSetting(PathSetting): ...
+
 
 @dataclass
 class LoopFilePathSetting(PathSetting): ...
 
+
 @dataclass
 class ResourceFilePathSetting(PathSetting): ...
+
 
 @dataclass
 class OutputFilePathSetting(PathSetting): ...
 
+
 @dataclass
 class OutputDirectoryPathSetting(PathSetting): ...
+
 
 @dataclass
 class BaseDirectoryPathSetting(PathSetting): ...

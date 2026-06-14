@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class PromptTemplate:
     instruction: str
@@ -20,12 +21,10 @@ class PromptTemplate:
             # loop_content = loop_element.get("LOOP_CONTENT", "")
             return self.synthesis.format_map(loop_dict)
 
-
-
-
     def __repr__(self):
         # Das hier wird im Logger angezeigt
-        return f"PromptTemplate (instruction length ='{len(self.instruction or {})}', task length ='{len(self.first  or {})}')"
+        return f"PromptTemplate (instruction length ='{len(self.instruction or {})}', task length ='{len(self.first or {})}')"
+
 
 class PromptTemplateError(Exception):
     pass

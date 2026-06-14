@@ -8,15 +8,11 @@ from dragiter.domain.ports.checksum_generator import ChecksumGenerator
 
 logger = logging.getLogger(__name__)
 
-
 T = TypeVar("T")
-
 
 
 class Worker(Protocol):
     def run(self, **kwargs: Any) -> Any: ...
-
-
 
 
 class ApplicationManager:
@@ -144,10 +140,10 @@ class ApplicationManager:
                 args = self.validate_worker_dependencies(worker)
 
                 # 2. Execute worker
-                logger.info(f"--- Processing: {worker.__class__.__name__} ---")
+                logger.info(f"\N{WHITE RIGHT-POINTING TRIANGLE} {worker.__class__.__name__}")
                 result = worker.run(**args)
-                logger.info(f"--- Completed>: {worker.__class__.__name__} -> {result} --- ")
-
+                logger.debug(f"\N{EYEGLASSES} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result!r}")
+                logger.info(f"\N{WHITE SQUARE} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result}")
 
                 if isinstance(result, (list, set, tuple)):
                     for item in result:
@@ -162,6 +158,7 @@ class ApplicationManager:
 class MissingDependencyError(Exception):
     """Raised when a worker requires a dependency that is missing from the store."""
     pass
+
 
 class ApplicationManagerError(Exception):
     """Raised when the application manager encounters an unhandled runtime exception."""

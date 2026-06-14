@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 import pathlib
-from typing import Union, Any
+from dataclasses import dataclass
+from typing import Union
 
 
 @dataclass
@@ -16,8 +16,5 @@ class TextFile:
         if isinstance(self.path, str):
             self.path = pathlib.Path(self.path)
 
-
     def __repr__(self) -> str:
         return f"TextFile(path='{self.path}', encoding='{self.encoding}')"
-
-

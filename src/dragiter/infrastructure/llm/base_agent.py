@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
 
+
 # --- 1. The Interface (Abstract Base Class) ---
 class BaseAgent(ABC):
     """

@@ -33,13 +33,15 @@ Your audit must explicitly address the following:
 Structure your response strictly with clear Markdown headings.
 """
 
+[behaviour]
 temperature = 0.0
 
 # CRITICAL: Ensures that each code chunk is evaluated individually.
 # Feeding the entire codebase into a single prompt leads to shallow analysis and missed vulnerabilities.
 # Isolated, sequential processing guarantees maximum analytical depth per function.
-sequential_processing = true
+sequential_processing = false
 
-[output]
+
+[outcome]
 output_filename_schema = "security_audit_report.md"
 output_delimiter = "\n\n---\n\n"

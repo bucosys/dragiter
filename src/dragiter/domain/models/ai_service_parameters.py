@@ -16,6 +16,3 @@ class AIServiceParameters:
     temperature_float_setting: TemperatureFloatSetting
     retry_delay_int_setting: RetryDelayIntSetting
     max_retries_int_setting: MaxRetryIntSetting
-
-
-

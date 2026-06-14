@@ -1,18 +1,17 @@
 from pathlib import Path
 
-from dragiter.domain.models.settings import PromptFilePathSetting, TaskStringSetting, OutputDelimiterStringSetting, \
-    OutputFilenameSchemaStringSetting, TemperatureFloatSetting, SequentialProcessingBoolSetting
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.prompt_template import PromptTemplate
+from dragiter.domain.models.settings import PromptFilePathSetting, TaskStringSetting, OutputDelimiterStringSetting, \
+    OutputFilenameSchemaStringSetting, TemperatureFloatSetting, SequentialProcessingBoolSetting
 from dragiter.infrastructure.io.io_services import read_from_toml, read_stdin_content
 
 logger = logging.getLogger(__name__)
 
+
 class PromptCreator:
     def __init__(self) -> None:
         pass
-
-
 
     def run(self, task_string_setting: TaskStringSetting,
             prompt_file_path_setting: PromptFilePathSetting,
@@ -27,7 +26,14 @@ class PromptCreator:
             std_in = read_stdin_content()
 
             if task_string_setting.is_set:
-                return PromptTemplate(instruction=None, first=std_in, material=None, synthesis=task_string_setting.value)
+                return PromptTemplate(instruction=None, first=std_in,
+                                      material=None, synthesis=task_string_setting.value,
+                                      temperature=(temperature_float_setting.value or 0.0),
+                                      sequential_processing=(sequential_processing_bool_setting.value or False),
+                                      output_filename_schema=(
+                                                  output_filename_schema_string_setting.value or "dragiter-out.txt"),
+                                      output_delimiter=(output_delimiter_string_setting.value or "\n")
+                                      )
 
             else:
                 path: Path = prompt_file_path_setting.value
@@ -38,8 +44,6 @@ class PromptCreator:
 
                 if task_sec.get("first"):
                     task_sec["first"] = self._merge_stdin_into_string(task_sec["first"], std_in)
-
-
 
                 # now the specialities
                 # a) build defaults
@@ -79,14 +83,12 @@ class PromptCreator:
                 if temperature_float_setting.is_set:
                     result_prompt_template.temperature_float = temperature_float_setting.value
 
-
                 return result_prompt_template
 
         except Exception as e:
-            #logger.error(f"PromptCreator::run failed: {e}")
-            #raise PromptBuilderError(f"Failed to load prompt.") from e
+            # logger.error(f"PromptCreator::run failed: {e}")
+            # raise PromptBuilderError(f"Failed to load prompt.") from e
             raise PromptBuilderError(f"PromptCreator::run failed: {e}") from e
-
 
     def _merge_stdin_into_string(self, target_string: str, stdin_content: str) -> str:
         """

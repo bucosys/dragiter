@@ -1,8 +1,6 @@
-from typing import Protocol, TypeVar, Generic, Optional
-from typing import final, get_origin, get_args
-
-
 from abc import ABC, abstractmethod
+from typing import TypeVar, Generic, Optional
+from typing import final, get_origin, get_args
 
 T = TypeVar('T')
 
@@ -29,9 +27,8 @@ class Validator(ABC, Generic[T]):
 
         return "Unknown"
 
-
     @final
-    def validate(self, object_to_validate: T) -> str :
+    def validate(self, object_to_validate: T) -> str:
         ret_val: str = None
         if object_to_validate is None:
             raise ValidationError(f"{self.get_type_name()}: Object to validate cannot be None.")
@@ -53,9 +50,8 @@ class Validator(ABC, Generic[T]):
         pass
 
     @final
-    def _checksum(self, object_to_validate: T) -> str :
+    def _checksum(self, object_to_validate: T) -> str:
         return "Moin"
-
 
 
 class ValidationError(Exception):

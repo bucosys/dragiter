@@ -4,6 +4,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+
 @dataclass(frozen=True)
 class LoggingConfiguration:
     debug: bool
@@ -20,19 +21,17 @@ class LoggingConfigurator:
         env_debug_variable = app_name.upper() + "_DEBUG"
         env_verbose_variable = app_name.upper() + "_VERBOSE"
 
-
         argv_lower = [a.lower() for a in sys.argv]
 
         debug = (
-            "--debug" in argv_lower or "-d" in argv_lower or
-            os.environ.get(env_debug_variable, "").upper() in ("TRUE", "1", "YES")
+                "--debug" in argv_lower or "-d" in argv_lower or
+                os.environ.get(env_debug_variable, "").upper() in ("TRUE", "1", "YES")
         )
 
         verbose = (
-            "--verbose" in argv_lower or "-v" in argv_lower or
-            os.environ.get(env_verbose_variable, "").upper() in ("TRUE", "1", "YES")
+                "--verbose" in argv_lower or "-v" in argv_lower or
+                os.environ.get(env_verbose_variable, "").upper() in ("TRUE", "1", "YES")
         )
-
 
         log_level = logging.DEBUG if debug else (logging.INFO if verbose else logging.WARNING)
 
