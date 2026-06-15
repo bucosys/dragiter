@@ -1,3 +1,5 @@
+from dragiter import __version__
+
 import argparse
 import os
 from pathlib import Path
@@ -58,43 +60,43 @@ class ConfigurationLoader:
     def __init__(self) -> None:
         """Initialise the configuration object and load settings."""
         self.config_values: list[ArgumentDecorator] = [
-            BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Debug behaviour"),
-            BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s", help="Simulation mode"),
-            BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose mode"),
+            BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Enable debug logging"),
+            BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s", help="Simulation mode (no API calls)"),
+            BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose output"),
             BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"), help="Process chunks sequentially (one by one)"),
-            StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key"),
-            StringSettingArgumentDecorator(BaseURLStringSetting("base_url"), help="base URL to AI service"),
-            StringSettingArgumentDecorator(ModelNameStringSetting("model_name"), help="model name"),
-            StringSettingArgumentDecorator(OutputDelimiterStringSetting("output_delimiter"), help="output delimiter"),
+            StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key for the LLM service"),
+            StringSettingArgumentDecorator(BaseURLStringSetting("base_url"), help="Base URL of the AI API endpoint (e.g. for Ollama or Grok)"),
+            StringSettingArgumentDecorator(ModelNameStringSetting("model_name"), help="Model name (e.g. gpt-4o, llama3, grok-beta)"),
+            StringSettingArgumentDecorator(OutputDelimiterStringSetting("output_delimiter"), help="Delimiter between multiple results"),
             StringSettingArgumentDecorator(OutputFilenameSchemaStringSetting("output_filename_schema"),
-                                           help="output filename schema"),
+                                           help="Filename schema for output files"),
             StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m",
-                                           help="Output mode: w=overwrite, a=append, x=exclusive"),
-            StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t", help="Ask a specific task"),
+                                           help="Output mode: w=overwrite, a=append, x=exclusive (default: x)"),
+            StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t", help="Direct task text (alternative to -p)"),
             IntegerSettingArgumentDecorator(MaxInputTokensIntSetting("max_input_tokens"),
-                                            help="Max number of input tokens"),
+                                            help="Maximum input tokens (context window limit)"),
             IntegerSettingArgumentDecorator(MaxOutputTokensIntSetting("max_output_tokens"),
-                                            help="Max number of output tokens"),
-            FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"), help="Chars per token"),
-            FloatSettingArgumentDecorator(TemperatureFloatSetting("temperature"), help="LLM temperature"),
+                                            help="Maximum tokens the model may generate in the response"),
+            FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"), help="Average characters per token (usually 3.5-4.0)"),
+            FloatSettingArgumentDecorator(TemperatureFloatSetting("temperature"), help="Temperature (0.0 = deterministic, higher = more creative)"),
             IntegerSettingArgumentDecorator(RetryDelayIntSetting("retry_delay"),
-                                            help="Pause retry delay for <num> seconds"),
-            IntegerSettingArgumentDecorator(MaxRetryIntSetting("max_retry"), help="Retry <num> times"),
+                                            help="Seconds to wait between retries on rate limits"),
+            IntegerSettingArgumentDecorator(MaxRetryIntSetting("max_retry"), help="Maximum number of retry attempts"),
             PathSettingArgumentDecorator(BaseDirectoryPathSetting("base_directory"), short_key="b",
-                                         help="Base directory to fetch"),
+                                         help="Base directory for all relative paths"),
             PathSettingArgumentDecorator(ActivityFilePathSetting("activity_file"), short_key="a",
                                          help="Write activity to file"),
             PathSettingArgumentDecorator(ConfigFilePathSetting("config_file"), short_key="c",
                                          help="Read configuration from file"),
             PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p",
                                          help="Read instruction and task template file"),
-            PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l", help="Read JSONL loop file"),
+            PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l", help="Path to loop file (txt or .jsonl)"),
             PathSettingArgumentDecorator(ResourceFilePathSetting("resource_file"), short_key="r",
-                                         help="Read material definition file"),
+                                         help="Path to resource definition (.toml)"),
             PathSettingArgumentDecorator(OutputFilePathSetting("output_file"), short_key="o",
-                                         help="Write output to file"),
+                                         help="Write all output to a single file"),
             PathSettingArgumentDecorator(OutputDirectoryPathSetting("output_directory"), short_key="O",
-                                         help="Write output to directory")]
+                                         help="Write outputs to directory (recommended for loops)")]
 
     def run(self, **kwargs: Any) -> list[ValueSetting]:
 
@@ -265,23 +267,34 @@ class ConfigurationLoader:
                 continue  # --> operate on next item in list
 
             args: list[str] = [f"--{item.long_key.replace('_', '-')}"]
-            if not item.short_key == "-":
+            if item.short_key and item.short_key != "-":
                 args.append(f"-{item.short_key}")
 
-            cmd_help = item.help
+            help_text = item.help or "No description available"
 
             type_mapping: dict[str, any] = {}
 
             if (isinstance(value_setting_object, BoolSetting)):
-                type_mapping = {"action": "store_true", "default": None, "help": cmd_help}
+                type_mapping = {"action": "store_true", "default": None, "help": help_text}
             elif (isinstance(value_setting_object, StringSetting)):
-                type_mapping = {"type": str, "default": None, "required": False, "help": cmd_help}
+                type_mapping = {"type": str, "default": None, "required": False, "help": help_text}
+            elif (isinstance(value_setting_object, IntegerSetting)):
+                type_mapping = {"type": int, "default": None, "required": False, "help": help_text}
+            elif (isinstance(value_setting_object, FloatSetting)):
+                type_mapping = {"type": float, "default": None, "required": False, "help": help_text}
             elif (isinstance(value_setting_object, PathSetting)):
-                type_mapping = {"type": Path, "default": None, "required": False, "help": cmd_help}
+                type_mapping = {"type": Path, "default": None, "required": False, "help": help_text}
             else:
                 pass
 
             parser.add_argument(*args, **type_mapping)
+
+        parser.add_argument(
+            '--version',
+            action='version',
+            version=f'%(prog)s {__version__}',
+            help="Show program's version number and exit"
+        )
 
         parsed_dict = vars(parser.parse_args())
 
