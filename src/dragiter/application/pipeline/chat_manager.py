@@ -1,6 +1,8 @@
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
 from dragiter.domain.models.chat_sessions import ChatSessions
+from dragiter.domain.models.chat_results import ChatResults, ChatResult
+
 from dragiter.domain.models.settings import SimulateBoolSetting
 from dragiter.domain.ports.llm_service import LLMService
 from dragiter.infrastructure.llm.mockai_service import MockAIService
@@ -16,7 +18,9 @@ class ChatManager:
             ai_service_parameter: AIServiceParameters,
             chat_sessions: ChatSessions,
             simulation_boolean_setting: SimulateBoolSetting,
-            ) -> ChatSessions:
+            ) -> ChatResults:
+
+        chat_result_list: list[ChatResult] = []
 
         try:
 
@@ -25,9 +29,9 @@ class ChatManager:
                 self.llm_service = MockAIService()
 
             for session in chat_sessions.session_list:
-                self.llm_service.process_query(ai_service_parameter, session)
+                chat_result_list.append(self.llm_service.process_query(ai_service_parameter, session))
 
-            return chat_sessions
+            return ChatResults(chat_result_list)
 
         except Exception as e:
             raise ChatManagerError(f"Failed to process openai query: {e}") from e

@@ -21,7 +21,7 @@ class MessageBuilder:
         chat_message_list: list[ChatMessage] = []
         for chat_session in chat_sessions.session_list:
             chat_message_list.extend(chat_session.input_chat_message_list)
-            chat_message_list.append(chat_session.output_chat_message)
+
 
         return chat_message_list  # --->
 

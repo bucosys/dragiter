@@ -1,7 +1,8 @@
 from typing import runtime_checkable, Protocol
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_sessions import ChatSession, ChatResult
+from dragiter.domain.models.chat_sessions import ChatSession
+from dragiter.domain.models.chat_results import ChatResult
 
 
 @runtime_checkable

@@ -20,26 +20,8 @@ class ChatMessage:
 
 
 @dataclass
-class ChatResult:
-    input_tokens: int | None = None
-    output_tokens: int | None = None
-    duration_ms: int | None = None
-    started_at: datetime | None = None
-    ended_at: datetime | None = None
-    finish_reason: str | None = None
-
-    def __str__(self) -> str:
-        # Zeigt nur die wesentlichen Metriken
-        return f"Result(tokens_in={self.input_tokens}, tokens_out={self.output_tokens}, duration={self.duration_ms}ms)"
-
-
-@dataclass
 class ChatSession:
     input_chat_message_list: list[ChatMessage] = field(default_factory=list)
-    output_chat_message: ChatMessage = field(
-        default_factory=lambda: ChatMessage(role="assistant")
-    )
-    chat_result: ChatResult = field(default_factory=ChatResult)
 
     def validate(self) -> None:
         """Validates structural constraints for all chat sessions.
@@ -70,9 +52,7 @@ class ChatSession:
     def __str__(self) -> str:
         # Fasst die Session zusammen
         msg_count = len(self.input_chat_message_list)
-        return (f"<ChatSession: {msg_count} inputs | "
-                f"Output: {len(self.output_chat_message.content or '')} chars | "
-                f"{self.chat_result}>")
+        return (f"<ChatSession: {msg_count} inputs")
 
 
 @dataclass

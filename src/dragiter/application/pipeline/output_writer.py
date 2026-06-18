@@ -10,6 +10,9 @@ from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFi
     ActivityFilePathSetting
 from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
 
+from dragiter.domain.models.chat_results import ChatResults
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,6 +22,7 @@ class OutputWriter:
 
     def run(self,
             chat_sessions: ChatSessions,
+            chat_results: ChatResults,
             activity_file_path_setting: ActivityFilePathSetting,
             output_file_path_setting: OutputFilePathSetting,
             output_directory_path_setting: OutputDirectoryPathSetting,
@@ -32,7 +36,7 @@ class OutputWriter:
             application_result = ApplicationResult(0)
 
             # create simple list
-            content_list = [chat_session.output_chat_message.content for chat_session in chat_sessions.session_list]
+            content_list = [chat_result.output_chat_message.content for chat_result in chat_results.chat_result_list]
 
             # if nothin to report - bail out ...
             out_data = " ".join(content_list)
@@ -70,7 +74,7 @@ class OutputWriter:
                 activity_lines: list[str] = []
 
                 chat_message_list: list[ChatMessage] = []
-                for chat_session in chat_sessions.session_list:
+                for chat_session, chat_result in zip(chat_sessions.session_list, chat_results.chat_result_list):
                     for chat_message in chat_session.input_chat_message_list:
                         activity_dicts.append(
                             json.dumps({
@@ -80,9 +84,9 @@ class OutputWriter:
 
                     activity_dicts.append(
                         json.dumps({
-                            "TS": chat_session.chat_result.ended_at.isoformat() if chat_session.chat_result.ended_at else "",
-                            "RL": chat_session.output_chat_message.role,
-                            "CT": chat_session.output_chat_message.content}))
+                            "TS": chat_result.ended_at.isoformat() if chat_session.chat_result.ended_at else "",
+                            "RL": chat_result.output_chat_message.role,
+                            "CT": chat_result.output_chat_message.content}))
 
                 write_or_append_lines_to_unique_file(activity_file_path_setting.value, open_mode, activity_dicts)
             # end of activity block

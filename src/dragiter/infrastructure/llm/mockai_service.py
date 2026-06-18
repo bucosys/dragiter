@@ -2,7 +2,9 @@ import logging
 from datetime import datetime
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_sessions import ChatSession, ChatResult
+from dragiter.domain.models.chat_sessions import ChatSession
+from dragiter.domain.models.chat_results import ChatResult
+
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
@@ -48,9 +50,8 @@ class MockAIService(LLMService):
                 f"[END OF MOCK]"
             )
 
-            chat_session.output_chat_message.content = mock_response
-
-            chat_result = chat_session.chat_result
+            chat_result = ChatResult()
+            chat_result.output_chat_message.content = mock_response
             chat_result.started_at = datetime.now()
             chat_result.finish_response = "MOCK_AI"
             chat_result.content = mock_response

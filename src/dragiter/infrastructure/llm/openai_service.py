@@ -6,7 +6,8 @@ import openai
 from openai import OpenAI
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_sessions import ChatSession, ChatResult
+from dragiter.domain.models.chat_sessions import ChatSession
+from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
