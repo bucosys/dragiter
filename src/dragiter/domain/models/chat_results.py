@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal
+
 from dragiter.domain.models.chat_sessions import ChatMessage
+
 
 @dataclass
 class ChatResult:
@@ -17,11 +18,11 @@ class ChatResult:
 
     def __str__(self) -> str:
         # Zeigt nur die wesentlichen Metriken
-        return f"Result(output_chat_message={len(self.output_chat_message or "")} chars, tokens_in={self.input_tokens}, tokens_out={self.output_tokens}, duration={self.duration_ms}ms)"
+        return f"Result(output_chat_message={len(self.output_chat_message.content or "")} chars, tokens_in={self.input_tokens}, tokens_out={self.output_tokens}, duration={self.duration_ms}ms)"
 
 
 @dataclass
-class ChatResults(ChatResult):
+class ChatResults():
     chat_result_list: list[ChatResult] = field(default_factory=list)
 
     def __str__(self) -> str:

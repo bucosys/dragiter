@@ -1,8 +1,7 @@
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.chat_results import ChatResults, ChatResult
-
+from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.settings import SimulateBoolSetting
 from dragiter.domain.ports.llm_service import LLMService
 from dragiter.infrastructure.llm.mockai_service import MockAIService

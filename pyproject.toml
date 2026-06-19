@@ -4,14 +4,21 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragiter"
-version = "0.2026.06.14"
+version = "0.0.260619a4"
 description = "dragiter - Deterministic RAG Iterator. Modular CLI for LLM workflows."
 readme = "README.md"
+readme-content-type = "text/markdown"
 requires-python = ">=3.11"
-license = { text = "AGPL-3.0-or-later" }
-authors = [
-    { name = "Michael Buchold", email = "michael.buchold@bucosys.com" }
+
+# === Dual Licensing ===
+license = { text = "AGPL-3.0-or-later OR Proprietary" }
+license-files = [
+    "LICENSE", # short
+    "LICENSE.AGPL-3.0"   # full AGPL
 ]
+
+authors = [{ name = "Michael Buchold", email = "michael.buchold@dragiter.app" }]
+maintainers = [{ name = "Michael Buchold", email = "michael.buchold@dragiter.app" }]
 
 keywords = ["cli", "llm", "rag", "automation", "prompt-engineering", "ai-workflow"]
 classifiers = [
@@ -19,6 +26,7 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Literal
 
 ChatRoles = Literal["system", "user", "assistant"]
@@ -22,32 +21,6 @@ class ChatMessage:
 @dataclass
 class ChatSession:
     input_chat_message_list: list[ChatMessage] = field(default_factory=list)
-
-    def validate(self) -> None:
-        """Validates structural constraints for all chat sessions.
-
-        Raises:
-            ValueError: If any validation rule is violated.
-        """
-        #        for index, session in enumerate(self.session_list):
-        messages = self.input_chat_message_list
-
-        # Rule 1: At least one "user" message must be present
-        has_user = any(msg.role == "user" for msg in messages)
-        if not has_user:
-            raise ValueError(
-                f"Validation error in session {index}: "
-                f"The input message list must contain at least one message with the role 'user'."
-            )
-
-        # Rule 2: "system" role is only allowed at the very first position (index 0)
-        for i, msg in enumerate(messages):
-            if msg.role == "system" and i != 0:
-                raise ValueError(
-                    f"Validation error in session {index}: "
-                    f"The 'system' role is only allowed at the first position (index 0). "
-                    f"Found at index {i}."
-                )
 
     def __str__(self) -> str:
         # Fasst die Session zusammen

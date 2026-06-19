@@ -22,7 +22,6 @@ class MessageBuilder:
         for chat_session in chat_sessions.session_list:
             chat_message_list.extend(chat_session.input_chat_message_list)
 
-
         return chat_message_list  # --->
 
     def _createChatSession(self, prompt: PromptTemplate, dict_line: dict, *chunks: Chunk) -> ChatSession:

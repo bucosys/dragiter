@@ -1,9 +1,8 @@
-from dragiter import __version__
-
 import argparse
 import os
 from pathlib import Path
 
+from dragiter import __version__
 from dragiter.application.config.configuration_decorators import *
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.settings import (
@@ -18,67 +17,38 @@ from dragiter.infrastructure.io.io_services import read_from_toml
 
 logger = logging.getLogger(__name__)
 
-#####
-# self.config_values: list[ArgumentDecorator] = [
-#     BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Enable debug logging"),
-#     BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s", help="Simulation mode (no API calls)"),
-#     BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose output"),
-#     BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"),
-#                                  help="Process chunks sequentially (one by one)"),
-#
-#     StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key for the LLM service"),
-#     StringSettingArgumentDecorator(BaseURLStringSetting("base_url"),
-#                                    help="Base URL of the AI API endpoint (e.g. for Ollama or Grok)"),
-#     StringSettingArgumentDecorator(ModelNameStringSetting("model_name"),
-#                                    help="Model name (e.g. gpt-4o, llama3, grok-beta)"),
-#
-#     StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m",
-#                                    help="Output mode: w=overwrite, a=append, x=exclusive (default: x)"),
-#     StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t",
-#                                    help="Direct task text (alternative to -p)"),
-#
-#     PathSettingArgumentDecorator(BaseDirectoryPathSetting("base_directory"), short_key="b",
-#                                  help="Base directory for all relative paths"),
-#     PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p",
-#                                  help="Path to prompt template (.toml)"),
-#     PathSettingArgumentDecorator(ResourceFilePathSetting("resource_file"), short_key="r",
-#                                  help="Path to resource definition (.toml)"),
-#     PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l",
-#                                  help="Path to loop file (txt or .jsonl)"),
-#
-#     PathSettingArgumentDecorator(OutputFilePathSetting("output_file"), short_key="o",
-#                                  help="Write all output to a single file"),
-#     PathSettingArgumentDecorator(OutputDirectoryPathSetting("output_directory"), short_key="O",
-#                                  help="Write outputs to directory (recommended for loops)"),
-#     # ... rest bleibt gleich
-#]
-
-####
-
 
 class ConfigurationLoader:
     def __init__(self) -> None:
         """Initialise the configuration object and load settings."""
         self.config_values: list[ArgumentDecorator] = [
             BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Enable debug logging"),
-            BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s", help="Simulation mode (no API calls)"),
+            BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s",
+                                         help="Simulation mode (no API calls)"),
             BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose output"),
-            BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"), help="Process chunks sequentially (one by one)"),
+            BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"),
+                                         help="Process chunks sequentially (one by one)"),
             StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key for the LLM service"),
-            StringSettingArgumentDecorator(BaseURLStringSetting("base_url"), help="Base URL of the AI API endpoint (e.g. for Ollama or Grok)"),
-            StringSettingArgumentDecorator(ModelNameStringSetting("model_name"), help="Model name (e.g. gpt-4o, llama3, grok-beta)"),
-            StringSettingArgumentDecorator(OutputDelimiterStringSetting("output_delimiter"), help="Delimiter between multiple results"),
+            StringSettingArgumentDecorator(BaseURLStringSetting("base_url"),
+                                           help="Base URL of the AI API endpoint (e.g. for Ollama or Grok)"),
+            StringSettingArgumentDecorator(ModelNameStringSetting("model_name"),
+                                           help="Model name (e.g. gpt-4o, llama3, grok-beta)"),
+            StringSettingArgumentDecorator(OutputDelimiterStringSetting("output_delimiter"),
+                                           help="Delimiter between multiple results"),
             StringSettingArgumentDecorator(OutputFilenameSchemaStringSetting("output_filename_schema"),
                                            help="Filename schema for output files"),
             StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m",
                                            help="Output mode: w=overwrite, a=append, x=exclusive (default: x)"),
-            StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t", help="Direct task text (alternative to -p)"),
+            StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t",
+                                           help="Direct task text (alternative to -p)"),
             IntegerSettingArgumentDecorator(MaxInputTokensIntSetting("max_input_tokens"),
                                             help="Maximum input tokens (context window limit)"),
             IntegerSettingArgumentDecorator(MaxOutputTokensIntSetting("max_output_tokens"),
                                             help="Maximum tokens the model may generate in the response"),
-            FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"), help="Average characters per token (usually 3.5-4.0)"),
-            FloatSettingArgumentDecorator(TemperatureFloatSetting("temperature"), help="Temperature (0.0 = deterministic, higher = more creative)"),
+            FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"),
+                                          help="Average characters per token (usually 3.5-4.0)"),
+            FloatSettingArgumentDecorator(TemperatureFloatSetting("temperature"),
+                                          help="Temperature (0.0 = deterministic, higher = more creative)"),
             IntegerSettingArgumentDecorator(RetryDelayIntSetting("retry_delay"),
                                             help="Seconds to wait between retries on rate limits"),
             IntegerSettingArgumentDecorator(MaxRetryIntSetting("max_retry"), help="Maximum number of retry attempts"),
@@ -90,7 +60,8 @@ class ConfigurationLoader:
                                          help="Read configuration from file"),
             PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p",
                                          help="Read instruction and task template file"),
-            PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l", help="Path to loop file (txt or .jsonl)"),
+            PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l",
+                                         help="Path to loop file (txt or .jsonl)"),
             PathSettingArgumentDecorator(ResourceFilePathSetting("resource_file"), short_key="r",
                                          help="Path to resource definition (.toml)"),
             PathSettingArgumentDecorator(OutputFilePathSetting("output_file"), short_key="o",
@@ -103,12 +74,6 @@ class ConfigurationLoader:
         try:
             # 1. read arguments
             self._get_args()  # first of all - read args, get all params
-            # resolve the config path using our logic to get a path object
-
-            # for item in self.config_values:
-            #     obj = item.value_setting_object
-            #     logger.debug(f"Object type: {type(obj)} | Target type: {ConfigFilePathSetting}")
-            #     logger.debug(f"IDs match? {id(type(obj)) == id(ConfigFilePathSetting)}")
 
             # This looks for the decorator where the inner object is an instance of ConfigFilePathSetting
             target_decorator = next(

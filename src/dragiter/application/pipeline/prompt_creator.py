@@ -31,7 +31,7 @@ class PromptCreator:
                                       temperature=(temperature_float_setting.value or 0.0),
                                       sequential_processing=(sequential_processing_bool_setting.value or False),
                                       output_filename_schema=(
-                                                  output_filename_schema_string_setting.value or "dragiter-out.txt"),
+                                              output_filename_schema_string_setting.value or "dragiter-out.txt"),
                                       output_delimiter=(output_delimiter_string_setting.value or "\n")
                                       )
 
@@ -81,7 +81,7 @@ class PromptCreator:
                     result_prompt_template.output_filename_schema = output_filename_schema_string_setting.value
 
                 if temperature_float_setting.is_set:
-                    result_prompt_template.temperature_float = temperature_float_setting.value
+                    result_prompt_template.temperature = temperature_float_setting.value
 
                 return result_prompt_template
 

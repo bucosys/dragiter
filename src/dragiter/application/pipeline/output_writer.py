@@ -3,15 +3,13 @@ from pathlib import Path
 
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.application_result import ApplicationResult
+from dragiter.domain.models.chat_results import ChatResults
 from dragiter.domain.models.chat_sessions import ChatSessions, ChatMessage
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting, \
     ActivityFilePathSetting
 from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
-
-from dragiter.domain.models.chat_results import ChatResults
-
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +34,9 @@ class OutputWriter:
             application_result = ApplicationResult(0)
 
             # create simple list
-            content_list = [chat_result.output_chat_message.content for chat_result in chat_results.chat_result_list]
+            content_list = []
+            for chat_result in chat_results.chat_result_list:
+                content_list.append(chat_result.output_chat_message.content)
 
             # if nothin to report - bail out ...
             out_data = " ".join(content_list)
@@ -71,20 +71,18 @@ class OutputWriter:
             # last but not least the activity, jsonl
             if activity_file_path_setting.is_set:
                 activity_dicts: list[dict[str, str]] = []
-                activity_lines: list[str] = []
 
-                chat_message_list: list[ChatMessage] = []
                 for chat_session, chat_result in zip(chat_sessions.session_list, chat_results.chat_result_list):
                     for chat_message in chat_session.input_chat_message_list:
                         activity_dicts.append(
                             json.dumps({
-                                "TS": chat_session.chat_result.ended_at.isoformat() if chat_session.chat_result.ended_at else "",
+                                "TS": chat_result.ended_at.isoformat() if chat_result.ended_at else "",
                                 "RL": chat_message.role,
                                 "CT": chat_message.content}))
 
                     activity_dicts.append(
                         json.dumps({
-                            "TS": chat_result.ended_at.isoformat() if chat_session.chat_result.ended_at else "",
+                            "TS": chat_result.ended_at.isoformat() if chat_result.ended_at else "",
                             "RL": chat_result.output_chat_message.role,
                             "CT": chat_result.output_chat_message.content}))
 

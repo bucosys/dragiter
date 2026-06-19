@@ -6,8 +6,8 @@ import openai
 from openai import OpenAI
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.models.chat_results import ChatResult
+from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class OpenAIService(LLMService):
         attempt: int = 0
         last_exception: Exception | None = None
         retry_delay: int = aisp.retry_delay_int_setting.value or 3
-        chat_result = chat_session.chat_result
+        chat_result = ChatResult()
         chat_result.started_at = datetime.now()
 
         logger.debug(f"(OpenAI SDK) values initialized. Model: {aisp.model_name_string_setting.value}")
@@ -75,8 +75,7 @@ class OpenAIService(LLMService):
 
                         # Extract answer and save to history
                         answer = response.choices[0].message.content.strip()  # strip() suggested by grok
-                        chat_session.output_chat_message.content = answer or ""
-                        chat_result.content = answer
+                        chat_result.output_chat_message.content = answer
                         chat_result.finish_reason = response.choices[0].finish_reason
                         chat_result.input_tokens = response.usage.prompt_tokens
                         chat_result.output_tokens = response.usage.completion_tokens
@@ -110,29 +109,3 @@ class OpenAIService(LLMService):
 
 class OpenAIServiceError(LLMServiceError):
     pass
-
-    # 1. Catch fatal configuration errors immediately
-    # try:
-    #     client_kwargs = {
-    #         "api_key": aisp.api_key_string_setting.value,
-    #     }
-    #     if getattr(aisp.base_url_string_setting, "is_set", False) and aisp.base_url_string_setting.value:
-    #         client_kwargs["base_url"] = aisp.base_url_string_setting.value
-    #
-    #     # HIER: Nutzung des Context Managers!
-    #     with OpenAI(**client_kwargs) as client:
-    #
-    #         while attempt < (aisp.max_retries_int_setting.value or 1):
-    #             try:
-    #                 response = client.chat.completions.create(**api_kwargs)
-    #                 # ... (Dein restlicher Code zum Extrahieren und Speichern) ...
-    #
-    #                 return chat_result
-    #
-    #             except (openai.RateLimitError, openai.APIConnectionError, openai.InternalServerError) as e:
-    #                 # ... (Dein Retry-Handling) ...
-    #                 pass
-    #
-    # except Exception as config_error:
-    #     raise OpenAIServiceError(
-    #         f"Studio (OpenAI-SDK): Failed to initialize client or fatal error. Details: {config_error}")
