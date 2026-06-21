@@ -1,5 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Literal
+from dataclasses import dataclass, field
+from typing import Any
+from dragiter.domain.models.chunk import Chunk
+
 
 ChatRoles = Literal["system", "user", "assistant"]
 
@@ -18,14 +22,25 @@ class ChatMessage:
         return f"[{self.role.upper()}]: {snippet}"
 
 
+
 @dataclass
 class ChatSession:
     input_chat_message_list: list[ChatMessage] = field(default_factory=list)
 
+    # The chunk associated with this session.
+    # Particularly relevant when sequential_processing is set to True.
+    chunk: Chunk | None = None
+
+    # The current loop entry for this session.
+    # Can originate from a plain text loop file or a JSONL record
+    # (e.g. {"LOOP_CONTENT": "..."} or any JSON object).
+    loop_item: dict[str, Any] | None = None
+
     def __str__(self) -> str:
-        # Fasst die Session zusammen
         msg_count = len(self.input_chat_message_list)
-        return (f"<ChatSession: {msg_count} inputs")
+        chunk_info = f", chunk={self.chunk.filename}" if self.chunk else ""
+        loop_info = f", loop={self.loop_item}" if self.loop_item else ""
+        return f"<ChatSession: {msg_count} inputs{chunk_info}{loop_info}>"
 
 
 @dataclass

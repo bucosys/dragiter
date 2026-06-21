@@ -74,12 +74,17 @@ class MessageBuilder:
                 for dict_line in loop.lines:
                     # we start with a new ChatSession
                     cs: ChatSession = self._createChatSession(prompt, dict_line, chunk)
-                    if cs: chat_sessions.session_list.append(cs)
+                    if cs:
+                        cs.chunk = chunk
+                        cs.loop_item = dict_line
+                        chat_sessions.session_list.append(cs)
 
                 # branch b - no lines
                 if len(loop.lines) == 0:
                     cs: ChatSession = self._createChatSession(prompt, None, chunk)
-                    if cs: chat_sessions.session_list.append(cs)
+                    if cs:
+                        cs.chunk = chunk
+                        chat_sessions.session_list.append(cs)
 
         else:
             # do not iter chunks, create one session for all chunks
@@ -88,12 +93,17 @@ class MessageBuilder:
             # branch a - loop lines exist
             for dict_line in loop.lines:
                 cs: ChatSession = self._createChatSession(prompt, dict_line, *material.chunks)
-                if cs: chat_sessions.session_list.append(cs)
+                if cs:
+                    cs.chunk = material.chunks[-1] if material.chunks else None
+                    cs.loop_item = dict_line
+                    chat_sessions.session_list.append(cs)
 
             # branch b - no lines
             if len(loop.lines) == 0:
                 cs: ChatSession = self._createChatSession(prompt, None, *material.chunks)
-                if cs: chat_sessions.session_list.append(cs)
+                if cs:
+                    cs.chunk = material.chunks[-1] if material.chunks else None
+                    chat_sessions.session_list.append(cs)
 
         # final: debuglog and return
         if verbose_setting.value:

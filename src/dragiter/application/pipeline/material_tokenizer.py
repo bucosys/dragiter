@@ -16,8 +16,8 @@ class MaterialTokenizer:
         all_chunks: list[Chunk] = []
 
         try:
-            for ressec in resources.resource_sections:
-                all_chunks.extend(self._process_markdown_configs(ressec))
+            for ressource_section in resources.resource_sections:
+                all_chunks.extend(self._process_markdown_configs(ressource_section))
 
             return Material(chunks=all_chunks)
 

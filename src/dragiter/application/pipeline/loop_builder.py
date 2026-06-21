@@ -21,18 +21,19 @@ class LoopBuilder:
             if loop_file_path_setting.is_set:  # should lines be read?
                 contents = read_stripped_lines_from_file(
                     loop_file_path_setting.value)  # read lines from file, no empty lines into
-                for line in contents:
+                for index, line in enumerate(contents, start=1):
                     try:
                         data = loads(line)
                         # no error, is it a dict?
                         if isinstance(data, dict):
+                            data["LOOP_NUM_ID"] = index
                             dict_list.append(data)
                         else:
-                            dict_list.append({"LOOP_CONTENT": line})
+                            dict_list.append({"LOOP_CONTENT": line, "LOOP_NUM_ID": index})
 
                     except JSONDecodeError as e:
                         # not json-l
-                        dict_list.append({"LOOP_CONTENT": line})
+                        dict_list.append({"LOOP_CONTENT": line, "LOOP_NUM_ID": index})
 
             # finally return new Loop object (always)
             return Loop(lines=dict_list)
