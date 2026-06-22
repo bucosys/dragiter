@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from dragiter.domain.models.settings import (
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
     MaxInputTokensIntSetting, MaxOutputTokensIntSetting,
-    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting)
+    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting)
 
 
 @dataclass(frozen=True)
@@ -13,6 +13,7 @@ class AIServiceParameters:
     model_name_string_setting: ModelNameStringSetting
     max_input_token_int_setting: MaxInputTokensIntSetting
     max_output_tokens_int_setting: MaxOutputTokensIntSetting
+    chars_per_token_float_setting: CharsPerTokenFloatSetting
     temperature_float_setting: TemperatureFloatSetting
     retry_delay_int_setting: RetryDelayIntSetting
     max_retries_int_setting: MaxRetryIntSetting

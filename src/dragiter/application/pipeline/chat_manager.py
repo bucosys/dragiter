@@ -5,6 +5,7 @@ from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.settings import SimulateBoolSetting
 from dragiter.domain.ports.llm_service import LLMService
 from dragiter.infrastructure.llm.mockai_service import MockAIService
+from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +24,11 @@ class ChatManager:
 
         try:
 
+
             # use the mock service if simulation process requested
             if simulation_boolean_setting.value:
-                self.llm_service = MockAIService()
+                payload_estimator = SimplePayloadEstimator()
+                self.llm_service = MockAIService(payload_estimator)
 
             for session in chat_sessions.session_list:
                 chat_result_list.append(self.llm_service.process_query(ai_service_parameter, session))

@@ -140,7 +140,7 @@ class ConfigurationValidator:
             # stage V: Create AIServiceParameters:
             ai_service_parameters: AIServiceParameters = AIServiceParameters(
                 api_key_string_setting, base_url_string_setting, model_name_string_setting, max_input_token_int_setting,
-                max_output_token_int_setting, temperature_float_setting, retry_delay_int_setting,
+                max_output_token_int_setting, chars_per_token_float_setting, temperature_float_setting, retry_delay_int_setting,
                 max_retries_int_setting
             )
 
