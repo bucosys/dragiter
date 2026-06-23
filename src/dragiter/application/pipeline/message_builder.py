@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class MessageBuilder:
-    def __init__(self) -> None:
-        self.simulate: bool = False
 
     def _create_chat_message_list(self, chat_sessions: ChatSessions) -> list[ChatMessage]:
         chat_message_list: list[ChatMessage] = []
@@ -24,34 +22,61 @@ class MessageBuilder:
 
         return chat_message_list  # --->
 
-    def _createChatSession(self, prompt: PromptTemplate, dict_line: dict, *chunks: Chunk) -> ChatSession:
+    def _createChatSession(
+            self,
+            prompt: PromptTemplate,
+            dict_line: dict | None,
+            *chunks: Chunk
+    ) -> ChatSession:
         cs: ChatSession = ChatSession()
 
+        # 1. System Instruction
         if prompt.instruction is not None:
-            cs.input_chat_message_list.append(ChatMessage(role="system", content=prompt.instruction))
+            cs.input_chat_message_list.append(
+                ChatMessage(role="system", content=prompt.instruction)
+            )
 
+        # 2. First / Introduction
         if prompt.first is not None:
-            cs.input_chat_message_list.append(ChatMessage(role="user", content=prompt.first))
+            cs.input_chat_message_list.append(
+                ChatMessage(role="user", content=prompt.first)
+            )
 
+        # 3. Material / Chunks
         if chunks:
             for chunk in chunks:
                 material_with_chunk = chunk.format_template(prompt.material)
-                cs.input_chat_message_list.append(ChatMessage(role="user", content=material_with_chunk))
-        else:
-            if prompt.material is not None:
-                cs.input_chat_message_list.append(ChatMessage(role="user", content=prompt.material))
+                cs.input_chat_message_list.append(
+                    ChatMessage(role="user", content=material_with_chunk)
+                )
+        elif prompt.material is not None:
+            cs.input_chat_message_list.append(
+                ChatMessage(role="user", content=prompt.material)
+            )
 
+        # 4. Synthesis mit Platzhalter-Ersetzung
         if prompt.synthesis is not None:
-            formatted_synthesis = prompt.synthesis
+            if dict_line:
+                try:
+                    formatted_synthesis = prompt.synthesis.format_map(dict_line)
+                except KeyError as e:
+                    # Warnung ausgeben, wenn Platzhalter nicht ersetzt werden konnten
+                    logger.warning(
+                        f"Some placeholders in synthesis could not be replaced: {e}. "
+                        f"Using raw synthesis without formatting for this iteration."
+                    )
+                    formatted_synthesis = prompt.synthesis
 
-            if dict_line is not None and len(dict_line.get("LOOP_CONTENT", "")) > 0:
-                # loop_content = loop_element.get("LOOP_CONTENT", "")
-                formatted_synthesis = prompt.synthesis.format_map(dict_line)
-                cs.input_chat_message_list.append(ChatMessage(role="user", content=formatted_synthesis))
+                cs.input_chat_message_list.append(
+                    ChatMessage(role="user", content=formatted_synthesis)
+                )
+            else:
+                cs.input_chat_message_list.append(
+                    ChatMessage(role="user", content=prompt.synthesis)
+                )
 
-        # Not necessary to set output element
+        return cs
 
-        return cs  # -->
 
     def run(self,
             material: Material,
@@ -63,7 +88,6 @@ class MessageBuilder:
         # me_list: list[ExtendedMessage] = []
 
         chat_sessions: ChatSessions = ChatSessions()
-        answers: list[str] = []
 
         if prompt.sequential_processing:
 
@@ -107,7 +131,7 @@ class MessageBuilder:
 
         # final: debuglog and return
         if verbose_setting.value:
-            cm_flat_list: list[Chunk] = self._create_chat_message_list(chat_sessions)
+            cm_flat_list: list[ChatMessage] = self._create_chat_message_list(chat_sessions)
             for icounter, m in enumerate(cm_flat_list, start=1):
                 logger.debug(
                     json.dumps({
@@ -116,9 +140,6 @@ class MessageBuilder:
                         "CT": textwrap.shorten(m.content or "", width=100, placeholder="...")}))
 
         return chat_sessions
-
-    def create_json(self, line: str) -> dict:
-        return json.loads(line)
 
 
 class MessageBuilderError(Exception):
