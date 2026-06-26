@@ -1,8 +1,8 @@
-dragiter(1)                      April 2026                        dragiter(1)
+dragiter(1)                      July 2026                          dragiter(1)
 
 NAME
-       dragiter - deterministic RAG iterator – command line tool for structured LLM-based
-       processing of materials with prompts and looping
+       dragiter - deterministic RAG iterator – command line tool for structured
+       LLM-based processing of materials with prompts and looping
 
 SYNOPSIS
        dragiter [OPTIONS]
@@ -22,7 +22,7 @@ DESCRIPTION
        Configuration values are read in the following order of precedence:
 
            1. Command-line arguments
-           2. TOML configuration file (specified via -C / --config-file)
+           2. TOML configuration file (specified via -c / --config-file)
            3. Environment variables (dragiter_...)
            4. Default user config (~/.config/dragiter/config.toml)
            5. Hard-coded program defaults
@@ -35,6 +35,12 @@ OPTIONS
            -c, --config-file PATH     Read configuration from a specific file
            -b, --base-directory PATH  Base directory for all relative file
                                       operations
+           -L, --log-file PATH        Write application log output to the given
+                                      file (simple append mode, no rotation).
+                                      Only active when explicitly provided.
+           --sequential-processing    Process each material chunk individually
+                                      instead of sending all chunks in a single
+                                      request.
 
        API & Connection Configuration
            --api-key KEY              API key for the LLM service
@@ -44,7 +50,7 @@ OPTIONS
                                       chunking
            --max-input-tokens INT     Reserved numbers for input
            --max-output-tokens INT    Reserved numbers for output
-           --temperatur FLT           LLM temperature
+           --temperature FLT          LLM temperature
            --max-retry INT            Retry <num> times
            --retry-delay INT          Pause retry delay for <num> seconds
 
@@ -62,7 +68,13 @@ OPTIONS
                                       w=overwrite, a=append, x=exclusive
            -o, --output-file PATH     Write output to a single file
            -O, --output-directory DIR Write outputs to a specified directory
-           -a, --activity-file PATH   Write detailed activity trace to file
+           -a, --activity-file PATH   Write detailed activity trace (JSONL) to
+                                      file
+           --output-delimiter TEXT    Delimiter inserted between multiple
+                                      results (default: newline)
+           --output-filename-schema   Filename template used with
+                                      -O/--output-directory
+                                      (supports {CHUNK_*}, {LOOP_*})
 
        Help & Utilities
            -h, --help                 Show this help message and exit
@@ -76,11 +88,15 @@ EXIT STATUS
 
 ENVIRONMENT
        DRAGITER_DEBUG, DRAGITER_SIMULATE, DRAGITER_VERBOSE (TRUE / FALSE)
+       DRAGITER_SEQUENTIAL_PROCESSING (TRUE / FALSE)
        DRAGITER_API_KEY, DRAGITER_BASE_URL, DRAGITER_MODEL_NAME
-       DRAGITER_MAX_TOKENS, DRAGITER_CHARS_PER_TOKEN
+       DRAGITER_TEMPERATURE, DRAGITER_CHARS_PER_TOKEN
+       DRAGITER_MAX_INPUT_TOKENS, DRAGITER_MAX_OUTPUT_TOKENS
+       DRAGITER_RETRY_DELAY, DRAGITER_MAX_RETRY
        DRAGITER_OUTPUT_MODE (w / a / x)
-       DRAGITER_BASE_DIRECTORY, DRAGITER_CONFIG_FILE
-       DRAGITER_PROMPT_FILE, DRAGITER_LOOP_FILE, DRAGITER_RESOURCES_FILE
+       DRAGITER_OUTPUT_DELIMITER, DRAGITER_OUTPUT_FILENAME_SCHEMA
+       DRAGITER_BASE_DIRECTORY, DRAGITER_CONFIG_FILE, DRAGITER_LOG_FILE
+       DRAGITER_PROMPT_FILE, DRAGITER_LOOP_FILE, DRAGITER_RESOURCE_FILE
        DRAGITER_OUTPUT_FILE, DRAGITER_OUTPUT_DIRECTORY, DRAGITER_ACTIVITY_FILE
        DRAGITER_CONFIG (Overrides default config search path)
 
@@ -91,9 +107,9 @@ REPORTING BUGS
        analyze the code and suggest a patch.
 
        For major issues that even the AI cannot solve, contact:
-       Michael Buchold <michael.buchold@bucosys.com>
+       Michael Buchold <michael.buchold@dragiter.app>
 
 AUTHOR
-       Michael Buchold <michael.buchold@bucosys.com>
+       Michael Buchold <michael.buchold@dragiter.app>
 
-dragiter(1)                      April 2026                        dragiter(1)
+dragiter(1)                      July 2026                          dragiter(1)

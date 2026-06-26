@@ -49,7 +49,7 @@ class ResourceSection():
 
     def __repr__(self):
         # Das hier wird im Logger angezeigt
-        return f"RessourceSection(files length ='{len(self._file_paths)}'"
+        return f"ResourceSection(files length ='{len(self._file_paths)}'"
 
 
 class Resources():
@@ -77,7 +77,7 @@ class Resources():
         return new_value
 
     def __repr__(self):
-        # Das hier wird im Logger angezeigt
+        # This is shown in the logger
         return f"Resources(ResourceSection length ='{len(self._resource_sections)}'"
 
 

@@ -14,5 +14,5 @@ class LLMServiceResult:
         return self._results
 
     def __repr__(self):
-        # Das hier wird im Logger angezeigt
+        # dedicated for logger
         return f"ProcessorResult (results length ='{len(self._results)}')"

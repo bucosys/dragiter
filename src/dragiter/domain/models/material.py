@@ -31,5 +31,5 @@ class Material():
         return self._chunks
 
     def __repr__(self):
-        # Das hier wird im Logger angezeigt
+        # This is shown in the logger
         return f"Material(chunks length ='{len(self._chunks)}'"

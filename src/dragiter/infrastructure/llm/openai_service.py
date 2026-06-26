@@ -97,7 +97,7 @@ class OpenAIService(LLMService):
 
                 # AFTER some WHILE: final method path
                 raise OpenAIServiceError(f"Studio (OpenAI-SDK): Attempt {attempt} failed: {last_exception}")
-                # FIX 1: Verhindert das Verschlucken unseres eigenen Retries-Fehlers
+                # FIX 1: Prevents swallowing our own retry error
         except OpenAIServiceError:
             raise
 

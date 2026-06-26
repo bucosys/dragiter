@@ -10,7 +10,7 @@ from dragiter.domain.models.settings import (
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
     OutputDelimiterStringSetting, OutputFilenameSchemaStringSetting, OutputModeStringSetting, TaskStringSetting,
     MaxInputTokensIntSetting, MaxOutputTokensIntSetting,
-    CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
+    CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting, LogFilePathSetting,
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
     ResourceFilePathSetting, ValueSetting, TemperatureFloatSetting, RetryDelayIntSetting, MaxRetryIntSetting)
 from dragiter.infrastructure.io.io_services import read_from_toml
@@ -58,6 +58,8 @@ class ConfigurationLoader:
                                          help="Write activity to file"),
             PathSettingArgumentDecorator(ConfigFilePathSetting("config_file"), short_key="c",
                                          help="Read configuration from file"),
+            PathSettingArgumentDecorator(LogFilePathSetting("log_file"), short_key="L",
+                                         help="Write log output to file (with rotation)"),
             PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p",
                                          help="Read instruction and task template file"),
             PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l",
@@ -216,7 +218,7 @@ class ConfigurationLoader:
     def _get_args(self) -> None:
 
         parser = argparse.ArgumentParser(
-            description="dragiter - AI Workflow Kit: A tool for automated AI context processing.",
+            description="dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows.",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
 

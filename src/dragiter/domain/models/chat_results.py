@@ -17,7 +17,7 @@ class ChatResult:
     finish_reason: str | None = None
 
     def __str__(self) -> str:
-        # Zeigt nur die wesentlichen Metriken
+        # Shows useful metrics
         return f"Result(output_chat_message={len(self.output_chat_message.content or "")} chars, tokens_in={self.input_tokens}, tokens_out={self.output_tokens}, duration={self.duration_ms}ms)"
 
 

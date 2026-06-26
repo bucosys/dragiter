@@ -1,6 +1,6 @@
 """
 Infrastructure / CLI Layer
-Verantwortlich für das Exportieren von Package-Ressourcen (docs + examples)
+Responsible for extracting detailed information from info.txt file
 """
 
 import importlib.resources
@@ -23,22 +23,8 @@ class InfoPresenter:
 
         try:
             from importlib.resources import files
-
-            # f = files("dragiter.docs")
-            # help_path = Path("dragiter").parent / "docs" / "info.txt"
-            # help_path = Path(__file__).parent.parent.parent.parent.parent / "docs" / "info.txt"
-
-            #            help_path = importlib.resources.files("dragiter").parent.parent / "docs" / "info.txt"
             help_path = importlib.resources.files("dragiter") / "docs" / "info.txt"
-
-            # Zugriff auf die Ressourcen im installierten Package
-            ##pkg_files = importlib.resources.files("dragiter") / resource_name
-
             md_text = help_path.read_text(encoding="utf-8")
-
-            # ressource = files("dragiter.docs") / "info.txt"
-            # md_text = ressource.read_text(encoding="utf-8")
-
             print(md_text)
             return 0
 
@@ -55,7 +41,7 @@ class InfoPresenter:
 | (_| | |  | (_| | (_| | | |_| __/ |    
  \__,_|_|   \__,_|\__, |_|\__\___|_|    
                   |___/        
-[ Deterministic RAG Iterator ]
+[dragiter – Deterministic RAG Iterator.]
 """
         print(banner)
         print("-" * 60)

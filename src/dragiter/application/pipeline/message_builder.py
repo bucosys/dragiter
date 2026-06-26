@@ -1,9 +1,10 @@
 import json
+import re
 import textwrap
+from collections import defaultdict
 
 from dragiter.application.core.xdi import *
-from dragiter.domain.models.chat_sessions import ChatMessage
-from dragiter.domain.models.chat_sessions import ChatSessions, ChatSession
+from dragiter.domain.models.chat_sessions import ChatMessage, ChatSessions, ChatSession
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
@@ -14,58 +15,70 @@ logger = logging.getLogger(__name__)
 
 
 class MessageBuilder:
+    """Builds chat sessions from prompts, materials, and loop data."""
+
+    def _extract_placeholders(self, text: str) -> list[str]:
+        """Extract all placeholder names of the form {name} from a string."""
+        if not text:
+            return []
+        return re.findall(r"\{(\w+)\}", text)
 
     def _create_chat_message_list(self, chat_sessions: ChatSessions) -> list[ChatMessage]:
+        """Flatten all input messages from all chat sessions (used for verbose logging)."""
         chat_message_list: list[ChatMessage] = []
         for chat_session in chat_sessions.session_list:
             chat_message_list.extend(chat_session.input_chat_message_list)
+        return chat_message_list
 
-        return chat_message_list  # --->
-
-    def _createChatSession(
-            self,
-            prompt: PromptTemplate,
-            dict_line: dict | None,
-            *chunks: Chunk
+    def _create_chat_session(
+        self,
+        prompt: PromptTemplate,
+        dict_line: dict | None,
+        *chunks: Chunk
     ) -> ChatSession:
-        cs: ChatSession = ChatSession()
+        """Create a single ChatSession with system, material, and synthesis messages."""
+        cs = ChatSession()
 
-        # 1. System Instruction
+        # 1. System instruction
         if prompt.instruction is not None:
             cs.input_chat_message_list.append(
                 ChatMessage(role="system", content=prompt.instruction)
             )
 
-        # 2. First / Introduction
+        # 2. First / introductory message
         if prompt.first is not None:
             cs.input_chat_message_list.append(
                 ChatMessage(role="user", content=prompt.first)
             )
 
-        # 3. Material / Chunks
+        # 3. Material chunks
         if chunks:
             for chunk in chunks:
-                material_with_chunk = chunk.format_template(prompt.material)
+                formatted_material = chunk.format_template(prompt.material)
                 cs.input_chat_message_list.append(
-                    ChatMessage(role="user", content=material_with_chunk)
+                    ChatMessage(role="user", content=formatted_material)
                 )
         elif prompt.material is not None:
             cs.input_chat_message_list.append(
                 ChatMessage(role="user", content=prompt.material)
             )
 
-        # 4. Synthesis mit Platzhalter-Ersetzung
+        # 4. Synthesis with safe placeholder replacement
         if prompt.synthesis is not None:
             if dict_line:
-                try:
-                    formatted_synthesis = prompt.synthesis.format_map(dict_line)
-                except KeyError as e:
-                    # Warnung ausgeben, wenn Platzhalter nicht ersetzt werden konnten
+                # Use defaultdict so missing keys remain visible as {key}
+                safe_dict = defaultdict(lambda key: "{" + key + "}", dict_line)
+                formatted_synthesis = prompt.synthesis.format_map(safe_dict)
+
+                # Detect which placeholders could not be replaced
+                expected_keys = self._extract_placeholders(prompt.synthesis)
+                missing_keys = [key for key in expected_keys if key not in dict_line]
+
+                if missing_keys:
                     logger.warning(
-                        f"Some placeholders in synthesis could not be replaced: {e}. "
-                        f"Using raw synthesis without formatting for this iteration."
+                        f"Some placeholders in synthesis could not be replaced: {missing_keys}. "
+                        f"These placeholders remain unchanged in the output."
                     )
-                    formatted_synthesis = prompt.synthesis
 
                 cs.input_chat_message_list.append(
                     ChatMessage(role="user", content=formatted_synthesis)
@@ -77,70 +90,57 @@ class MessageBuilder:
 
         return cs
 
-
-    def run(self,
-            material: Material,
-            prompt: PromptTemplate,
-            loop: Loop,
-            verbose_setting: VerboseBoolSetting
-            ) -> ChatSessions:
-
-        # me_list: list[ExtendedMessage] = []
-
-        chat_sessions: ChatSessions = ChatSessions()
+    def run(
+        self,
+        material: Material,
+        prompt: PromptTemplate,
+        loop: Loop,
+        verbose_setting: VerboseBoolSetting
+    ) -> ChatSessions:
+        """Build all chat sessions based on material, prompt, and loop configuration."""
+        chat_sessions = ChatSessions()
 
         if prompt.sequential_processing:
-
-            # iter chunks, create a session for every single chunk
+            # Process each chunk individually
             for chunk in material.chunks:
-
-                # branch a - loop lines exist
                 for dict_line in loop.lines:
-                    # we start with a new ChatSession
-                    cs: ChatSession = self._createChatSession(prompt, dict_line, chunk)
-                    if cs:
-                        cs.chunk = chunk
-                        cs.loop_item = dict_line
-                        chat_sessions.session_list.append(cs)
-
-                # branch b - no lines
-                if len(loop.lines) == 0:
-                    cs: ChatSession = self._createChatSession(prompt, None, chunk)
-                    if cs:
-                        cs.chunk = chunk
-                        chat_sessions.session_list.append(cs)
-
-        else:
-            # do not iter chunks, create one session for all chunks
-            # by contract there must be an empty element in content
-
-            # branch a - loop lines exist
-            for dict_line in loop.lines:
-                cs: ChatSession = self._createChatSession(prompt, dict_line, *material.chunks)
-                if cs:
-                    cs.chunk = material.chunks[-1] if material.chunks else None
+                    cs = self._create_chat_session(prompt, dict_line, chunk)
+                    cs.chunk = chunk
                     cs.loop_item = dict_line
                     chat_sessions.session_list.append(cs)
 
-            # branch b - no lines
-            if len(loop.lines) == 0:
-                cs: ChatSession = self._createChatSession(prompt, None, *material.chunks)
-                if cs:
-                    cs.chunk = material.chunks[-1] if material.chunks else None
+                if not loop.lines:
+                    cs = self._create_chat_session(prompt, None, chunk)
+                    cs.chunk = chunk
                     chat_sessions.session_list.append(cs)
+        else:
+            # Process all chunks together in one session
+            for dict_line in loop.lines:
+                cs = self._create_chat_session(prompt, dict_line, *material.chunks)
+                cs.chunk = material.chunks[-1] if material.chunks else None
+                cs.loop_item = dict_line
+                chat_sessions.session_list.append(cs)
 
-        # final: debuglog and return
+            if not loop.lines:
+                cs = self._create_chat_session(prompt, None, *material.chunks)
+                cs.chunk = material.chunks[-1] if material.chunks else None
+                chat_sessions.session_list.append(cs)
+
+        # Verbose debug logging
         if verbose_setting.value:
-            cm_flat_list: list[ChatMessage] = self._create_chat_message_list(chat_sessions)
-            for icounter, m in enumerate(cm_flat_list, start=1):
+            flat_messages = self._create_chat_message_list(chat_sessions)
+            for index, message in enumerate(flat_messages, start=1):
                 logger.debug(
                     json.dumps({
-                        "#": f"{icounter:04}",
-                        "RL": m.role,
-                        "CT": textwrap.shorten(m.content or "", width=100, placeholder="...")}))
+                        "#": f"{index:04}",
+                        "RL": message.role,
+                        "CT": textwrap.shorten(message.content or "", width=100, placeholder="...")
+                    })
+                )
 
         return chat_sessions
 
 
 class MessageBuilderError(Exception):
+    """Raised when message building fails."""
     pass

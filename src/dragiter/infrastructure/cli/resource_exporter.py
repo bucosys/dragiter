@@ -1,6 +1,6 @@
 """
 Infrastructure / CLI Layer
-Verantwortlich für das Exportieren von Package-Ressourcen (docs + examples)
+Responsible for exporting package resources (docs + examples)
 """
 
 import importlib.resources
@@ -10,8 +10,6 @@ from pathlib import Path
 
 
 class ResourceExporter:
-    """Exportiert eingebettete Package-Ressourcen auf das Dateisystem."""
-
     @staticmethod
     def export(resource_name: str) -> None:
         """

@@ -1,4 +1,4 @@
-## dragiter (Deterministic RAG Iterator)
+## dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows.
 
 [WARNING] Status: Alpha / Developer Tool
 dragiter is currently in active development. It is highly effective for local, personal workflows and automating local

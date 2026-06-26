@@ -20,7 +20,7 @@ class PromptCreator:
             output_filename_schema_string_setting: OutputFilenameSchemaStringSetting,
             temperature_float_setting: TemperatureFloatSetting
             ) -> PromptTemplate:
-        # case I nandled prior
+
 
         try:
             std_in = read_stdin_content()
@@ -98,7 +98,6 @@ class PromptCreator:
         # if stdin not available we use a zero string
         content_to_insert = stdin_content if stdin_content else ""
 
-        # Wir prüfen explizit auf den Platzhalter, um unnötige Operationen zu sparen
         if "{STDIN}" in target_string:
             return target_string.replace("{STDIN}", content_to_insert)
 

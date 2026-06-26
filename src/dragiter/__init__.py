@@ -4,4 +4,4 @@ from importlib.metadata import version, PackageNotFoundError
 try:
     __version__ = version("dragiter")
 except PackageNotFoundError:
-    __version__ = "0.1.0a1"  # Entwicklungsversion
+    __version__ = "0000.00.00a0"  # fall back version not valid

@@ -4,18 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragiter"
-version = "0.0.260622a2"
-description = "dragiter - Deterministic RAG Iterator. Modular CLI for LLM workflows."
-readme = "README.md"
-readme-content-type = "text/markdown"
+version = "2026.06.26b3"
+description = "dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows."
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
-
-# === Dual Licensing ===
 license = { text = "AGPL-3.0-or-later OR Proprietary" }
-license-files = [
-    "LICENSE", # short
-    "LICENSE.AGPL-3.0"   # full AGPL
-]
+license-files = ["LICENSE", "LICENSE.AGPL-3.0"]
 
 authors = [{ name = "Michael Buchold", email = "michael.buchold@dragiter.app" }]
 maintainers = [{ name = "Michael Buchold", email = "michael.buchold@dragiter.app" }]
@@ -39,6 +33,15 @@ dependencies = [
     "openai>=1.0.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff",
+    "mypy",
+    "build",
+    "twine",
+]
+
 [project.urls]
 Homepage = "https://gitlab.com/bucosys/dragiter"
 Repository = "https://gitlab.com/bucosys/dragiter.git"
@@ -54,28 +57,19 @@ dragiter-gen-examples = "dragiter.cli:gen_examples"
 [tool.hatch.build.targets.wheel]
 packages = ["src/dragiter"]
 
-[tool.hatch.build.targets.sdist]
-include = [
-    "src",
-    "examples",
-    "docs",
-    "LICENSE*",
-    "README.md",
-]
-
-exclude = [
-    "*.tar",
-    "*.tgz",
-    "run/",
-    "dist/",
-    ".git/",
-    ".idea/",
-    ".vscode/",
-    "__pycache__/",
-    "*.pyc",
-    ".DS_Store",
-]
-
+# WICHTIG: docs/ und examples/ werden absichtlich ins Wheel gepackt,
+# damit dragiter-gen-docs und dragiter-gen-examples nach der Installation
+# funktionieren (sie nutzen importlib.resources.files("dragiter")).
 [tool.hatch.build.targets.wheel.force-include]
 "examples" = "dragiter/examples"
 "docs" = "dragiter/docs"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "examples/",
+    "docs/",
+    "LICENSE*",
+    "README.md",
+    "pyproject.toml",
+]
