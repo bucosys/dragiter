@@ -1,5 +1,20 @@
-# dragiter Configuration Template
-api_key = "YOUR-API-KEY"
+# dragiter Configuration Template for Google Gemini (OpenAI compatible)
+
+# API Key options:
+#
+# You can either uncomment the line below and insert your Google API key,
+# or leave it commented out and provide the key via command line
+# (--api-key) or the DRAGITER_API_KEY environment variable.
+#
+# Storing API keys in configuration files requires careful consideration
+# regarding security and access control. In shared, team, or production
+# environments it is generally advisable to use environment variables
+# or dedicated secret management solutions instead.
+
+# api_key = "YOUR-GOOGLE-API-KEY-HERE"
+
 base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
 model_name = "gemini-2.5-flash"
-debug = false
+
+chars_per_token=3.75
+max_tokens=128000

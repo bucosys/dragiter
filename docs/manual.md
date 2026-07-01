@@ -5,64 +5,131 @@ dragiter is a modular command-line tool (CLI) designed to integrate working with
 large language models (LLMs) into automated workflows. It allows for the
 chaining of AI agents similar to pipes in a terminal.
 
-
 Chapter 1: Getting Started
 ==========================
 
 Getting Started with Examples
 -----------------------------
-To make things easier, you can navigate directly into the example directory first.
-Open your terminal window and type:
+The easiest way to explore dragiter is by using the included examples.
+
+First, extract them into your current directory by running:
+
+    dragiter-gen-examples .
+
+You will find the examples in the `examples/` subdirectory.  
+To follow along with the first example, navigate into it:
 
     cd examples/01_md_sample
+
+
 
 Test Safely with Simulation Mode
 --------------------------------
 It is highly recommended to always run a simulation first. This allows you to
 safely verify your workflow and file routing without making actual API calls
-or spending your API credits. You can do this by adding the -s flag to your
+or spending your API credits. You can do this by adding the `-s` flag to your
 command.
 
 Run the simulation by typing:
 
     dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 
-Once you confirm the simulation output looks correct, run the actual process
-by removing the -s flag:
+What Happens Without Further Configuration?
+-------------------------------------------
+If you try to run the example without the `-s` flag, you will see an error
+similar to this:
+
+    ERROR | dragiter.cli | A critical error occurred: Failed to execute
+    application manager run cycle: [ConfigurationValidatorFinding(rule='base_url',
+    finding='value not set', description='Path to LLM is mandatory.')]
+
+This is expected. For real LLM requests, dragiter needs connection settings
+for an LLM service.
+
+### Using Ollama
+
+The file `config-ollama.toml` is ready to use out of the box, provided that
+Ollama is installed and running locally with its default settings.
+
+When using Ollama it is recommended to run the command with the `-v` (verbose)
+flag:
+
+    dragiter -v -c config-ollama.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+
+**Why use `-v` with Ollama?**  
+Local models can take significantly longer to respond than cloud services.
+Without the verbose flag you will see no output for quite some time, which can
+be confusing. The `-v` flag lets you follow the progress of the request.
+
+### Optional: Making Configuration Permanent
+
+You can optionally copy a working configuration file to the default location
+`~/.config/dragiter/config.toml`. After doing so, dragiter will automatically
+load the settings without requiring the `-c` flag.
+
+Example:
+
+    mkdir -p ~/.config/dragiter
+    cp config-ollama.toml ~/.config/dragiter/config.toml
+
+You can then run the example without `-c`:
 
     dragiter -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 
-Streamlining Your Configuration
--------------------------------
-First, you will need to buy an API key from your chosen AI provider, such as
-OpenAI. To avoid typing your API key and model name every time, you can store
-them in a configuration file or environment variables.
+Alternatively, you can keep your configuration file in your project folder and
+create a symlink:
 
-Default Configuration:
-By default, dragiter automatically looks for your settings at ~/.config/dragiter/config.toml.
+    ln -s $(pwd)/config-ollama.toml ~/.config/dragiter/config.toml
 
-Symlinks (Recommended for Version Control):
-If you prefer to keep your actual config file in a specific project folder,
-create a soft link to the default path. This allows dragiter to find your settings
-automatically without needing the -c flag:
+**Note:** Creating a permanent configuration is convenient if you mostly work
+with the same service. If you frequently switch between different providers
+(Ollama, Grok, Gemini, etc.), it can be more practical to continue using the
+`-c` flag instead.
 
-    ln -s /path/to/your/real/config.toml ~/.config/dragiter/config.toml
+### Using Cloud Providers (Google, Grok, etc.)
 
-The -c Flag:
-Point dragiter directly to a specific TOML config file when running your command.
+The example directory also contains configuration files for cloud providers,
+such as `config-google.toml`.
 
-Environment Variables:
-To set your AI credentials directly in your environment, you can use environment
-variables. This is a secure way to provide your API key without saving it in a
-file. In your terminal, you can set these variables for your current session by
-typing:
+These files contain placeholder values. Before you can use them, you must edit
+the file and insert your own API key.
 
-    export DRAGITER_API_KEY="your_api_key_here"
-    export DRAGITER_MODEL_NAME="your_model_name_here"
+Once the API key is set, you can run the example with:
 
-Once these are set, dragiter will automatically pick up your AI configuration from
-the environment when you run your workflow.
+    dragiter -v -c config-google.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 
+### Alternative: Using Environment Variables
+
+You can also configure dragiter using environment variables. This is useful
+when you want to avoid storing credentials in files or when working in
+automated environments:
+
+    export DRAGITER_BASE_URL="http://localhost:11434/v1"
+    export DRAGITER_MODEL_NAME="qwen3:8b"
+    export DRAGITER_API_KEY="ollama"
+
+Once set, you can run the example without the `-c` flag:
+
+    dragiter -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+
+### Mixed Configuration
+
+dragiter evaluates configuration sources in the following order (highest priority first):
+
+1. Command-line arguments
+2. TOML configuration file
+3. Environment variables
+4. Hard-coded defaults
+
+This means:
+- Values passed via the command line (e.g. `-c`, `--api-key`, `--model-name`) always take precedence.
+- Settings from a TOML file are used if they were not already provided on the command line.
+- Environment variables (`DRAGITER_*`) are only applied to settings that have not been set by either the command line or a configuration file.
+
+**Practical consequence:**  
+You cannot override a value defined in a TOML file using an environment variable. Environment variables are mainly useful when you are **not** using a configuration file, or when you want to provide sensitive values (such as an API key) without storing them in a file.
+
+If you frequently work with different services, it is often more practical to use the `-c` flag to switch between configuration files rather than relying on environment variables.
 
 Chapter 2: Configuration Parameters and Flags
 =============================================
@@ -70,7 +137,7 @@ Chapter 2: Configuration Parameters and Flags
 dragiter configuration values can be provided in three main ways. The application
 reads them in the following order of precedence:
 
-1. Command-line arguments (e.g., -k or --api-key)
+1. Command-line arguments (e.g., --api-key)
 2. TOML configuration file (e.g., api_key = "...")
 3. Environment variables (e.g., DRAGITER_API_KEY)
 

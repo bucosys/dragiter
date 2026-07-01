@@ -41,8 +41,9 @@ class InfoPresenter:
 | (_| | |  | (_| | (_| | | |_| __/ |    
  \__,_|_|   \__,_|\__, |_|\__\___|_|    
                   |___/        
+
 [dragiter – Deterministic RAG Iterator.]
 """
         print(banner)
-        print("-" * 60)
+        print("-" * 70)
         print("")
