@@ -48,11 +48,11 @@ OPTIONS
            --model-name MODEL         Model identifier (e.g. gpt-4o, qwen3:8b)
            --chars-per-token FLT      Estimated characters per token for
                                       chunking
-           --max-input-tokens INT     Reserved numbers for input
-           --max-output-tokens INT    Reserved numbers for output
+           --max-context-tokens INT   Maximum context window limit of the model (input + output combined)
+           --max-output-tokens INT    Maximum output tokens (part of context window limit)
            --temperature FLT          LLM temperature
-           --max-retry INT            Retry <num> times
-           --retry-delay INT          Pause retry delay for <num> seconds
+           --max-retry INT            Maximum number of retries on failure (LLM)
+           --retry-delay INT          Delay in seconds between retries
 
 
        Task & Prompt Control
@@ -91,7 +91,7 @@ ENVIRONMENT
        DRAGITER_SEQUENTIAL_PROCESSING (TRUE / FALSE)
        DRAGITER_API_KEY, DRAGITER_BASE_URL, DRAGITER_MODEL_NAME
        DRAGITER_TEMPERATURE, DRAGITER_CHARS_PER_TOKEN
-       DRAGITER_MAX_INPUT_TOKENS, DRAGITER_MAX_OUTPUT_TOKENS
+       DRAGITER_MAX_CONTEXT_TOKENS, DRAGITER_MAX_OUTPUT_TOKENS
        DRAGITER_RETRY_DELAY, DRAGITER_MAX_RETRY
        DRAGITER_OUTPUT_MODE (w / a / x)
        DRAGITER_OUTPUT_DELIMITER, DRAGITER_OUTPUT_FILENAME_SCHEMA

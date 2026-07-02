@@ -14,10 +14,9 @@
 # environments it is generally advisable to use environment variables
 # or dedicated secret management solutions instead.
 
-# api_key = "YOUR-GOOGLE-API-KEY-HERE"
-
-base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-model_name = "gemini-2.5-flash"
+# api_key="YOUR-GROK-API-KEY-HERE"
+base_url = "https://api.x.ai/v1"
+model_name = "grok-4.3"
 
 # ===================================================================
 # Optional advanced settings (uncomment and adjust as needed)

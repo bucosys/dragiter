@@ -3,7 +3,7 @@ from multiprocessing.util import debug
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.context_validation_report import ContextValidationReport
-from dragiter.domain.models.settings import CharsPerTokenFloatSetting, MaxInputTokensIntSetting, \
+from dragiter.domain.models.settings import CharsPerTokenFloatSetting, MaxContextTokensIntSetting, \
     MaxOutputTokensIntSetting, SimulateBoolSetting, \
     VerboseBoolSetting
 from dragiter.domain.ports.payload_estimator import PayloadEstimator
@@ -21,25 +21,25 @@ class ContextWindowEstimator:
             verbose_boolean_setting: VerboseBoolSetting,
             simulation_boolean_setting: SimulateBoolSetting,
             chars_per_token_float_setting: CharsPerTokenFloatSetting,
-            max_input_tokens_int_setting: MaxInputTokensIntSetting,
+            max_context_tokens_int_setting: MaxContextTokensIntSetting,
             max_output_tokens_int_setting: MaxOutputTokensIntSetting
             ) -> None:
 
         if not (
-                chars_per_token_float_setting.is_set and max_input_tokens_int_setting.is_set and max_output_tokens_int_setting.is_set):
+                chars_per_token_float_setting.is_set and max_context_tokens_int_setting.is_set and max_output_tokens_int_setting.is_set):
             logger.debug(
-                f"Neither chars-per-token nor max-input-tokens-int-setting nor max-output-tokens-int-setting are set. Validation is not applicable.")
+                f"Neither chars-per-token nor max-context-tokens-int-setting nor max-output-tokens-int-setting are set. Validation is not applicable.")
             return None
 
         if verbose_boolean_setting.value:
             # show current settings
             logger.debug(f"Payload estimation: "
                          f"chars-per-token: {chars_per_token_float_setting.value}, "
-                         f"max-input-tokens: {max_input_tokens_int_setting.value}, "
+                         f"max-context-tokens: {max_context_tokens_int_setting.value}, "
                          f"max-output-tokens: {max_output_tokens_int_setting.value}")
 
         out_tokens: int = max_output_tokens_int_setting.value
-        limit: int = max_input_tokens_int_setting.value + out_tokens
+        limit: int = max_context_tokens_int_setting.value
 
         report = ContextValidationReport(
             is_valid=True,
@@ -69,10 +69,18 @@ class ContextWindowEstimator:
                 if verbose_boolean_setting.value:
                     debug(f"Calculated input token amount: {calc_input_tokens}")
 
-                if calc_input_tokens > max_input_tokens_int_setting.value:
+                if (calc_input_tokens + out_tokens) > max_context_tokens_int_setting.value:
                     debug(
-                        f"Simulated input token amount: {calc_input_tokens} is larger than max-input-tokens-int-setting value.")
-                    failed_message = f"Token amount ({calc_input_tokens}) exceeds max limcalc_input_token_amountit ({max_input_tokens_int_setting.value})."
+                        f"Context window exceeded. "
+                        f"Input: {calc_input_tokens} | Output reservation: {out_tokens} | "
+                        f"Calculated total: {calc_input_tokens + out_tokens} | Limit: {max_context_tokens_int_setting.value}"
+                    )
+
+                    failed_message = (
+                        f"The estimated input tokens ({calc_input_tokens}) plus the reserved output tokens ({out_tokens}) "
+                        f"exceed the total context window limit ({max_context_tokens_int_setting.value})."
+                    )
+
                     report.is_valid = False
                     report.simulation_warnings.append(failed_message)
                     if not simulation_boolean_setting.value:

@@ -379,8 +379,71 @@ If you are running a batch process using a loop file, place the {LOOP_CONTENT}
 variable inside your "synthesis" block. dragiter will replace this placeholder with
 the current line (or JSON fields) from your loop file for each iteration.
 
+### Chapter 4: Context Window and Token Management
 
-Chapter 4: Practical Examples and Concrete Jobs
+Large language models have a limited "attention span" — known as the **context window**. This is the maximum amount of 
+text (measured in tokens) the model can process in a single request.
+
+If your prompt and reference material exceed this limit, the request will fail or be cut off. dragiter helps you avoid
+such problems with built-in token estimation.
+
+#### Why This Matters
+
+- **Cost control**: You only pay for what you actually send.
+- **Reliability**: Prevents unexpected failures during important tasks.
+- **Transparency**: You know in advance whether your material fits.
+
+dragiter activates automatic context validation as soon as you define three key parameters.
+
+#### The Three Essential Settings
+
+| Setting              | Recommended Value                  | What it does                                                                    |
+|----------------------|------------------------------------|---------------------------------------------------------------------------------|
+| `chars_per_token`    | 4.0 (or 3.8 for more precision)    | Average number of characters per token. Used to estimate token count from text. |
+| `max_context_tokens` | 128000 (for most modern models)    | Total context window size of the model (input + output combined)                |
+| `max_output_tokens`  | 4096 or 8192                       | Maximum number of tokens the model is allowed to generate as output.            |
+
+**Important:** `max_context_tokens` represents the **total context window** of the model (input + output combined). 
+`max_output_tokens` is the portion reserved for the model's answer. Always leave enough room for a meaningful response.
+Example: If you set `max_context_tokens = 128000` and `max_output_tokens = 8192`, the model has room for up to 
+approximately 119808 tokens of input material.
+
+#### How to Activate Token Estimation
+
+You can set these values in three ways (in order of priority):
+
+**1. In your configuration file** (recommended for regular use)
+```toml
+chars_per_token = 4.0
+max_context_tokens = 128000
+max_output_tokens = 8192
+```
+**2. Via environment variables**
+```
+export DRAGITER_CHARS_PER_TOKEN=4.0
+export DRAGITER_MAX_CONTEXT_TOKENS=128000
+export DRAGITER_MAX_OUTPUT_TOKENS=8192
+```
+**3. Directly on the command line**
+```
+dragiter --chars-per-token 4.0 \
+         --max-context-tokens 128000 \
+         --max-output-tokens 8192 \
+         -p your_prompt.toml ...
+```
+
+#### Practical Recommendations
+
+- For **Ollama** (local models): Start with `max_context_tokens = 32000` or `128000` depending on your model.
+- For **Gemini / GPT-4 class models**: Use `128000` or higher.
+- `chars_per_token = 4.0` is a safe default for most European languages.
+
+#### Summary
+
+By configuring these three values you give dragiter the ability to act as an intelligent gatekeeper. It protects you from failed requests, helps control costs, and gives you confidence when working with large documents or complex analysis tasks.
+
+
+Chapter 5: Practical Examples and Concrete Jobs
 ===============================================
 
 Now that you understand how to configure materials, prompts, and loops, let us
@@ -446,7 +509,7 @@ flag, dragiter writes all three consolidated answers into a single, highly
 readable "final_summary.txt" document.
 
 
-Chapter 5: Advanced Batch Processing with JSONL
+Chapter 6: Advanced Batch Processing with JSONL
 ===============================================
 
 While simple text files are great for looping through single variables (using
@@ -492,7 +555,7 @@ used, dragiter deposits three distinct, perfectly tailored marketing documents
 into the "campaigns" directory.
 
 
-Chapter 6: Tool Chaining and External Data Fetching
+Chapter 7: Tool Chaining and External Data Fetching
 ===================================================
 
 Because dragiter is built around the Unix philosophy of doing one thing well, it is
@@ -559,7 +622,7 @@ trends or bugs, and writes a comprehensive Markdown report for the product
 team's morning meeting.
 
 
-Chapter 7: Connecting to Different AI Engines
+Chapter 8: Connecting to Different AI Engines
 =============================================
 
 One of the greatest strengths of dragiter is that it does not lock you into a
@@ -633,12 +696,12 @@ configuration file to upgrade your entire toolchain.
 
 
 
-Chapter 8: Acknowledgements and Special Thanks
+Chapter 9: Acknowledgements and Special Thanks
 ==============================================
 
 
 
-The development of dragiter (Artificial Intelligence Working Kit) has been a
+The development of dragiter (Deterministic RAG Iterator) has been a
 journey of continuous learning and exploration. Bringing this project to life
 would not have been possible without the support of some extraordinary tools
 and communities.

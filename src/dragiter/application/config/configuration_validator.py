@@ -8,7 +8,7 @@ from dragiter.domain.models.ai_service_parameters import AIServiceParameters
 from dragiter.domain.models.settings import (
     SimulateBoolSetting, VerboseBoolSetting,
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
-    OutputModeStringSetting, TaskStringSetting, MaxInputTokensIntSetting, MaxOutputTokensIntSetting,
+    OutputModeStringSetting, TaskStringSetting, MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
     CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
     ResourceFilePathSetting, ValueSetting, PathSetting, TemperatureFloatSetting, MaxRetryIntSetting,
@@ -37,7 +37,7 @@ class ConfigurationValidator:
             task_string_setting: TaskStringSetting,
             chars_per_token_float_setting: CharsPerTokenFloatSetting,
             max_output_token_int_setting: MaxOutputTokensIntSetting,
-            max_input_token_int_setting: MaxInputTokensIntSetting,
+            max_context_token_int_setting: MaxContextTokensIntSetting,
             temperature_float_setting: TemperatureFloatSetting,
             retry_delay_int_setting: RetryDelayIntSetting,
             max_retries_int_setting: MaxRetryIntSetting,
@@ -139,7 +139,7 @@ class ConfigurationValidator:
 
             # stage V: Create AIServiceParameters:
             ai_service_parameters: AIServiceParameters = AIServiceParameters(
-                api_key_string_setting, base_url_string_setting, model_name_string_setting, max_input_token_int_setting,
+                api_key_string_setting, base_url_string_setting, model_name_string_setting, max_context_token_int_setting,
                 max_output_token_int_setting, chars_per_token_float_setting, temperature_float_setting, retry_delay_int_setting,
                 max_retries_int_setting
             )
