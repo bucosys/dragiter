@@ -1,3 +1,7 @@
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![PyPI](https://img.shields.io/pypi/v/dragiter)](https://pypi.org/project/dragiter/)
+[![Python](https://img.shields.io/pypi/pyversions/dragiter)](https://pypi.org/project/dragiter/)
+
 ## dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows.
 
 [WARNING] Status: Alpha / Developer Tool
@@ -32,25 +36,54 @@ pip install dragiter
 
 ## Quick Start
 
-The core philosophy of dragiter is to keep your resources (material, context) and your prompts (instructions) separate.
+The core philosophy of dragiter is to keep your resources (material, context) and your 
+prompts (instructions) separate.
 
-1. Create a Configuration (Optional but recommended):
-   Store your credentials so you don't have to type them out every time.
+The easiest way to explore dragiter is by using the included examples 
 
-export DRAGITER_API_KEY="your_api_key"
-export DRAGITER_MODEL_NAME="your_preferred_model"
+### 1. Extract the Examples
 
-2. Run your first workflow:
-   It is highly recommended to use the -s (simulate) flag first to verify your file routing without spending API
-   credits.
+First, extract them into your current directory by running:
 
-# Simulate the run
+    dragiter-gen-examples .
 
-dragiter -s -p prompt\_template.toml -m code\_material.toml
+You will find the examples in the `examples/` subdirectory. 
+To follow along with the first example, navigate into it:
 
-# Execute the run and output to a specific file
+    cd examples/01_md_sample
 
-dragiter -p prompt\_template.toml -r code\_resource.toml -o final\_report.md
+### 2. Test Safely with Simulation Mode
+
+It is highly recommended to always run a simulation first. 
+This allows you to safely verify your workflow and file routing without making actual API calls
+or spending your API credits. You can do this by adding the `-s` flag to your command.
+
+Run the simulation by typing:
+
+    dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+
+### 3. Run with Ollama
+The file `config-ollama.toml` is ready to use out of the box, provided that Ollama is 
+installed and running locally with its default settings. When using Ollama it is recommended 
+to run the command with the `-v` (verbose) flag:
+
+    dragiter -v -c config-ollama.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+
+
+## Documentation
+dragiter comes with a very detailed and well-written manual. 
+It is strongly recommended to read it:
+    
+    # Extract the full documentation
+    dragiter-gen-docs .
+
+    # Then read the manual
+    less docs/manual.md
+    # or open it in your editor / browser
+
+The manual contains many practical examples (code review, batch report analysis, 
+marketing copy generation, tool chaining, etc.) and explains advanced features such 
+as context window management and JSONL processing in depth.
 
 ## Tool Chaining (The Unix Way)
 

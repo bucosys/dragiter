@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragiter"
-version = "2026.07.03b1"
+version = "2026.07.03b2"
 description = "dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
