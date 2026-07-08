@@ -1,7 +1,3 @@
-# =============================================================================
-# dragiter - Deterministic RAG Iterator
-# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
-#
 # This file is part of dragiter.
 #
 # dragiter is free software: you can redistribute it and/or modify
@@ -21,19 +17,10 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-import logging
-from abc import ABC, abstractmethod
-
-logger = logging.getLogger(__name__)
+from typing import Protocol, runtime_checkable, Any
 
 
-# --- 1. The Interface (Abstract Base Class) ---
-class BaseAgent(ABC):
-    """
-    The interface defines what every agent must be able to do.
-    This keeps the rest of the code independent of the specific API.
-    """
+@runtime_checkable
+class ActivityProvider(Protocol):
+    def to_activity_dict(self) -> list[dict[str, Any]]: ...
 
-    @abstractmethod
-    def ask(self, instruction: str, task: str) -> str:
-        pass

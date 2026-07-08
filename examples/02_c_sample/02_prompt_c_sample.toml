@@ -1,7 +1,8 @@
 [system]
 instruction = """
 You are a Principal Software Security Auditor and a distinguished C/C++ architect.
-You analyse legacy code with ruthless precision. You do not tolerate missing pointer validations or potential memory leaks. Always answer in British English, maintaining a highly professional, objective, and analytical tone.
+You analyse legacy code with ruthless precision. You do not tolerate missing pointer validations or potential memory
+leaks. Always answer in British English, maintaining a highly professional, objective, and analytical tone.
 """
 
 [task]
@@ -39,7 +40,7 @@ temperature = 0.0
 # CRITICAL: Ensures that each code chunk is evaluated individually.
 # Feeding the entire codebase into a single prompt leads to shallow analysis and missed vulnerabilities.
 # Isolated, sequential processing guarantees maximum analytical depth per function.
-sequential_processing = false
+sequential_processing = true
 
 
 [outcome]

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragiter"
-version = "2026.07.03b2"
+version = "2026.07.06b3"
 description = "dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
@@ -16,7 +16,7 @@ maintainers = [{ name = "Michael Buchold", email = "michael.buchold@dragiter.app
 
 keywords = ["cli", "llm", "rag", "automation", "prompt-engineering", "ai-workflow"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",

@@ -4,10 +4,12 @@
 
 ## dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows.
 
-[WARNING] Status: Alpha / Developer Tool
-dragiter is currently in active development. It is highly effective for local, personal workflows and automating local
-LLM tasks. However, it is not yet production-ready. Please do not use dragiter in automated CI/CD pipelines, on shared
-servers, or to parse untrusted, third-party data due to known limitations in regex handling and dependency injection.
+> Status: Beta
+> 
+> dragiter has now moved beyond the Alpha stage and is in Beta. The core functionality is largely
+> stable and is already being used in smaller production setups. However, breaking changes may 
+> still occur. We currently advise against using dragiter in critical production environments, 
+> automated CI/CD pipelines, or with untrusted or sensitive data without thorough testing.
 
 dragiter is a modular command-line interface (CLI) designed to integrate Large Language Models (LLMs) directly into your
 automated terminal workflows. It acts as a bridge between your local file system and AI APIs, eliminating "copy-paste

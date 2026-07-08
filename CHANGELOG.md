@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2026.7.3b1] - 2026-07-03
+## [2026.07.06b1] - 2026-07-06
+
+### Changed
+- Promoted development status from **Alpha** to **Beta** in `pyproject.toml`
+- Updated project documentation to reflect Beta maturity level
+
+## [2026.07.03b1] - 2026-07-03
 
 ### Added
 - Initial public alpha release of **dragiter** (Deterministic RAG Iterator)
@@ -49,4 +55,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All code, variable names, function names and configuration keys are in clear international English. Documentation and comments follow British English spelling and tone.
 - Recommended next steps: run the included examples with `-s` (simulate) first, then configure your preferred LLM backend via `config-ollama.toml`, `config-grok.toml` or environment variables.
 
-[2026.7.3b1]: https://gitlab.com/bucosys/dragiter/-/tags/2026.7.3b1
+[2026.07.03b1]: https://gitlab.com/bucosys/dragiter/-/tags/2026.7.3b1

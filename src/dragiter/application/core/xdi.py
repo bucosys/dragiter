@@ -25,8 +25,13 @@ import copy
 import inspect
 import logging
 from typing import List, Dict, Type, Any, TypeVar, Protocol
+import traceback
+import sys
 
 from dragiter.domain.common.base_validator import BaseValidator
+from dragiter.domain.ports import activity_logger
+from dragiter.domain.ports.activity_logger import ActivityLogger
+from dragiter.domain.ports.activity_provider import ActivityProvider
 from dragiter.domain.ports.checksum_generator import ChecksumGenerator
 
 logger = logging.getLogger(__name__)
@@ -42,6 +47,7 @@ class ApplicationManager:
     def __init__(self, checksum_generator: ChecksumGenerator):
         self.workers: List['Worker'] = []
         self.store: Dict[Type[Any], Any] = {}
+        self.activity_logger: ActivityLogger = None
         self._validators: Dict[Type[Any], BaseValidator] = {}
         self._checksum_generator = checksum_generator
 
@@ -51,6 +57,10 @@ class ApplicationManager:
 
     def register_worker(self, worker: 'Worker'):
         self.workers.append(worker)
+
+    def register_activity_logger(self, activity_logger: ActivityLogger):
+        self.activity_logger = activity_logger
+
 
     def register_validators(self, *validators: 'BaseValidator') -> None:
         """
@@ -109,13 +119,12 @@ class ApplicationManager:
 
         data_type = type(data)
 
-        # 1. Check if a validator is registered for this specific type
+        # 1. Validate, if a validator is registered for this specific type
         validator = self._validators.get(data_type)
 
         if validator:
             logger.debug(f"Validating '{data_type.__name__}' using '{validator.__class__.__name__}'...")
 
-            # 2. Execute validation.
             # If the object is invalid, this will raise an exception (e.g., ValueError).
             # The exception will bubble up and stop the execution flow.
             validator.validate_object(data)
@@ -123,10 +132,34 @@ class ApplicationManager:
             # Optional: Log that no validation is taking place
             logger.debug(f"Type '{data_type.__name__}' has no registered validator. Storing as unvalidated data.")
 
+        # 2. Activity logging, if a activity logger is registered
+        if self.activity_logger and isinstance(data, ActivityProvider):
+            self.activity_logger.write_activity(data.to_activity_dict())
+
+
         # 3. Store the data securely only AFTER it has passed validation
         self.store[data_type] = data
 
-    def validate_worker_dependencies(self, worker: Worker) -> Dict[str, Any]:
+
+    def _write_activity_exception(self, e: Exception ) -> None:
+        if self.activity_logger:
+
+            dict_e: dict[str, Any] = {
+                "type": type(e).__name__,
+                "message": str(e),
+                "module": type(e).__module__,
+                # full stack trace
+                "traceback": traceback.format_exc(),
+                # optional: first row only for brief understanding
+                "location": traceback.extract_tb(e.__traceback__)[-1].line if e.__traceback__ else None,
+                "filename": traceback.extract_tb(e.__traceback__)[-1].filename if e.__traceback__ else None,
+                "lineno": traceback.extract_tb(e.__traceback__)[-1].lineno if e.__traceback__ else None
+            }
+
+            self.activity_logger.write_activity([dict_e])
+
+
+    def _validate_worker_dependencies(self, worker: Worker) -> Dict[str, Any]:
         """
         Inspects the signature of the run method and collects the required dependencies.
         Raises an error if a mandatory dependency is missing.
@@ -160,13 +193,15 @@ class ApplicationManager:
         try:
             for worker in self.workers:
                 # 1. Resolve & validate dependencies
-                args = self.validate_worker_dependencies(worker)
+                args = self._validate_worker_dependencies(worker)
 
                 # 2. Execute worker
                 logger.info(f"\N{WHITE RIGHT-POINTING TRIANGLE} {worker.__class__.__name__}")
                 result = worker.run(**args)
                 logger.debug(f"\N{EYEGLASSES} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result!r}")
                 logger.info(f"\N{WHITE SQUARE} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result}")
+
+                # FUTURE                self._log_activity(result)
 
                 if isinstance(result, (list, set, tuple)):
                     for item in result:
@@ -175,6 +210,7 @@ class ApplicationManager:
                     self.provide(result)
 
         except Exception as e:
+            self._write_activity_exception(e)
             raise ApplicationManagerError(f"Failed to execute application manager run cycle: {e}") from e
 
 
