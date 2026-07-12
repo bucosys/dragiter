@@ -20,25 +20,28 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
+import datetime
+from dataclasses import dataclass, fields
+from typing import Any
 
-from dataclasses import dataclass
+from openai import api_key
+
 from dragiter.domain.models.settings import (
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
     MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting)
-
+    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting, ValueSetting,
+    BaseDirectoryPathSetting, LoopFilePathSetting, ResourceFilePathSetting, OutputDirectoryPathSetting,
+    ConfigFilePathSetting, PromptFilePathSetting)
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
+from dragiter.domain.ports.activity_provider import ActivityProvider
 
 
 @dataclass(frozen=True)
-class AIServiceParameters(ValueSettingsActivityProvider):
-    api_key_string_setting: ApiKeyStringSetting
-    base_url_string_setting: BaseURLStringSetting
-    model_name_string_setting: ModelNameStringSetting
-    max_context_token_int_setting: MaxContextTokensIntSetting
-    max_output_tokens_int_setting: MaxOutputTokensIntSetting
-    chars_per_token_float_setting: CharsPerTokenFloatSetting
-    temperature_float_setting: TemperatureFloatSetting
-    retry_delay_int_setting: RetryDelayIntSetting
-    max_retries_int_setting: MaxRetryIntSetting
+class InputPathParameters(ValueSettingsActivityProvider):
+    base_directory_path_setting: BaseDirectoryPathSetting
+    config_file_path_setting: ConfigFilePathSetting
+    loop_file_path_setting: LoopFilePathSetting
+    prompt_file_path_setting: PromptFilePathSetting
+    resource_file_path_setting: ResourceFilePathSetting
+
 

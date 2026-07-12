@@ -27,6 +27,7 @@ import sys
 from dragiter.application.config.configuration_loader import ConfigurationLoader
 from dragiter.application.config.configuration_validator import ConfigurationValidator
 from dragiter.application.config.logging_configuration import LoggingConfiguration, LoggingConfigurator
+from dragiter.application.core.file_activity_logger import FileActivityLogger
 from dragiter.application.pipeline.application import Application
 from dragiter.application.pipeline.chat_manager import ChatManager
 from dragiter.application.pipeline.context_window_estimator import ContextWindowEstimator
@@ -76,6 +77,7 @@ def main():
     try:
 
         app = Application()
+        app.register_activity_logger(FileActivityLogger())
         app.register_worker(ConfigurationLoader())
         app.register_worker(ConfigurationValidator())
         app.register_worker(ResourceCollector(SimpleFileChecker()))

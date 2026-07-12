@@ -20,25 +20,32 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
+import datetime
+from dataclasses import dataclass, fields
+from typing import Any
 
-from dataclasses import dataclass
+from openai import api_key
+
 from dragiter.domain.models.settings import (
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
     MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting)
-
+    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting, ValueSetting,
+    BaseDirectoryPathSetting, LoopFilePathSetting, ResourceFilePathSetting, OutputDirectoryPathSetting,
+    ConfigFilePathSetting, PromptFilePathSetting, ActivityFilePathSetting, LogFilePathSetting, OutputFilePathSetting,
+    OutputDelimiterStringSetting, OutputFilenameSchemaStringSetting, OutputModeStringSetting)
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
+from dragiter.domain.ports.activity_provider import ActivityProvider
 
 
 @dataclass(frozen=True)
-class AIServiceParameters(ValueSettingsActivityProvider):
-    api_key_string_setting: ApiKeyStringSetting
-    base_url_string_setting: BaseURLStringSetting
-    model_name_string_setting: ModelNameStringSetting
-    max_context_token_int_setting: MaxContextTokensIntSetting
-    max_output_tokens_int_setting: MaxOutputTokensIntSetting
-    chars_per_token_float_setting: CharsPerTokenFloatSetting
-    temperature_float_setting: TemperatureFloatSetting
-    retry_delay_int_setting: RetryDelayIntSetting
-    max_retries_int_setting: MaxRetryIntSetting
+class OutputParameters(ValueSettingsActivityProvider):
+    output_delimiter_string_setting: OutputDelimiterStringSetting
+    output_filename_schema_string_setting: OutputFilenameSchemaStringSetting
+    output_mode_string_setting: OutputModeStringSetting
+    activity_file_path_setting: ActivityFilePathSetting
+    logfile_path_setting: LogFilePathSetting
+    output_directory_path_setting: OutputDirectoryPathSetting
+    output_filepath_setting: OutputFilePathSetting
+
+
 

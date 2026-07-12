@@ -28,6 +28,9 @@ from pathlib import Path
 # from dragiter.application.config.configuration_decorators import *
 from dragiter.application.core.xdi import *
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
+from dragiter.domain.models.input_path_parameters import InputPathParameters
+from dragiter.domain.models.output_parameters import OutputParameters
+from dragiter.domain.models.processing_parameters import ProcessingParameters
 from dragiter.domain.models.settings import (
     SimulateBoolSetting, VerboseBoolSetting,
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
@@ -35,7 +38,7 @@ from dragiter.domain.models.settings import (
     CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
     ResourceFilePathSetting, ValueSetting, PathSetting, TemperatureFloatSetting, MaxRetryIntSetting,
-    RetryDelayIntSetting)
+    RetryDelayIntSetting, DebugBoolSetting, SequentialProcessingBoolSetting, LogFilePathSetting)
 
 logger = logging.getLogger(__name__)
 
@@ -67,13 +70,16 @@ class ConfigurationValidator:
             activity_file_path_setting: ActivityFilePathSetting,
             base_directory_path_setting: BaseDirectoryPathSetting,
             config_file_path_setting: ConfigFilePathSetting,
+            logfile_path_setting: LogFilePathSetting,
             prompt_file_path_setting: PromptFilePathSetting,
             loop_file_path_setting: LoopFilePathSetting,
             resource_file_path_setting: ResourceFilePathSetting,
             output_file_path_setting: OutputFilePathSetting,
             output_directory_path_setting: OutputDirectoryPathSetting,
+            debug_bool_setting: DebugBoolSetting,
             simulate_bool_setting: SimulateBoolSetting,
-            verbose_bool_setting: VerboseBoolSetting
+            verbose_bool_setting: VerboseBoolSetting,
+            sequencial_processing_bool_setting: SequentialProcessingBoolSetting,
             ) -> list[ValueSetting]:
 
         try:
@@ -136,7 +142,7 @@ class ConfigurationValidator:
             ])
 
             # stage II check for wrinting a sinle file, check directory
-            output_path_settings_to_check = [activity_file_path_setting, output_file_path_setting]
+            output_path_settings_to_check = [activity_file_path_setting, logfile_path_setting, output_file_path_setting]
 
             cvfs.extend([
                 CVF(setting.key, f"Directory not readable: {setting.value.parent}")
@@ -162,9 +168,29 @@ class ConfigurationValidator:
 
             # stage V: Create AIServiceParameters:
             ai_service_parameters: AIServiceParameters = AIServiceParameters(
-                api_key_string_setting, base_url_string_setting, model_name_string_setting, max_context_token_int_setting,
-                max_output_token_int_setting, chars_per_token_float_setting, temperature_float_setting, retry_delay_int_setting,
+                api_key_string_setting, base_url_string_setting, model_name_string_setting,
+                max_context_token_int_setting,
+                max_output_token_int_setting, chars_per_token_float_setting, temperature_float_setting,
+                retry_delay_int_setting,
                 max_retries_int_setting
+            )
+
+            # stage VI: Create ProcessingParameters
+            processing_parameters: ProcessingParameters = ProcessingParameters(
+                debug_bool_setting, verbose_bool_setting, simulate_bool_setting, sequencial_processing_bool_setting
+            )
+
+            # stage VII: InputFile Parameters
+            input_file_parameters: InputPathParameters = InputPathParameters(
+                base_directory_path_setting, config_file_path_setting, prompt_file_path_setting,
+                loop_file_path_setting, resource_file_path_setting
+            )
+
+            # stage VII: Output Parameters (files and options
+            output_parameters: OutputParameters = OutputParameters(
+                output_directory_path_setting, output_file_path_setting, output_mode_string_setting,
+                activity_file_path_setting, logfile_path_setting, output_directory_path_setting,
+                output_file_path_setting
             )
 
             if len(cvfs) > 0: raise ConfigurationValidatorError(cvfs)
@@ -190,8 +216,12 @@ class ConfigurationValidator:
                 for element in all_checked_elements:
                     logger.debug(f"QC PASSED: [{element.key}: {element.value}]")
 
-            # trick append ai_service_parameter at this time:
+            # trick append ai_service_parameter at this time, useful for activity logging as well:
+            all_checked_elements.append(processing_parameters)
+            all_checked_elements.append(input_file_parameters)
+            all_checked_elements.append(output_parameters)
             all_checked_elements.append(ai_service_parameters)
+
             return all_checked_elements
 
         except ConfigurationValidatorError as exc:

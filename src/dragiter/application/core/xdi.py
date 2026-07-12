@@ -134,29 +134,14 @@ class ApplicationManager:
 
         # 2. Activity logging, if a activity logger is registered
         if self.activity_logger and isinstance(data, ActivityProvider):
-            self.activity_logger.write_activity(data.to_activity_dict())
+            self.activity_logger.write_activity(data)
 
 
         # 3. Store the data securely only AFTER it has passed validation
         self.store[data_type] = data
 
 
-    def _write_activity_exception(self, e: Exception ) -> None:
-        if self.activity_logger:
 
-            dict_e: dict[str, Any] = {
-                "type": type(e).__name__,
-                "message": str(e),
-                "module": type(e).__module__,
-                # full stack trace
-                "traceback": traceback.format_exc(),
-                # optional: first row only for brief understanding
-                "location": traceback.extract_tb(e.__traceback__)[-1].line if e.__traceback__ else None,
-                "filename": traceback.extract_tb(e.__traceback__)[-1].filename if e.__traceback__ else None,
-                "lineno": traceback.extract_tb(e.__traceback__)[-1].lineno if e.__traceback__ else None
-            }
-
-            self.activity_logger.write_activity([dict_e])
 
 
     def _validate_worker_dependencies(self, worker: Worker) -> Dict[str, Any]:
@@ -210,7 +195,10 @@ class ApplicationManager:
                     self.provide(result)
 
         except Exception as e:
-            self._write_activity_exception(e)
+            # 2. Activity logging, if a activity logger is registered
+            if self.activity_logger:
+                self.activity_logger.write_exception(e)
+
             raise ApplicationManagerError(f"Failed to execute application manager run cycle: {e}") from e
 
 

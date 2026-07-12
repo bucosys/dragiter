@@ -22,5 +22,5 @@ from typing import Protocol, runtime_checkable, Any
 
 @runtime_checkable
 class ActivityProvider(Protocol):
-    def to_activity_dict(self) -> list[dict[str, Any]]: ...
+    def to_activity_dict_list(self) -> list[dict[str, Any]]: ...
 

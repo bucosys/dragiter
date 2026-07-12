@@ -19,8 +19,10 @@
 
 from typing import Protocol, runtime_checkable, Any
 
+from dragiter.domain.ports.activity_provider import ActivityProvider
+
 
 @runtime_checkable
 class ActivityLogger(Protocol):
-    def write_activity(self, dict_list: list[dict[str, Any]]) -> int: ...
-
+    def write_activity(self, activity_provider: ActivityProvider) -> int: ...
+    def write_exception(self, e: Exception) -> int: ...

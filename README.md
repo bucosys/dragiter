@@ -31,10 +31,9 @@ web chat is tedious. dragiter solves this through "Prompt as Code."
 
 ## Installation
 
-(Assuming you publish to PyPI)
 You can install dragiter easily via pip:
 
-pip install dragiter
+    pip install dragiter
 
 ## Quick Start
 
