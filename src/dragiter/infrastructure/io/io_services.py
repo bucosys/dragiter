@@ -123,7 +123,7 @@ def append_jsonl_to_file(file_path: Path, lines: list[dict]) -> os.stat_result:
     try:
         with file_path.open(mode="a", encoding="utf-8") as f:
             for line in lines:
-                jsonl = json.dumps(line, ensure_ascii=False)
+                jsonl = json.dumps(line, ensure_ascii=False, default=str)
                 f.write(jsonl + "\n")
 
             # paranoid

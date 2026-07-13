@@ -25,11 +25,11 @@ import hashlib
 import json
 import traceback
 from dataclasses import is_dataclass, fields
-from typing import Any, Set, Dict, Union, List
+from typing import Any
 
 from dragiter.domain.ports.activity_logger import ActivityLogger
 from dragiter.domain.ports.activity_provider import ActivityProvider
-from dragiter.domain.ports.checksum_generator import ChecksumGenerator
+
 
 
 class BufferedActivityLogger(ActivityLogger):
@@ -43,8 +43,8 @@ class BufferedActivityLogger(ActivityLogger):
 
         for d_a in a_p_dict_list:
             enhanced_activity_dict: dict[str, Any] = {
-                "result_type": activity_provider.__class__.__name__,
-                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+                "TS": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "RT": activity_provider.__class__.__name__
             }
             enhanced_activity_dict.update(d_a)
             self.activity_dict_list.append(enhanced_activity_dict)

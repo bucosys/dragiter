@@ -43,10 +43,10 @@ from typing import TypedDict, List, Dict, Any
 class OpenAIPayload(TypedDict, total=False):
     """Strict schema for the API payload to prevent string typos."""
     model: str
-    messages: List[Dict[str, Any]]
+    messages: list[dict[str, Any]]
     temperature: float
     max_tokens: int
-    response_format: Dict[str, str]
+    response_format: dict[str, str]
     # Add other valid OpenAI parameters here
 
 

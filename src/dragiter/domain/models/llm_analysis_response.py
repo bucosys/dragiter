@@ -35,11 +35,11 @@ class AIAnalysisResponse:
 
     # 2. The Core Content (The actual AI result)
     summary: str = ""
-    entities: List[str] = field(default_factory=list)
-    key_findings: List[str] = field(default_factory=list)
+    entities: list[str] = field(default_factory=list)
+    key_findings: list[str] = field(default_factory=list)
 
     # 3. Technical Metadata (For debugging/logging)
     model_used: str = "gpt-4-turbo"
-    raw_json: Dict[str, Any] = field(default_factory=dict)
+    raw_json: dict[str, Any] = field(default_factory=dict)
     is_valid: bool = True
     error_message: Optional[str] = None

@@ -37,8 +37,6 @@ class ValueSettingsActivityProvider(ActivityProvider):
 
     def _get_safe_value_or_na(self, setting: ValueSetting) -> dict[str, Any]:
         """Returns a {key: value} dict. Masks the value if requested."""
-        if not setting.is_set:
-            return {setting.key: "n/a"}
 
         value = setting.value
 

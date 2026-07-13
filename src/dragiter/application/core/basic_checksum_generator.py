@@ -35,7 +35,7 @@ class BasicChecksumGenerator(ChecksumGenerator):
             self,  # <-- ADDED self
             obj: Any,
             visited: Union[Set[int], None] = None,
-            _memo: Union[Dict[int, Any], None] = None
+            _memo: Union[dict[int, Any], None] = None
     ) -> Any:
         """Optimized version with memoization and safe cycle detection."""
         if visited is None:

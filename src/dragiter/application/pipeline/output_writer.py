@@ -179,7 +179,7 @@ class OutputWriter:
                 # END-OF-REWORK
 
                 # calc filename
-                name_of_file_path: Path = None
+                # name_of_file_path: Path = None
 
                 # if loop.lines:
                 #     name_of_file_path = Path(prompt.output_filename_schema)
@@ -214,7 +214,7 @@ class OutputWriter:
                             "RL": chat_result.output_chat_message.role,
                             "CT": chat_result.output_chat_message.content}))
 
-                write_or_append_lines_to_unique_file(activity_file_path_setting.value, open_mode, activity_dicts)
+            ###    write_or_append_lines_to_unique_file(activity_file_path_setting.value, open_mode, activity_dicts)
             # end of activity block
 
             # finally put data to std_out
