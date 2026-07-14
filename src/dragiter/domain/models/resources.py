@@ -22,8 +22,10 @@
 # =============================================================================
 
 import logging
+from typing import Any
 
 from dragiter.domain.models.text_file import TextFile
+from dragiter.domain.ports.activity_provider import ActivityProvider
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +77,7 @@ class ResourceSection():
         return f"ResourceSection(files length ='{len(self._file_paths)}'"
 
 
-class Resources():
+class Resources(ActivityProvider):
     def __init__(self):
         """Initialise the configuration object and load settings."""
         self._resource_sections: list[ResourceSection] = []
@@ -103,6 +105,44 @@ class Resources():
         # This is shown in the logger
         return f"Resources(ResourceSection length ='{len(self._resource_sections)}'"
 
+    def to_activity_dict_list(self) -> list[dict[str, Any]]:
+        """
+        Provides detailed activity information about loaded resources for auditing.
+        Uses aggregation to prevent log bloat with very large file sets.
+        """
+        total_files = sum(len(section.file_paths) for section in self._resource_sections)
+
+        activity_dict: dict[str, Any] = {
+            "resource_sections_count": len(self._resource_sections),
+            "total_files": total_files,
+        }
+
+        sections_details = []
+        detailed_files_count = 0
+
+        for section in self._resource_sections:
+            file_count = len(section.file_paths)
+            file_paths = [str(tf.path) for tf in section.file_paths]
+
+            files_info = file_count
+
+            section_info = {
+                "section_name": section.section_name,
+                "file_count": file_count,
+                "regex_pattern": section.regex_pattern,
+                "exclude_filters": section.exclude_filters,
+                "include_filters": section.include_filters,
+                "files": files_info
+            }
+            sections_details.append(section_info)
+
+        activity_dict["sections"] = sections_details
+
+        logger.debug(f"Resources activity: {len(self._resource_sections)} section(s), "
+                     f"{total_files} files total "
+                     f"({detailed_files_count} files listed in detail)")
+
+        return [activity_dict]
 
 class ResourceSectionError(Exception):
     pass

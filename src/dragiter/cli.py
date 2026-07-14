@@ -80,14 +80,14 @@ def main():
         app.register_activity_logger(FileActivityLogger())
         app.register_worker(ConfigurationLoader())
         app.register_worker(ConfigurationValidator())
-        app.register_worker(ResourceCollector(SimpleFileChecker()))
-        app.register_worker(MaterialTokenizer(SimpleTextFileReader()))
-        app.register_worker(LoopBuilder())
-        app.register_worker(PromptCreator())
-        app.register(MessageBuilder(), ChatSessionsValidator())
-        app.register_worker(ContextWindowEstimator(SimplePayloadEstimator()))
-        app.register_worker(ChatManager(OpenAIService()))
-        app.register_worker(OutputWriter())
+        app.register_worker(ResourceCollector(SimpleFileChecker())) # -> Resources
+        app.register_worker(MaterialTokenizer(SimpleTextFileReader())) # -> Material
+        app.register_worker(LoopBuilder()) # -> Loop
+        app.register_worker(PromptCreator()) # -> PromptTemplate
+        app.register(MessageBuilder(), ChatSessionsValidator()) # -> ChatSessions
+        app.register_worker(ContextWindowEstimator(SimplePayloadEstimator())) # -> None
+        app.register_worker(ChatManager(OpenAIService())) # -> ChatResults
+        app.register_worker(OutputWriter()) # -> ApplicationResult
         app.run()
 
         return 0

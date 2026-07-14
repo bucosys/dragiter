@@ -197,22 +197,22 @@ class OutputWriter:
                 #         output_directory_path_setting.value / Path(name_of_file_path), open_mode, content_list)
 
             # last but not least the activity, jsonl
-            if activity_file_path_setting.is_set:
-                activity_dicts: list[dict[str, str]] = []
-
-                for chat_session, chat_result in zip(chat_sessions.session_list, chat_results.chat_result_list):
-                    for chat_message in chat_session.input_chat_message_list:
-                        activity_dicts.append(
-                            json.dumps({
-                                "TS": chat_result.ended_at.isoformat() if chat_result.ended_at else "",
-                                "RL": chat_message.role,
-                                "CT": chat_message.content}))
-
-                    activity_dicts.append(
-                        json.dumps({
-                            "TS": chat_result.ended_at.isoformat() if chat_result.ended_at else "",
-                            "RL": chat_result.output_chat_message.role,
-                            "CT": chat_result.output_chat_message.content}))
+            # if activity_file_path_setting.is_set:
+            #     activity_dicts: list[dict[str, str]] = []
+            #
+            #     for chat_session, chat_result in zip(chat_sessions.session_list, chat_results.chat_result_list):
+            #         for chat_message in chat_session.input_chat_message_list:
+            #             activity_dicts.append(
+            #                 json.dumps({
+            #                     "TS": chat_result.ended_at.isoformat() if chat_result.ended_at else "",
+            #                     "RL": chat_message.role,
+            #                     "CT": chat_message.content}))
+            #
+            #         activity_dicts.append(
+            #             json.dumps({
+            #                 "TS": chat_result.ended_at.isoformat() if chat_result.ended_at else "",
+            #                 "RL": chat_result.output_chat_message.role,
+            #                 "CT": chat_result.output_chat_message.content}))
 
             ###    write_or_append_lines_to_unique_file(activity_file_path_setting.value, open_mode, activity_dicts)
             # end of activity block

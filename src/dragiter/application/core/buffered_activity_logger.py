@@ -53,6 +53,8 @@ class BufferedActivityLogger(ActivityLogger):
 
     def write_exception(self, e: Exception) -> int:
         dict_e: dict[str, Any] = {
+            "TS": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "RT": "Exception",
             "type": type(e).__name__,
             "message": str(e),
             "module": type(e).__module__,

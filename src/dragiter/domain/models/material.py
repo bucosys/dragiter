@@ -22,13 +22,15 @@
 # =============================================================================
 
 import logging
+from typing import Any
 
 from dragiter.domain.models.chunk import Chunk
+from dragiter.domain.ports.activity_provider import ActivityProvider
 
 logger = logging.getLogger(__name__)
 
 
-class Material():
+class Material(ActivityProvider):
     def __init__(self, chunks: list[Chunk]):
         """Initialise the configuration object and load settings."""
         # super().__init__()
@@ -56,3 +58,47 @@ class Material():
     def __repr__(self):
         # This is shown in the logger
         return f"Material(chunks length ='{len(self._chunks)}'"
+
+    def to_activity_dict_list(self) -> list[dict[str, Any]]:
+        """
+        Always returns the same consistent fields for activity logging,
+        independent of data volume. Uses aggregation to stay efficient.
+        """
+        total_chunks = len(self._chunks)
+
+        # Aggregate statistics
+        total_characters = sum(len(chunk.content) for chunk in self._chunks)
+
+        # Count unique source files. We use a set comprehension for deduplication.
+        # Only chunks that actually have a 'filename' attribute are considered.
+        unique_sources = len({chunk.filename for chunk in self._chunks if hasattr(chunk, 'filename')})
+
+        # Alternative (more robust) version - kept as backup:
+        # sources = set()
+        # for chunk in self._chunks:
+        #     filename = getattr(chunk, 'filename', None)
+        #     if filename:
+        #         sources.add(str(filename))  # str() hardening
+        # unique_sources = len(sources)
+
+        # Basic chunk size statistics
+        chunk_sizes = [len(chunk.content) for chunk in self._chunks]
+        avg_chunk_size = round(total_characters / total_chunks, 1) if total_chunks > 0 else 0
+        max_chunk_size = max(chunk_sizes) if chunk_sizes else 0
+        min_chunk_size = min(chunk_sizes) if chunk_sizes else 0
+
+        activity_dict: dict[str, Any] = {
+            "material_chunks_count": total_chunks,
+            "total_characters": total_characters,
+            "unique_sources": unique_sources,
+            "average_chunk_size": avg_chunk_size,
+            "max_chunk_size": max_chunk_size,
+            "min_chunk_size": min_chunk_size,
+            "has_chunks": total_chunks > 0
+        }
+
+
+        logger.debug(f"Material activity: {total_chunks} chunks, "
+                     f"{total_characters:,} characters, {unique_sources} unique sources")
+
+        return [activity_dict]

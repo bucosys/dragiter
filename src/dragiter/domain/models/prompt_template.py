@@ -23,12 +23,15 @@
 
 import logging
 from dataclasses import dataclass
+from typing import Any
+
+from dragiter.domain.ports.activity_provider import ActivityProvider
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class PromptTemplate:
+class PromptTemplate(ActivityProvider):
     instruction: str
     first: str
     material: str
@@ -47,6 +50,33 @@ class PromptTemplate:
     def __repr__(self):
         # This is shown in the logger
         return f"PromptTemplate (instruction length ='{len(self.instruction or {})}', task length ='{len(self.first or {})}')"
+
+    def to_activity_dict_list(self) -> list[dict[str, Any]]:
+        """
+        Consistent activity logging for prompt templates.
+        Always returns the same set of fields.
+        """
+        activity_dict: dict[str, Any] = {
+            "instruction_length": len(self.instruction or ""),
+            "first_length": len(self.first or ""),
+            "material_template_length": len(self.material or ""),
+            "synthesis_length": len(self.synthesis or ""),
+            "temperature": self.temperature,
+            "sequential_processing": self.sequential_processing,
+            "has_output_filename_schema": bool(self.output_filename_schema),
+            "has_output_delimiter": bool(self.output_delimiter),
+            "total_template_length": len(self.instruction or "") +
+                                     len(self.first or "") +
+                                     len(self.material or "") +
+                                     len(self.synthesis or "")
+        }
+
+        logger.debug(f"PromptTemplate activity: "
+                     f"{activity_dict['total_template_length']} total chars, "
+                     f"temperature={self.temperature}, "
+                     f"sequential={self.sequential_processing}")
+
+        return [activity_dict]
 
 
 class PromptTemplateError(Exception):
