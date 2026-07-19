@@ -1,6 +1,7 @@
 .DS_Store
 run/
 dist/
+
 # --- Python Essentials ---
 __pycache__/
 *.py[cod]
@@ -42,25 +43,26 @@ pip-delete-this-directory.txt
 .pydevproject
 .settings/
 
-# --- Project Specifics (dragator) ---
-# Keine API-Keys oder lokale Configs einchecken!
+# --- Project Specifics ---
+# Do not commit API keys or local configuration files!
 config.json
 secrets.yaml
-.dragator_config/
+.dragiter_config/
 
 # --- Logs & Traces ---
-# Da Logging eine Stärke von dragator ist, entstehen viele Files.
-# Diese sollten lokal bleiben.
+# Logging is one of dragiter's strengths, which generates many files.
+# These should remain local only.
 *.log
 activity_file.jsonl
-dragator_activity.jsonl
+dragiter_activity.jsonl
 traces/
 
+# --- Test Outputs (generated, do not commit) ---
+tests/outputs/
+
 # --- Large Data / Chunks ---
-# Falls du Test-Materialien lokal speicherst
+# For locally stored test materials
 data/raw/
 data/processed/
 *.csv
 *.json
-
-
