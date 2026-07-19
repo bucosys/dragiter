@@ -38,7 +38,8 @@ from dragiter.domain.models.settings import (
     CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
     ResourceFilePathSetting, ValueSetting, PathSetting, TemperatureFloatSetting, MaxRetryIntSetting,
-    RetryDelayIntSetting, DebugBoolSetting, SequentialProcessingBoolSetting, LogFilePathSetting)
+    RetryDelayIntSetting, DebugBoolSetting, SequentialProcessingBoolSetting, LogFilePathSetting,
+    OutputFilenameSchemaStringSetting, OutputDelimiterStringSetting)
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,9 @@ class ConfigurationValidator:
             debug_bool_setting: DebugBoolSetting,
             simulate_bool_setting: SimulateBoolSetting,
             verbose_bool_setting: VerboseBoolSetting,
-            sequencial_processing_bool_setting: SequentialProcessingBoolSetting,
+            sequential_processing_bool_setting: SequentialProcessingBoolSetting,
+            output_delimiter_string_setting: OutputDelimiterStringSetting,
+            output_filename_schema_string_setting: OutputFilenameSchemaStringSetting,
             ) -> list[ValueSetting]:
 
         try:
@@ -177,7 +180,7 @@ class ConfigurationValidator:
 
             # stage VI: Create ProcessingParameters
             processing_parameters: ProcessingParameters = ProcessingParameters(
-                debug_bool_setting, verbose_bool_setting, simulate_bool_setting, sequencial_processing_bool_setting
+                debug_bool_setting, verbose_bool_setting, simulate_bool_setting, sequential_processing_bool_setting
             )
 
             # stage VII: InputFile Parameters
@@ -186,12 +189,15 @@ class ConfigurationValidator:
                 loop_file_path_setting, resource_file_path_setting
             )
 
-            # stage VII: Output Parameters (files and options
-            output_parameters: OutputParameters = OutputParameters(
-                output_directory_path_setting, output_file_path_setting, output_mode_string_setting,
-                activity_file_path_setting, logfile_path_setting, output_directory_path_setting,
-                output_file_path_setting
-            )
+            # stage VIII: Output Parameters (files and options
+            output_parameters: OutputParameters = OutputParameters(output_delimiter_string_setting,
+                                                                   output_filename_schema_string_setting,
+                                                                   output_mode_string_setting,
+                                                                   activity_file_path_setting,
+                                                                   logfile_path_setting,
+                                                                   output_directory_path_setting,
+                                                                   output_file_path_setting)
+
 
             if len(cvfs) > 0: raise ConfigurationValidatorError(cvfs)
 

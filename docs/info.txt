@@ -8,6 +8,7 @@ SYNOPSIS
        dragiter [OPTIONS]
        dragiter-gen-docs [PATH]
        dragiter-gen-examples [PATH]
+       dragiter-gen-tests [PATH]
 
 DESCRIPTION
        dragiter is a command-line tool that allows controlled, reproducible
@@ -80,6 +81,7 @@ OPTIONS
            -h, --help                 Show this help message and exit
            dragiter-gen-docs [PATH]       Extract documentation to folder
            dragiter-gen-examples [PATH]   Extract examples to folder
+           dragiter-gen-tests [PATH]      Extract end-to-end tests to folder
 
 EXIT STATUS
        0      Success

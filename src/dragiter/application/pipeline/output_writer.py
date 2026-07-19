@@ -40,6 +40,9 @@ from dragiter.infrastructure.io.io_services import write_or_append_lines_to_uniq
 
 from typing import Optional, Any
 
+from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
+from dragiter.infrastructure.io.filename_utils import sanitize_filename, ensure_path_within_directory
+
 logger = logging.getLogger(__name__)
 
 
@@ -78,49 +81,55 @@ class OutputWriter:
     ) -> str:
         """
         Formats a filename using the provided template.
-
-        If no known placeholders (CHUNK_*, LOOP_*, TIMESTAMP) are found in the template,
-        falls back to using the session index in the filename.
+        Ensures numeric format specifiers work correctly.
         """
         result = template or ""
         d: dict[str, Any] = {}
 
-        # --- Chunk data ---
+        # Chunk data
         if chunk:
             d["CHUNK_NUM_ID"] = chunk.num_id if chunk.num_id is not None else 0
-            d["CHUNK_FILE_NAME"] = chunk.filename or "file"
-            d["CHUNK_SECTION_NAME"] = chunk.section_name or ""
+            d["CHUNK_FILE_NAME"] = sanitize_filename(chunk.filename or "file")
+            d["CHUNK_SECTION_NAME"] = sanitize_filename(chunk.section_name or "section")
             d["CHUNK_SECTION_NUM_ID"] = chunk.section_num_id if chunk.section_num_id is not None else 0
 
-        # --- Loop data ---
+        # Loop data - force numeric fields to int
         if loop_dict_item:
-            d["LOOP_NUM_ID"] = loop_dict_item.get("LOOP_NUM_ID", 0)
-            d["LOOP_ID"] = loop_dict_item.get("LOOP_ID", "UNKNOWN")
+            for key, value in loop_dict_item.items():
+                if key.endswith("_NUM_ID") or key == "LOOP_NUM_ID":
+                    try:
+                        d[key] = int(value)
+                    except (ValueError, TypeError):
+                        d[key] = session_index or 0
+                elif isinstance(value, (int, float)):
+                    d[key] = value
+                else:
+                    d[key] = sanitize_filename(str(value))
 
-        # --- Timestamp ---
+            # Ensure LOOP_NUM_ID is always present and numeric
+            if "LOOP_NUM_ID" not in d:
+                d["LOOP_NUM_ID"] = session_index or 0
+
+            d.setdefault("LOOP_ID", sanitize_filename(str(loop_dict_item.get("LOOP_ID", "unknown"))))
+
+        # Timestamp
         d["TIMESTAMP"] = self._get_sortable_timestamp()
 
-        # === Fallback logic ===
+        # Fallback if no placeholders
         known_placeholders = ["CHUNK_", "LOOP_", "TIMESTAMP"]
-        has_known_placeholder = any(ph in result for ph in known_placeholders)
-
-        if not has_known_placeholder:
-            # No known placeholder found in template → fallback to session index
+        if not any(ph in result for ph in known_placeholders):
             if session_index is not None:
                 return f"session_{session_index:04d}.md"
-            else:
-                return "output.md"
+            return "output.md"
 
-        # Normal formatting
         try:
-            return result.format_map(d)
-        except KeyError:
-            # Unknown placeholder in template → fallback
+            formatted = result.format_map(d)
+        except (KeyError, ValueError):
             if session_index is not None:
                 return f"session_{session_index:04d}.md"
-            return result
+            formatted = result
 
-
+        return sanitize_filename(formatted)
 
     def run(self,
             chat_sessions: ChatSessions,
@@ -171,9 +180,15 @@ class OutputWriter:
                         index,
                         prompt.output_filename_schema)
 
+                    target_path = output_directory_path_setting.value / formatted_file_name
+                    # Guarantee the resolved path never leaves the intended output directory
+                    safe_path = ensure_path_within_directory(
+                        target_path, output_directory_path_setting.value
+                    )
+
                     write_or_append_lines_to_unique_file(
-                        output_directory_path_setting.value / formatted_file_name,
-                        open_mode,[chat_result.output_chat_message.content])
+                        safe_path,
+                        open_mode, [chat_result.output_chat_message.content])
 
 
                 # END-OF-REWORK

@@ -63,18 +63,13 @@ class PromptTemplate(ActivityProvider):
             "synthesis_length": len(self.synthesis or ""),
             "temperature": self.temperature,
             "sequential_processing": self.sequential_processing,
-            "has_output_filename_schema": bool(self.output_filename_schema),
-            "has_output_delimiter": bool(self.output_delimiter),
+            "output_filename_schema": self.output_filename_schema,
+            "output_delimiter": self.output_delimiter,
             "total_template_length": len(self.instruction or "") +
                                      len(self.first or "") +
                                      len(self.material or "") +
                                      len(self.synthesis or "")
         }
-
-        logger.debug(f"PromptTemplate activity: "
-                     f"{activity_dict['total_template_length']} total chars, "
-                     f"temperature={self.temperature}, "
-                     f"sequential={self.sequential_processing}")
 
         return [activity_dict]
 

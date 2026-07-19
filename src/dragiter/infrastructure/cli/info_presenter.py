@@ -35,9 +35,10 @@ class InfoPresenter:
     def show_usage() -> int:
         print("Usage: dragiter [OPTIONS]")
         print("\nHelp & Assets:")
-        print("  dragiter --info                Show detailed informations (from info.txt)")
-        print("  dragiter-gen-docs [path]       Extract documentation (default: current folder)")
-        print("  dragiter-gen-examples [path]   Extract examples (default: current folder)")
+        print("  dragiter --info              Show detailed information")
+        print("  dragiter-gen-docs [PATH]     Extract documentation (default: ./docs/)")
+        print("  dragiter-gen-examples [PATH] Extract examples (default: ./examples/)")
+        print("  dragiter-gen-tests [PATH]    Extract end-to-end tests (default: ./tests/)")
         return 0
 
     @staticmethod

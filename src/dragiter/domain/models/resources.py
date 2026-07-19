@@ -73,7 +73,7 @@ class ResourceSection():
         return self._include_filters
 
     def __repr__(self):
-        # Das hier wird im Logger angezeigt
+        # Displayed in the logger output
         return f"ResourceSection(files length ='{len(self._file_paths)}'"
 
 
@@ -137,10 +137,6 @@ class Resources(ActivityProvider):
             sections_details.append(section_info)
 
         activity_dict["sections"] = sections_details
-
-        logger.debug(f"Resources activity: {len(self._resource_sections)} section(s), "
-                     f"{total_files} files total "
-                     f"({detailed_files_count} files listed in detail)")
 
         return [activity_dict]
 

@@ -32,5 +32,5 @@ class ProcessingParameters(ValueSettingsActivityProvider):
     debug_bool_setting: DebugBoolSetting
     verbose_bool_setting: VerboseBoolSetting
     simulate_bool_setting: SimulateBoolSetting
-    sequencial_processing_bool_setting: SequentialProcessingBoolSetting
+    sequential_processing_bool_setting: SequentialProcessingBoolSetting
 

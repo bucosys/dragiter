@@ -694,11 +694,46 @@ model is released tomorrow, you only need to change a single line in your
 configuration file to upgrade your entire toolchain.
 
 
+## Chapter 9: End-to-End Tests
+
+dragiter ships with a set of end-to-end tests. These tests allow contributors
+and advanced users to verify that the CLI works correctly across different
+workflows.
+
+### Extracting the Tests
+
+You can extract the end-to-end test suite by running:
+
+    dragiter-gen-tests .
+
+The tests will be placed in the `tests/` directory relative to your current
+working directory.
+
+### Running the Tests
+
+After extraction, navigate into the directory and execute the tests with
+`pytest`:
+
+    cd tests
+    pytest -q
+
+All tests are designed to run safely in simulation mode (`-s`) and do not
+require any API keys or real LLM calls.
+
+### Test Structure and How to Extend
+
+The `tests/` directory contains:
+
+- `test_e2e_infrastructure.py` — basic sanity checks for the CLI
+- `README.md` — instructions for running and extending the tests
+
+You are encouraged to add further test files using the naming pattern
+`test_e2e_*.py`. The existing tests serve as a template for invoking
+`dragiter` via `subprocess` and making assertions on exit codes and output.
 
 
-Chapter 9: Acknowledgements and Special Thanks
+Chapter 10: Acknowledgements and Special Thanks
 ==============================================
-
 
 
 The development of dragiter (Deterministic RAG Iterator) has been a

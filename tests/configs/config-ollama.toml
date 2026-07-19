@@ -1,0 +1,10 @@
+# tests/configs/config-ollama.toml
+api_key = "ollama"
+base_url = "http://localhost:11434/v1"
+model_name = "qwen3:8b"          # oder llama3.1, mistral etc.
+
+# Optionale sichere Defaults
+chars_per_token = 4.0
+max_context_tokens = 32000
+max_output_tokens = 4096
+temperature = 0.0

@@ -38,14 +38,7 @@ class ValueSettingsActivityProvider(ActivityProvider):
     def _get_safe_value_or_na(self, setting: ValueSetting) -> dict[str, Any]:
         """Returns a {key: value} dict. Masks the value if requested."""
 
-        value = setting.value
-
-        is_sensitive = "key" in setting.key
-
-        if is_sensitive and isinstance(value, str) and len(value) > 8:
-            # Maskiere den Schlüssel, z.B. sk-1234...5678 -> sk-1234********
-            value = f"{value[:7]}{'*' * 8}"
-
+        value = "***MASKED***" if "key" in setting.key else setting.value
         return {setting.key: value}
 
     def to_activity_dict_list(self) -> list[dict[str, Any]]:

@@ -30,20 +30,26 @@ from typing import Any
 from dragiter.domain.ports.activity_logger import ActivityLogger
 from dragiter.domain.ports.activity_provider import ActivityProvider
 
-
+from dragiter import __version__, __tool_name__
 
 class BufferedActivityLogger(ActivityLogger):
 
     def __init__(self) -> None:
-        self.activity_dict_list: list[dict[str, Any]] = []
+        self.activity_dict_list: list[dict[str, Any]] = [
+            {
+                "TS": datetime.datetime.now(datetime.timezone.utc),
+                "RT": self.__class__.__bases__[0].__name__, # first superclass
+                "initial_status_message": f"{__tool_name__}({__version__}) process started",
+            }
+        ]
 
     def write_activity(self, activity_provider: ActivityProvider) -> int:
-
+        date_time_now: datetime.datetime = datetime.datetime.now(datetime.timezone.utc)
         a_p_dict_list:list[dict[str, Any]] = activity_provider.to_activity_dict_list()
 
         for d_a in a_p_dict_list:
             enhanced_activity_dict: dict[str, Any] = {
-                "TS": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "TS": date_time_now,
                 "RT": activity_provider.__class__.__name__
             }
             enhanced_activity_dict.update(d_a)
@@ -53,7 +59,7 @@ class BufferedActivityLogger(ActivityLogger):
 
     def write_exception(self, e: Exception) -> int:
         dict_e: dict[str, Any] = {
-            "TS": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "TS": datetime.datetime.now().isoformat(),
             "RT": "Exception",
             "type": type(e).__name__,
             "message": str(e),

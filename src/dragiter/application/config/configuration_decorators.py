@@ -36,7 +36,7 @@ class ArgumentDecorator(Generic[T]):
     help: str = "Unknown basic setting"
     required: bool = False
 
-    # for now value setting object ist responsible to define long key
+    # for now value setting object is responsible to define long key
     def __post_init__(self):
         if self.value_setting_object is not None:
             self.long_key = self.value_setting_object.key

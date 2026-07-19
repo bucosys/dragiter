@@ -1,0 +1,3 @@
+[config01]
+glob_patterns = ["*.md"]
+regex_pattern = '(^#+\s+.*$)'

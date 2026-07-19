@@ -86,6 +86,21 @@ The manual contains many practical examples (code review, batch report analysis,
 marketing copy generation, tool chaining, etc.) and explains advanced features such 
 as context window management and JSONL processing in depth.
 
+## E2E Tests
+
+dragiter includes a set of end-to-end tests to verify core CLI behaviour.
+You can extract them into your current directory by running:
+
+    dragiter-gen-tests .
+
+The tests will be created in the `tests/` subdirectory.  
+You can then execute them with:
+
+    cd tests
+    pytest -q
+
+These tests run safely in simulation mode (`-s`) and serve as a minimal template for writing your own workflow validations.
+
 ## Tool Chaining (The Unix Way)
 
 dragiter is built to play nicely with other CLI tools. You can fetch live data and pipe it straight to your AI workflow:

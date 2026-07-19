@@ -1,0 +1,15 @@
+[system]
+instruction = "You are a precise assistant. Answer in one short sentence."
+
+[task]
+first = "Use the following material:"
+material = """
+{CHUNK_CONTENT}
+"""
+synthesis = """
+Question: {LOOP_CONTENT}
+Answer concisely.
+"""
+
+[outcome]
+output_filename_schema = "{CHUNK_FILE_NAME}_{LOOP_NUM_ID:03d}.md"

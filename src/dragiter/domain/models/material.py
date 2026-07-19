@@ -61,44 +61,61 @@ class Material(ActivityProvider):
 
     def to_activity_dict_list(self) -> list[dict[str, Any]]:
         """
-        Always returns the same consistent fields for activity logging,
-        independent of data volume. Uses aggregation to stay efficient.
+        Returns flat activity records:
+        - First record: global summary
+        - Then one record per source file (grouped by filename with change detection)
+        Preserves the original order of files as they appear in the chunks list.
         """
+        if not self._chunks:
+            return [{"material_chunks_count": 0}]
+
         total_chunks = len(self._chunks)
-
-        # Aggregate statistics
         total_characters = sum(len(chunk.content) for chunk in self._chunks)
-
-        # Count unique source files. We use a set comprehension for deduplication.
-        # Only chunks that actually have a 'filename' attribute are considered.
-        unique_sources = len({chunk.filename for chunk in self._chunks if hasattr(chunk, 'filename')})
-
-        # Alternative (more robust) version - kept as backup:
-        # sources = set()
-        # for chunk in self._chunks:
-        #     filename = getattr(chunk, 'filename', None)
-        #     if filename:
-        #         sources.add(str(filename))  # str() hardening
-        # unique_sources = len(sources)
-
-        # Basic chunk size statistics
         chunk_sizes = [len(chunk.content) for chunk in self._chunks]
-        avg_chunk_size = round(total_characters / total_chunks, 1) if total_chunks > 0 else 0
-        max_chunk_size = max(chunk_sizes) if chunk_sizes else 0
-        min_chunk_size = min(chunk_sizes) if chunk_sizes else 0
 
-        activity_dict: dict[str, Any] = {
+        # Global summary (first record)
+        global_record: dict[str, Any] = {
             "material_chunks_count": total_chunks,
             "total_characters": total_characters,
-            "unique_sources": unique_sources,
-            "average_chunk_size": avg_chunk_size,
-            "max_chunk_size": max_chunk_size,
-            "min_chunk_size": min_chunk_size,
-            "has_chunks": total_chunks > 0
+            "unique_sources": len({c.filename for c in self._chunks}),
+            "average_chunk_size": round(total_characters / total_chunks, 1) if total_chunks > 0 else 0,
+            "max_chunk_size": max(chunk_sizes) if chunk_sizes else 0,
+            "min_chunk_size": min(chunk_sizes) if chunk_sizes else 0,
         }
 
+        activity_records = [global_record]
 
-        logger.debug(f"Material activity: {total_chunks} chunks, "
-                     f"{total_characters:,} characters, {unique_sources} unique sources")
+        # Group by file with change detection (preserves order)
+        current_file = None
+        current_sizes: list[int] = []
+        file_num = 1
 
-        return [activity_dict]
+        for chunk in self._chunks:
+            filename = chunk.filename
+
+            if filename != current_file and current_file is not None:
+                # File changed → output stats for previous file
+                self._append_file_record(activity_records, file_num, current_file, current_sizes)
+                file_num += 1
+                current_sizes = []
+
+            current_file = filename
+            current_sizes.append(len(chunk.content))
+
+        # Last group
+        if current_file is not None:
+            self._append_file_record(activity_records, file_num, current_file, current_sizes)
+
+        return activity_records
+
+    def _append_file_record(self, records: list, file_num: int, filename: str, sizes: list[int]):
+        """Append one flat record per file."""
+        num_chunks = len(sizes)
+        records.append({
+            "file_num": file_num,
+            "file": filename,
+            "num_chunks": num_chunks,
+            "min_chunk_size": min(sizes),
+            "max_chunk_size": max(sizes),
+            "avg_chunk_size": round(sum(sizes) / num_chunks, 1) if num_chunks > 0 else 0,
+        })
