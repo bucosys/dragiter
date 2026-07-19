@@ -61,6 +61,7 @@ packages = ["src/dragiter"]
 # damit dragiter-gen-docs und dragiter-gen-examples nach der Installation
 # funktionieren (sie nutzen importlib.resources.files("dragiter")).
 [tool.hatch.build.targets.wheel.force-include]
+"assets" = "dragiter/assets"
 "examples" = "dragiter/examples"
 "docs" = "dragiter/docs"
 "tests" = "dragiter/tests"

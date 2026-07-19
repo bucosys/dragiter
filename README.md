@@ -35,6 +35,8 @@ You can install dragiter easily via pip:
 
     pip install dragiter
 
+The project logo is available in `assets/logo/dragiter-logo.png`.
+
 ## Quick Start
 
 The core philosophy of dragiter is to keep your resources (material, context) and your 
