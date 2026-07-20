@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026.7.20rc2] - 2026-07-20
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc2](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc2)
+
+### Changed
+- Removed `tests/outputs/` folder from package distribution (Wheel)
+- Fixes installation error on Windows caused by excessively long paths
+
+## [2026.7.20rc2] - 2026-07-20
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc2](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc2)
+
+### Changed
+- Removed folder tests/outputs from package building
+
 ## [2026.7.20rc1] - 2026-07-20
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc1](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc1)
 
