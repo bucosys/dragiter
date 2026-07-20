@@ -27,7 +27,7 @@ Responsible for extracting detailed information from info.txt file
 """
 
 import importlib.resources
-
+from dragiter import __version__, __tool_name__
 
 class InfoPresenter:
 
@@ -35,7 +35,8 @@ class InfoPresenter:
     def show_usage() -> int:
         print("Usage: dragiter [OPTIONS]")
         print("\nHelp & Assets:")
-        print("  dragiter --info              Show detailed information")
+        print("  dragiter --help              Show command line help")
+        print("  dragiter --info              Show detailed information (man page)")
         print("  dragiter-gen-docs [PATH]     Extract documentation (default: ./docs/)")
         print("  dragiter-gen-examples [PATH] Extract examples (default: ./examples/)")
         print("  dragiter-gen-tests [PATH]    Extract end-to-end tests (default: ./tests/)")
@@ -65,9 +66,8 @@ class InfoPresenter:
 | (_| | |  | (_| | (_| | | |_| __/ |    
  \__,_|_|   \__,_|\__, |_|\__\___|_|    
                   |___/        
-
-[dragiter – Deterministic RAG Iterator.]
 """
         print(banner)
+        print(f"[dragiter v{__version__} – Deterministic RAG Iterator.]")
         print("-" * 70)
         print("")

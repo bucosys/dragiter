@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026.7.20rc1] - 2026-07-20
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc1](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc1)
+
+### Changed
+- Improved test stability by making the tiny functional test self-contained
+- Removed broken test file `test_e2e_security_with_simulation.py`
+
 ## [2026.7.19rc1] - 2026-07-19
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.7.19rc1](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.19rc1)
 
