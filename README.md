@@ -4,13 +4,6 @@
 
 ## dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows.
 
-> Status: Beta
-> 
-> dragiter has now moved beyond the Alpha stage and is in Beta. The core functionality is largely
-> stable and is already being used in smaller production setups. However, breaking changes may 
-> still occur. We currently advise against using dragiter in critical production environments, 
-> automated CI/CD pipelines, or with untrusted or sensitive data without thorough testing.
-
 dragiter is a modular command-line interface (CLI) designed to integrate Large Language Models (LLMs) directly into your
 automated terminal workflows. It acts as a bridge between your local file system and AI APIs, eliminating "copy-paste
 fatigue" by allowing you to chain AI agents exactly like standard Unix pipes.
@@ -87,21 +80,6 @@ It is strongly recommended to read it:
 The manual contains many practical examples (code review, batch report analysis, 
 marketing copy generation, tool chaining, etc.) and explains advanced features such 
 as context window management and JSONL processing in depth.
-
-## E2E Tests
-
-dragiter includes a set of end-to-end tests to verify core CLI behaviour.
-You can extract them into your current directory by running:
-
-    dragiter-gen-tests .
-
-The tests will be created in the `tests/` subdirectory.  
-You can then execute them with:
-
-    cd tests
-    pytest -q
-
-These tests run safely in simulation mode (`-s`) and serve as a minimal template for writing your own workflow validations.
 
 ## Tool Chaining (The Unix Way)
 

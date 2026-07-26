@@ -20,10 +20,10 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
-
+import logging
 from pathlib import Path
 
-from dragiter.application.core.xdi import *
+from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.resources import Resources, ResourceSection
 from dragiter.domain.models.settings import ResourceFilePathSetting, BaseDirectoryPathSetting, PathSetting
 from dragiter.domain.models.text_file import TextFile
@@ -33,7 +33,7 @@ from dragiter.infrastructure.io.io_services import read_from_toml
 logger = logging.getLogger(__name__)
 
 
-class ResourceCollector:
+class ResourceCollector(Worker):
     def __init__(self, file_checker: FileChecker) -> None:
         self._file_checker = file_checker
 
@@ -84,34 +84,37 @@ class ResourceCollector:
         root_path = base_directory_file_path.value  # Path.cwd().resolve()
         logger.debug(f"Use root path: {root_path}")
 
-        resolved_files = []
-        clean_files: list[TextFile] = []
-
         for pattern in glob_patterns:
             p = Path(pattern)
 
             logger.debug(f"Use pattern: {p}")
 
             if p.is_absolute():  # is absolute?
+                # Absolute patterns are an explicit, intentional escape hatch:
+                # the resource author has written a fully-qualified path themselves,
+                # so containment against root_path does not apply here.
                 base = Path(p.anchor)  # '/' or 'C:\' etc
                 rel_pattern = str(p.relative_to(base))
                 matches = list(base.glob(rel_pattern, recurse_symlinks=False))
                 logger.debug(f"(Abs.) Matches: {len(matches)}")
-                resolved_files.extend(matches)
+                contained_matches = [m.resolve() for m in matches if m.exists()]
             else:
                 matches = list(Path(root_path).glob(pattern, recurse_symlinks=False))
                 logger.debug(f"(Rel.) Matches: {len(matches)}")
 
+                contained_matches = []
                 for match in matches:
-                    # root path should match
-                    if root_path not in match.resolve().parents:
-                        logger.warning(f"File skipped: {match.resolve} is outside of {root_path}.")
+                    resolved_match = match.resolve()
+                    # root path must contain the resolved match; this blocks
+                    # patterns like "../../secret" from escaping root_path
+                    if root_path != resolved_match and root_path not in resolved_match.parents:
+                        logger.warning(f"File skipped: {resolved_match} is outside of {root_path}.")
                         continue
-                    else:
-                        resolved_files.append(match.relative_to(root_path))
+                    if resolved_match.exists():
+                        contained_matches.append(resolved_match)
 
             # tidiing section
-            absolute_matches = sorted({p.resolve() for p in matches if p.exists()})
+            absolute_matches = sorted(set(contained_matches))
             valid_files = self._check_matches(absolute_matches)
             text_files.extend(valid_files)
 

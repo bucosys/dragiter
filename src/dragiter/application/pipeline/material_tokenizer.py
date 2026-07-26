@@ -21,9 +21,10 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
+import logging
 import re
 
-from dragiter.application.core.xdi import *
+from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.material import Material, Chunk
 from dragiter.domain.models.resources import Resources, ResourceSection
 from dragiter.domain.ports.text_file_reader import TextFileReader
@@ -31,7 +32,7 @@ from dragiter.domain.ports.text_file_reader import TextFileReader
 logger = logging.getLogger(__name__)
 
 
-class MaterialTokenizer:
+class MaterialTokenizer(Worker):
     def __init__(self, text_file_reader: TextFileReader) -> None:
         self.text_file_reader = text_file_reader
 

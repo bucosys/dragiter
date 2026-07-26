@@ -25,7 +25,8 @@ from dataclasses import dataclass
 from dragiter.domain.models.settings import (
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
     MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting)
+    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting,
+    CaBundleFilePathSetting, ClientCertFilePathSetting, ClientKeyFilePathSetting)
 
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
 
@@ -41,4 +42,7 @@ class AIServiceParameters(ValueSettingsActivityProvider):
     temperature_float_setting: TemperatureFloatSetting
     retry_delay_int_setting: RetryDelayIntSetting
     max_retries_int_setting: MaxRetryIntSetting
+    ca_bundle_file_path_setting: CaBundleFilePathSetting
+    client_cert_file_path_setting: ClientCertFilePathSetting
+    client_key_file_path_setting: ClientKeyFilePathSetting
 

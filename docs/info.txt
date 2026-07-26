@@ -8,7 +8,6 @@ SYNOPSIS
        dragiter [OPTIONS]
        dragiter-gen-docs [PATH]
        dragiter-gen-examples [PATH]
-       dragiter-gen-tests [PATH]
 
 DESCRIPTION
        dragiter is a command-line tool that allows controlled, reproducible
@@ -24,7 +23,7 @@ DESCRIPTION
 
            1. Command-line arguments
            2. TOML configuration file (specified via -c / --config-file)
-           3. Environment variables (dragiter_...)
+           3. Environment variables (DRAGITER_...)
            4. Default user config (~/.config/dragiter/config.toml)
            5. Hard-coded program defaults
 
@@ -55,6 +54,9 @@ OPTIONS
            --max-retry INT            Maximum number of retries on failure (LLM)
            --retry-delay INT          Delay in seconds between retries
 
+           --ca-bundle-file PATH      Path to custom CA certificate bundle (PEM) for TLS verification
+           --client-cert-file PATH    Path to client certificate (PEM) for mutual TLS (mTLS)
+           --client-key-file PATH     Path to client private key (optional if key is embedded in cert file)
 
        Task & Prompt Control
            -p, --prompt-file PATH     Read instruction and task template file
@@ -81,7 +83,6 @@ OPTIONS
            -h, --help                 Show this help message and exit
            dragiter-gen-docs [PATH]       Extract documentation to folder
            dragiter-gen-examples [PATH]   Extract examples to folder
-           dragiter-gen-tests [PATH]      Extract end-to-end tests to folder
 
 EXIT STATUS
        0      Success
@@ -97,10 +98,11 @@ ENVIRONMENT
        DRAGITER_RETRY_DELAY, DRAGITER_MAX_RETRY
        DRAGITER_OUTPUT_MODE (w / a / x)
        DRAGITER_OUTPUT_DELIMITER, DRAGITER_OUTPUT_FILENAME_SCHEMA
-       DRAGITER_BASE_DIRECTORY, DRAGITER_CONFIG_FILE, DRAGITER_LOG_FILE
-       DRAGITER_PROMPT_FILE, DRAGITER_LOOP_FILE, DRAGITER_RESOURCE_FILE
-       DRAGITER_OUTPUT_FILE, DRAGITER_OUTPUT_DIRECTORY, DRAGITER_ACTIVITY_FILE
-       DRAGITER_CONFIG (Overrides default config search path)
+       DRAGITER_ACTIVITY_FILE, DRAGITER_BASE_DIRECTORY, DRAGITER_CONFIG_FILE
+       DRAGITER_CA_BUNDLE_FILE, DRAGITER_CLIENT_CERT_FILE
+       DRAGITER_CLIENT_KEY_FILE, DRAGITER_LOG_FILE, DRAGITER_LOOP_FILE
+       DRAGITER_OUTPUT_FILE, DRAGITER_OUTPUT_DIRECTORY, DRAGITER_PROMPT_FILE
+       DRAGITER_RESOURCE_FILE
 
 REPORTING BUGS
        dragiter is a community-driven tool. If you encounter a bug, you are

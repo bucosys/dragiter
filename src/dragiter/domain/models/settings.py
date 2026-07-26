@@ -38,7 +38,7 @@ class ValueSetting(Generic[T]):
     is_set: bool = field(default=False, init=False)
 
     @property
-    def key(self) -> T:
+    def key(self) -> str:
         return self._key
 
     @property
@@ -53,15 +53,6 @@ class ValueSetting(Generic[T]):
         self._value = new_value
         self.is_set = True
 
-    # def __copy__(self):
-    #     """Prevents copying value."""
-    #     return self
-    #
-    # def __deepcopy__(self, memo: dict):
-    #     """Prevents deep copying value."""
-    #     return self
-
-
 # typed inheritance
 
 @dataclass
@@ -70,13 +61,6 @@ class StringSetting(ValueSetting[str]): ...
 
 @dataclass
 class BoolSetting(ValueSetting[bool]): ...
-
-
-#    def __bool__(self) -> bool:
-#        return self.is_set and bool(self._value)
-
-# @dataclass
-# class PathSetting(ValueSetting[Path]): ...
 
 
 @dataclass
@@ -241,6 +225,14 @@ class TemperatureFloatSetting(FloatSetting): ...
 @dataclass
 class ActivityFilePathSetting(PathSetting): ...
 
+@dataclass
+class CaBundleFilePathSetting(PathSetting): ...
+
+@dataclass
+class ClientCertFilePathSetting(PathSetting): ...
+
+@dataclass
+class ClientKeyFilePathSetting(PathSetting): ...
 
 @dataclass
 class ConfigFilePathSetting(PathSetting): ...

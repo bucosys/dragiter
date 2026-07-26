@@ -21,9 +21,8 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-from multiprocessing.util import debug
-
-from dragiter.application.core.xdi import *
+import logging
+from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.settings import CharsPerTokenFloatSetting, MaxContextTokensIntSetting, \
@@ -34,7 +33,7 @@ from dragiter.domain.ports.payload_estimator import PayloadEstimator
 logger = logging.getLogger(__name__)
 
 
-class ContextWindowEstimator:
+class ContextWindowEstimator(Worker):
 
     def __init__(self, payload_estimator: PayloadEstimator) -> None:
         self._payload_estimator = payload_estimator
@@ -90,10 +89,10 @@ class ContextWindowEstimator:
                     report.max_session_index = index
 
                 if verbose_boolean_setting.value:
-                    debug(f"Calculated input token amount: {calc_input_tokens}")
+                    logger.debug(f"Calculated input token amount: {calc_input_tokens}")
 
                 if (calc_input_tokens + out_tokens) > max_context_tokens_int_setting.value:
-                    debug(
+                    logger.debug(
                         f"Context window exceeded. "
                         f"Input: {calc_input_tokens} | Output reservation: {out_tokens} | "
                         f"Calculated total: {calc_input_tokens + out_tokens} | Limit: {max_context_tokens_int_setting.value}"

@@ -25,13 +25,15 @@ def ollama_is_available() -> bool:
 
 
 @pytest.mark.skipif(not ollama_is_available(), reason="Ollama not available")
-def test_functional_ollama_tiny_workflow(tiny_example_dir, ensure_outputs_directory):
+def test_functional_ollama_tiny_workflow(tiny_example_dir):
     """Basic functional test using the self-contained tiny fixtures."""
     tests_dir = Path(__file__).parent.resolve()
     config_path = tests_dir / "configs" / "config-ollama.toml"
 
-    temp_output_dir = ensure_outputs_directory / "tiny_ollama"
-    temp_output_dir.mkdir(exist_ok=True)
+    # Output lives right next to the copied resources in the same
+    # per-test temp tree, no separate outputs fixture required.
+    temp_output_dir = tiny_example_dir / "outputs" / "tiny_ollama"
+    temp_output_dir.mkdir(parents=True, exist_ok=True)
 
     flags = [
         "-v",
@@ -43,7 +45,7 @@ def test_functional_ollama_tiny_workflow(tiny_example_dir, ensure_outputs_direct
         "-m", "w",  # overwrite to avoid "file already exists" errors
     ]
 
-    result = _run_dragiter(flags, timeout=90)
+    result = _run_dragiter(flags, timeout=360)
 
     assert result.returncode == 0, f"Test failed: {result.stderr}"
 

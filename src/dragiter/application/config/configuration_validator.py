@@ -20,13 +20,11 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
-
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
 
-# from dragiter.application.config.configuration_decorators import *
-from dragiter.application.core.xdi import *
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
 from dragiter.domain.models.input_path_parameters import InputPathParameters
 from dragiter.domain.models.output_parameters import OutputParameters
@@ -39,7 +37,8 @@ from dragiter.domain.models.settings import (
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
     ResourceFilePathSetting, ValueSetting, PathSetting, TemperatureFloatSetting, MaxRetryIntSetting,
     RetryDelayIntSetting, DebugBoolSetting, SequentialProcessingBoolSetting, LogFilePathSetting,
-    OutputFilenameSchemaStringSetting, OutputDelimiterStringSetting)
+    OutputFilenameSchemaStringSetting, OutputDelimiterStringSetting, ClientKeyFilePathSetting,
+    ClientCertFilePathSetting, CaBundleFilePathSetting)
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +70,9 @@ class ConfigurationValidator:
             activity_file_path_setting: ActivityFilePathSetting,
             base_directory_path_setting: BaseDirectoryPathSetting,
             config_file_path_setting: ConfigFilePathSetting,
+            ca_bundle_file_path_setting: CaBundleFilePathSetting,
+            client_cert_file_path_setting: ClientCertFilePathSetting,
+            client_key_file_path_setting: ClientKeyFilePathSetting,
             logfile_path_setting: LogFilePathSetting,
             prompt_file_path_setting: PromptFilePathSetting,
             loop_file_path_setting: LoopFilePathSetting,
@@ -99,6 +101,9 @@ class ConfigurationValidator:
                 # stage 1 check for reading a file or director
                 settings_to_rebase: list[PathSetting] = [
                     activity_file_path_setting,
+                    ca_bundle_file_path_setting,
+                    client_cert_file_path_setting,
+                    client_key_file_path_setting,
                     prompt_file_path_setting,
                     loop_file_path_setting,
                     resource_file_path_setting,
@@ -135,8 +140,13 @@ class ConfigurationValidator:
                                 f"If file open mode is set, use one of a (append), w (overwrite) or x (exclusive)"))
 
             # stage 1 check for reading a file or director
-            input_path_settings_to_check = [base_directory_path_setting, loop_file_path_setting,
-                                            resource_file_path_setting, output_directory_path_setting]
+            input_path_settings_to_check = [base_directory_path_setting,
+                                            ca_bundle_file_path_setting,
+                                            client_cert_file_path_setting,
+                                            client_key_file_path_setting,
+                                            loop_file_path_setting,
+                                            resource_file_path_setting,
+                                            output_directory_path_setting]
 
             cvfs.extend([
                 CVF(setting.key, f"Path not readable: {setting.value}")
@@ -169,13 +179,25 @@ class ConfigurationValidator:
                     cvfs.append(CVF(chars_per_token_float_setting.key,
                                     f"value should not be less than 0.0: {chars_per_token_float_setting.value}"))
 
+
+            # Stage IV Cert
+            if client_key_file_path_setting.is_set and not client_cert_file_path_setting.is_set:
+                cvfs.append(CVF(
+                    client_key_file_path_setting.key,
+                    "client_key given without client_cert",
+                    "A client private key requires a client certificate (--client-cert)."
+                ))
+
             # stage V: Create AIServiceParameters:
             ai_service_parameters: AIServiceParameters = AIServiceParameters(
                 api_key_string_setting, base_url_string_setting, model_name_string_setting,
                 max_context_token_int_setting,
                 max_output_token_int_setting, chars_per_token_float_setting, temperature_float_setting,
                 retry_delay_int_setting,
-                max_retries_int_setting
+                max_retries_int_setting,
+                ca_bundle_file_path_setting,
+                client_cert_file_path_setting,
+                client_key_file_path_setting,
             )
 
             # stage VI: Create ProcessingParameters
@@ -210,6 +232,9 @@ class ConfigurationValidator:
                 retry_delay_int_setting,
                 activity_file_path_setting,
                 base_directory_path_setting,
+                ca_bundle_file_path_setting,
+                client_cert_file_path_setting,
+                client_key_file_path_setting,
                 config_file_path_setting,
                 prompt_file_path_setting,
                 loop_file_path_setting,
@@ -233,7 +258,7 @@ class ConfigurationValidator:
         except ConfigurationValidatorError as exc:
             raise  #
         except Exception as e:
-            raise ConfigurationValidatorError(f"Unexpected exception occured: {e}") from e
+            raise ConfigurationValidatorError(f"Unexpected exception occurred: {e}") from e
 
 
 class ConfigurationValidatorError(Exception):

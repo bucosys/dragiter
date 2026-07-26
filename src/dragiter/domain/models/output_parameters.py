@@ -20,21 +20,13 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
-import datetime
-from dataclasses import dataclass, fields
-from typing import Any
-
-from openai import api_key
+from dataclasses import dataclass
 
 from dragiter.domain.models.settings import (
-    ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
-    MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting, ValueSetting,
-    BaseDirectoryPathSetting, LoopFilePathSetting, ResourceFilePathSetting, OutputDirectoryPathSetting,
-    ConfigFilePathSetting, PromptFilePathSetting, ActivityFilePathSetting, LogFilePathSetting, OutputFilePathSetting,
+    OutputDirectoryPathSetting,
+    ActivityFilePathSetting, LogFilePathSetting, OutputFilePathSetting,
     OutputDelimiterStringSetting, OutputFilenameSchemaStringSetting, OutputModeStringSetting)
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
-from dragiter.domain.ports.activity_provider import ActivityProvider
 
 
 @dataclass(frozen=True)
@@ -45,7 +37,7 @@ class OutputParameters(ValueSettingsActivityProvider):
     activity_file_path_setting: ActivityFilePathSetting
     logfile_path_setting: LogFilePathSetting
     output_directory_path_setting: OutputDirectoryPathSetting
-    output_filepath_setting: OutputFilePathSetting
+    output_file_path_setting: OutputFilePathSetting
 
 
 

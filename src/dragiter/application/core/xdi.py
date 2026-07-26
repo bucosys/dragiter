@@ -24,7 +24,7 @@
 import copy
 import inspect
 import logging
-from typing import List, Dict, Type, Any, TypeVar, Protocol
+from typing import List, Dict, Type, Any, TypeVar, Protocol, Optional
 import traceback
 import sys
 
@@ -47,7 +47,7 @@ class ApplicationManager:
     def __init__(self, checksum_generator: ChecksumGenerator):
         self.workers: List['Worker'] = []
         self.store: Dict[Type[Any], Any] = {}
-        self.activity_logger: ActivityLogger = None
+        self.activity_logger: Optional[ActivityLogger] = None
         self._validators: Dict[Type[Any], BaseValidator] = {}
         self._checksum_generator = checksum_generator
 
@@ -185,8 +185,6 @@ class ApplicationManager:
                 result = worker.run(**args)
                 logger.debug(f"\N{EYEGLASSES} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result!r}")
                 logger.info(f"\N{WHITE SQUARE} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result}")
-
-                # FUTURE                self._log_activity(result)
 
                 if isinstance(result, (list, set, tuple)):
                     for item in result:

@@ -21,23 +21,17 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-import json
-from pathlib import Path
+import logging
 
 import time
 from datetime import datetime, timezone
 
-from dragiter.application.core.xdi import *
 from dragiter.domain.models.application_result import ApplicationResult
 from dragiter.domain.models.chat_results import ChatResults
-from dragiter.domain.models.chat_sessions import ChatSessions, ChatMessage
+from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.chunk import Chunk
-from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.prompt_template import PromptTemplate
-from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting, \
-    ActivityFilePathSetting
-from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
-
+from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting
 from typing import Optional, Any
 
 from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
@@ -134,15 +128,12 @@ class OutputWriter:
     def run(self,
             chat_sessions: ChatSessions,
             chat_results: ChatResults,
-            activity_file_path_setting: ActivityFilePathSetting,
             output_file_path_setting: OutputFilePathSetting,
             output_directory_path_setting: OutputDirectoryPathSetting,
             output_mode_string_setting: OutputModeStringSetting,
-            prompt: PromptTemplate,
-            loop: Loop) -> ApplicationResult:
+            prompt: PromptTemplate) -> ApplicationResult:
 
         try:
-            printable_value: str = ""
             open_mode: str = output_mode_string_setting.value or "x"
             application_result = ApplicationResult(0)
 
@@ -191,48 +182,6 @@ class OutputWriter:
                         open_mode, [chat_result.output_chat_message.content])
 
 
-                # END-OF-REWORK
-
-                # calc filename
-                # name_of_file_path: Path = None
-
-                # if loop.lines:
-                #     name_of_file_path = Path(prompt.output_filename_schema)
-                #     counter: int = 0
-                #     for line in content_list:
-                #         counter += 1
-                #         numbered_file_name: Path = Path(
-                #             f"{name_of_file_path.stem}_{counter:03d}{name_of_file_path.suffix}")
-                #         write_or_append_lines_to_unique_file(output_directory_path_setting.value / numbered_file_name,
-                #                                              open_mode, [line])
-                #
-                # else:
-                #     name_of_file_path = Path(prompt.output_filename_schema)
-                #     write_or_append_lines_to_unique_file(
-                #         output_directory_path_setting.value / Path(name_of_file_path), open_mode, content_list)
-
-            # last but not least the activity, jsonl
-            # if activity_file_path_setting.is_set:
-            #     activity_dicts: list[dict[str, str]] = []
-            #
-            #     for chat_session, chat_result in zip(chat_sessions.session_list, chat_results.chat_result_list):
-            #         for chat_message in chat_session.input_chat_message_list:
-            #             activity_dicts.append(
-            #                 json.dumps({
-            #                     "TS": chat_result.ended_at.isoformat() if chat_result.ended_at else "",
-            #                     "RL": chat_message.role,
-            #                     "CT": chat_message.content}))
-            #
-            #         activity_dicts.append(
-            #             json.dumps({
-            #                 "TS": chat_result.ended_at.isoformat() if chat_result.ended_at else "",
-            #                 "RL": chat_result.output_chat_message.role,
-            #                 "CT": chat_result.output_chat_message.content}))
-
-            ###    write_or_append_lines_to_unique_file(activity_file_path_setting.value, open_mode, activity_dicts)
-            # end of activity block
-
-            # finally put data to std_out
             print(printable_value)  # to std_out
 
             return ApplicationResult(0)

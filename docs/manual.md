@@ -174,7 +174,7 @@ your file routing and prompts.
 Meaning: Enables verbose mode for detailed progress
 tracking during execution.
 
--c, --config-file Environment: DRAGITER_CONFIG
+-c, --config-file Environment: DRAGITER_CONFIG_FILE
 Meaning: Path to a specific TOML configuration file,
 overriding the default path.
 
@@ -196,6 +196,14 @@ a custom, proxy, or local LLM instance.
 Meaning: The specific model identifier you want to query
 (e.g., gpt-4o, claude-3-5).
 
+--ca-bundle-file Environment: DRAGITER_CA_BUNDLE_FILE
+Meaning: Path to custom CA certificate bundle (PEM) for TLS verification
+
+--client-cert-file Environment: DRAGITER_CLIENT_CERT_FILE
+Meaning: Path to client certificate (PEM) for mutual TLS (mTLS)
+
+--client-key-file Environment: DRAGITER_CLIENT_KEY_FILE
+Meaning: Path to client private key (optional if key is embedded in cert file)
 
 Task and Input Control
 ----------------------
@@ -259,9 +267,9 @@ of the executed workflow for auditing purposes.
 Advanced LLM Settings
 ---------------------
 
---max-input-tokens Environment: DRAGITER_MAX_INPUT_TOKENS
-Meaning: Sets the maximum number of input tokens allowed
-to be transmitted to the AI service. This helps
+--max-context-tokens Environment: DRAGITER_MAX_CONTEXT_TOKENS
+Meaning: Sets the maximum number of input and output tokens allowed
+to be transmitted to and from the AI service. This helps
 limit the usage of the context window and
 prevents unexpected API costs.
 
@@ -379,7 +387,8 @@ If you are running a batch process using a loop file, place the {LOOP_CONTENT}
 variable inside your "synthesis" block. dragiter will replace this placeholder with
 the current line (or JSON fields) from your loop file for each iteration.
 
-### Chapter 4: Context Window and Token Management
+Chapter 4: Context Window and Token Management
+==============================================
 
 Large language models have a limited "attention span" — known as the **context window**. This is the maximum amount of 
 text (measured in tokens) the model can process in a single request.
@@ -694,43 +703,35 @@ model is released tomorrow, you only need to change a single line in your
 configuration file to upgrade your entire toolchain.
 
 
-## Chapter 9: End-to-End Tests
+Chapter 9: Tests
+================
 
-dragiter ships with a set of end-to-end tests. These tests allow contributors
-and advanced users to verify that the CLI works correctly across different
-workflows.
+dragiter comes with a comprehensive test suite that verifies the CLI,
+configuration handling, security aspects, and core pipeline behaviour.
 
-### Extracting the Tests
+### Obtaining the Tests
 
-You can extract the end-to-end test suite by running:
+The tests are **not** included in the installed wheel.  
+To run them, download the source distribution:
 
-    dragiter-gen-tests .
-
-The tests will be placed in the `tests/` directory relative to your current
-working directory.
+    pip download dragiter --no-binary=:all: -d .
+    tar xf dragiter-*.tar.gz
+    cd dragiter-*/
 
 ### Running the Tests
 
-After extraction, navigate into the directory and execute the tests with
-`pytest`:
-
-    cd tests
+    pip install -e ".[dev]"   # installs pytest and the package in editable mode
     pytest -q
 
-All tests are designed to run safely in simulation mode (`-s`) and do not
-require any API keys or real LLM calls.
+Most tests run safely without any API keys or real LLM calls.  
+A few optional integration tests (e.g. against a local Ollama instance)
+are automatically skipped when the required service is not available.
 
-### Test Structure and How to Extend
+### Extending the Tests
 
-The `tests/` directory contains:
-
-- `test_e2e_infrastructure.py` — basic sanity checks for the CLI
-- `README.md` — instructions for running and extending the tests
-
-You are encouraged to add further test files using the naming pattern
-`test_e2e_*.py`. The existing tests serve as a template for invoking
-`dragiter` via `subprocess` and making assertions on exit codes and output.
-
+New tests should follow the naming convention `test_*.py` and can be placed
+directly in the `tests/` directory. The existing files serve as practical
+examples for both unit and end-to-end testing styles.
 
 Chapter 10: Acknowledgements and Special Thanks
 ==============================================

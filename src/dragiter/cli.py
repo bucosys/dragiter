@@ -56,11 +56,6 @@ def gen_examples():
     ResourceExporter.export("examples")
 
 
-def gen_tests():
-    """Triggered by the command 'dragiter-gen-tests'"""
-    ResourceExporter.export("tests")
-
-
 def main():
     ## PRE SELECTOR
     # S1: No params ? show usage

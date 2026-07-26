@@ -22,26 +22,33 @@
 # =============================================================================
 
 import argparse
+import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from dragiter import __version__
-from dragiter.application.config.configuration_decorators import *
-from dragiter.application.core.xdi import *
+from dragiter.application.config.configuration_decorators import ArgumentDecorator, BoolSettingArgumentDecorator, \
+    StringSettingArgumentDecorator, IntegerSettingArgumentDecorator, FloatSettingArgumentDecorator, \
+    PathSettingArgumentDecorator
+from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.settings import (
     DebugBoolSetting, SimulateBoolSetting, VerboseBoolSetting, SequentialProcessingBoolSetting,
     ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
     OutputDelimiterStringSetting, OutputFilenameSchemaStringSetting, OutputModeStringSetting, TaskStringSetting,
     MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting, LogFilePathSetting,
+    CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
+    LogFilePathSetting,
     PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
-    ResourceFilePathSetting, ValueSetting, TemperatureFloatSetting, RetryDelayIntSetting, MaxRetryIntSetting)
+    ResourceFilePathSetting, ValueSetting, TemperatureFloatSetting, RetryDelayIntSetting, MaxRetryIntSetting,
+    BoolSetting, StringSetting, IntegerSetting, FloatSetting, PathSetting,
+    CaBundleFilePathSetting, ClientCertFilePathSetting, ClientKeyFilePathSetting)
 from dragiter.infrastructure.io.io_services import read_from_toml
 
 logger = logging.getLogger(__name__)
 
 
-class ConfigurationLoader:
+class ConfigurationLoader(Worker):
     def __init__(self) -> None:
         """Initialise the configuration object and load settings."""
         self.config_values: list[ArgumentDecorator] = [
@@ -79,6 +86,12 @@ class ConfigurationLoader:
                                          help="Base directory for all relative paths"),
             PathSettingArgumentDecorator(ActivityFilePathSetting("activity_file"), short_key="a",
                                          help="Write activity to file"),
+            PathSettingArgumentDecorator(CaBundleFilePathSetting("ca_bundle_file"),
+                                         help="Path to custom CA certificate bundle (PEM) for TLS verification"),
+            PathSettingArgumentDecorator(ClientCertFilePathSetting("client_cert_file"),
+                                         help="Path to client certificate (PEM) for mutual TLS (mTLS)"),
+            PathSettingArgumentDecorator(ClientKeyFilePathSetting("client_key_file"),
+                                         help="Path to client private key (optional if key is embedded in cert file)"),
             PathSettingArgumentDecorator(ConfigFilePathSetting("config_file"), short_key="c",
                                          help="Read configuration from file"),
             PathSettingArgumentDecorator(LogFilePathSetting("log_file"), short_key="L",
@@ -185,10 +198,17 @@ class ConfigurationLoader:
             if value_setting_object.is_set:
                 continue  # --> operate on next item in list
 
-            env_key = "dragiter_" + item.long_key.upper()
+            env_key = "DRAGITER_" + item.long_key.upper()
             env_value = os.environ.get(env_key)
             if env_value is None:
                 continue  # --> operate on next item in list
+
+            # Only expand if the value starts with $ (i.e. contains a variable reference)
+            if env_value.startswith("$"):
+                expanded = os.path.expandvars(env_value)
+                if expanded == env_value:  # not expanded
+                    logger.warning(f"Environment variable reference could not be resolved: {env_value}")
+                env_value = expanded
 
             # 4 if found, then ...
             if (isinstance(value_setting_object, BoolSetting)):
@@ -198,6 +218,12 @@ class ConfigurationLoader:
                 value_setting_object.value = env_value.strip()
                 display_value = "********" if "key" in item.long_key else value_setting_object.value
                 logger.debug(f"[{item.long_key}: {display_value}]")
+            elif (isinstance(value_setting_object, IntegerSetting)):
+                value_setting_object.value = int(env_value.strip())
+                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
+            elif (isinstance(value_setting_object, FloatSetting)):
+                value_setting_object.value = float(env_value.strip())
+                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
             elif (isinstance(value_setting_object, PathSetting)):
                 value_setting_object.value = Path(env_value.strip())
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
@@ -218,7 +244,7 @@ class ConfigurationLoader:
             return config_path
 
         # 2. Check Environment Variable
-        env_path = os.getenv("dragiter_CONFIG")
+        env_path = os.getenv("DRAGITER_CONFIG_FILE")
         if env_path:
             return Path(env_path)
 
@@ -262,7 +288,7 @@ class ConfigurationLoader:
 
             help_text = item.help or "No description available"
 
-            type_mapping: dict[str, any] = {}
+            type_mapping: dict[str, Any] = {}
 
             if (isinstance(value_setting_object, BoolSetting)):
                 type_mapping = {"action": "store_true", "default": None, "help": help_text}

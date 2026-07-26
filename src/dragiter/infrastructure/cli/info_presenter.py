@@ -39,7 +39,6 @@ class InfoPresenter:
         print("  dragiter --info              Show detailed information (man page)")
         print("  dragiter-gen-docs [PATH]     Extract documentation (default: ./docs/)")
         print("  dragiter-gen-examples [PATH] Extract examples (default: ./examples/)")
-        print("  dragiter-gen-tests [PATH]    Extract end-to-end tests (default: ./tests/)")
         return 0
 
     @staticmethod

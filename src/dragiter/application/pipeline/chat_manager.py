@@ -20,8 +20,8 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
-
-from dragiter.application.core.xdi import *
+import logging
+from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
 from dragiter.domain.models.chat_results import ChatResults, ChatResult
 from dragiter.domain.models.chat_sessions import ChatSessions
@@ -33,7 +33,7 @@ from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEs
 logger = logging.getLogger(__name__)
 
 
-class ChatManager:
+class ChatManager(Worker):
     def __init__(self, llm_service: LLMService) -> None:
         self.llm_service = llm_service
 

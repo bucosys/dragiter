@@ -20,10 +20,10 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
-
+import logging
 from pathlib import Path
 
-from dragiter.application.core.xdi import *
+from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.settings import PromptFilePathSetting, TaskStringSetting, OutputDelimiterStringSetting, \
     OutputFilenameSchemaStringSetting, TemperatureFloatSetting, SequentialProcessingBoolSetting
@@ -32,7 +32,7 @@ from dragiter.infrastructure.io.io_services import read_from_toml, read_stdin_co
 logger = logging.getLogger(__name__)
 
 
-class PromptCreator:
+class PromptCreator(Worker):
     def __init__(self) -> None:
         pass
 

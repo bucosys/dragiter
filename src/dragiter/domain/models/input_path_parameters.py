@@ -20,20 +20,12 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
-import datetime
-from dataclasses import dataclass, fields
-from typing import Any
-
-from openai import api_key
+from dataclasses import dataclass
 
 from dragiter.domain.models.settings import (
-    ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
-    MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting, ValueSetting,
-    BaseDirectoryPathSetting, LoopFilePathSetting, ResourceFilePathSetting, OutputDirectoryPathSetting,
-    ConfigFilePathSetting, PromptFilePathSetting)
+    BaseDirectoryPathSetting, LoopFilePathSetting, ResourceFilePathSetting, ConfigFilePathSetting,
+    PromptFilePathSetting)
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
-from dragiter.domain.ports.activity_provider import ActivityProvider
 
 
 @dataclass(frozen=True)

@@ -88,12 +88,11 @@ def ensure_path_within_directory(candidate: Path, base_directory: Path) -> Path:
     resolved_candidate = candidate.resolve()
 
     try:
-        if hasattr(resolved_candidate, "is_relative_to"):
-            if not resolved_candidate.is_relative_to(resolved_base):
-                raise ValueError(
-                    f"Path traversal detected: {candidate} resolves outside "
-                    f"the allowed directory {base_directory}"
-                )
+        if not resolved_candidate.is_relative_to(resolved_base):
+            raise ValueError(
+                f"Path traversal detected: {candidate} resolves outside "
+                f"the allowed directory {base_directory}"
+            )
         else:
             # Fallback
             common = Path(resolved_candidate).parts

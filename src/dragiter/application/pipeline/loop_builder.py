@@ -21,9 +21,11 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
+import logging
 from json import JSONDecodeError, loads
+from typing import List, Any
 
-from dragiter.application.core.xdi import *
+from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.settings import LoopFilePathSetting
 from dragiter.infrastructure.io.io_services import read_stripped_lines_from_file
@@ -31,7 +33,7 @@ from dragiter.infrastructure.io.io_services import read_stripped_lines_from_file
 logger = logging.getLogger(__name__)
 
 
-class LoopBuilder:
+class LoopBuilder(Worker):
     def __init__(self) -> None:
         pass
 

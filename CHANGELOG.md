@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026.7.26] - 2026-07-26
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26)
+
+release: 2026.7.26 – production-stable with mTLS and hardened config pipeline
+Promote dragiter from 2026.7.20rc2 (Beta) to Production/Stable.
+
+### Added
+- TLS / mTLS support: --ca-bundle-file, --client-cert-file, --client-key-file
+  (custom CA, client cert, optional separate key via httpx SSLContext)
+- Integer and Float settings from DRAGITER_* environment variables
+- $VAR expansion for environment values before type conversion
+- Unit tests for env int/float parsing, $ expansion, and precedence
+- Unit tests for ApplicationManager (XDI), ContextWindowEstimator
+- Functional tests for Ollama, Caddy CA-bundle and mTLS proxies
+- Man-page entries for new TLS flags and cleaned ENVIRONMENT section
+
+### Changed
+- Version 2026.7.20rc2 → 2026.7.26
+- Development Status: Beta → Production/Stable
+- OpenAIService: explicit wait_time init, httpx client for TLS/mTLS
+- Tests removed from the Wheel package (remain in the source distribution)
+- Packaging and test layout refined for a stable release
+
+### Fixed
+- Env vars for max_context_tokens, max_output_tokens, temperature, etc.
+  were silently ignored (only String/Bool/Path were handled)
+- Fragile retry timing in OpenAIService (wait_time before first sleep)
+- Duplicate / inconsistent DRAGITER_CONFIG documentation in info.txt
+- Raised minimum Python version to 3.13 to match `Path.glob(recurse_symlinks=...)` usage in `resource_collector.py`; previously declared as `>=3.11`, which caused a crash on older interpreters.
+
 ## [2026.7.20rc2] - 2026-07-20
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc2](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc2)
 

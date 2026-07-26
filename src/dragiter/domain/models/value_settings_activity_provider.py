@@ -24,12 +24,7 @@ import datetime
 from dataclasses import dataclass, fields
 from typing import Any
 
-from openai import api_key
-
-from dragiter.domain.models.settings import (
-    ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
-    MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting, ValueSetting)
+from dragiter.domain.models.settings import ValueSetting
 from dragiter.domain.ports.activity_provider import ActivityProvider
 
 class ValueSettingsActivityProvider(ActivityProvider):

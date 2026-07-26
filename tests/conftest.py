@@ -24,13 +24,6 @@ def project_root() -> Path:
     return PROJECT_ROOT
 
 
-@pytest.fixture(scope="session", autouse=True)
-def ensure_outputs_directory() -> Path:
-    outputs = TESTS_DIR / "outputs"
-    outputs.mkdir(parents=True, exist_ok=True)
-    return outputs
-
-
 @pytest.fixture(scope="session")
 def tiny_example_dir(tmp_path_factory) -> Path:
     """

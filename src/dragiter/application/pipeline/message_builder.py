@@ -22,11 +22,11 @@
 # =============================================================================
 
 import json
+import logging
 import re
 import textwrap
-from collections import defaultdict
 
-from dragiter.application.core.xdi import *
+from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.chat_sessions import ChatMessage, ChatSessions, ChatSession
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.loop import Loop
@@ -36,8 +36,12 @@ from dragiter.domain.models.settings import VerboseBoolSetting
 
 logger = logging.getLogger(__name__)
 
+# aux class
+class KeepPlaceholder(dict):
+    def __missing__(self, key):
+        return "{" + key + "}"
 
-class MessageBuilder:
+class MessageBuilder(Worker):
     """Builds chat sessions from prompts, materials, and loop data."""
 
     def _extract_placeholders(self, text: str) -> list[str]:
@@ -90,7 +94,7 @@ class MessageBuilder:
         if prompt.synthesis is not None:
             if dict_line:
                 # Use defaultdict so missing keys remain visible as {key}
-                safe_dict = defaultdict(lambda key: "{" + key + "}", dict_line)
+                safe_dict = KeepPlaceholder(dict_line) # fix
                 formatted_synthesis = prompt.synthesis.format_map(safe_dict)
 
                 # Detect which placeholders could not be replaced
