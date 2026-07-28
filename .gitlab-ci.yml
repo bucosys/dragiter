@@ -3,16 +3,16 @@ stages:
 
 pages:
   stage: deploy
-  image:
-    name: pandoc/core:latest
-    entrypoint: [""]
+  image: python:3.11-slim
+  before_script:
+    # Install MkDocs and the Material theme
+    - pip install --no-cache-dir mkdocs mkdocs-material
   script:
-    - mkdir public
-    - pandoc docs/manual.md -o public/index.html --standalone --metadata title="dragiter"
-    - cp -r docs/* public/ 2>/dev/null || true
-    - cp README.md public/README.md
+    # Build the static site into the 'public' directory
+    - mkdocs build --site-dir public
   artifacts:
     paths:
       - public
   rules:
+    # Only run this job when changes are pushed to the main branch
     - if: $CI_COMMIT_BRANCH == "main"
