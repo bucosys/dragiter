@@ -1,4 +1,5 @@
 site_name: dragiter
+site_url: https://www.dragiter.app/
 docs_dir: web
 site_description: "Documentation for dragiter"
 
