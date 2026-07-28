@@ -3,7 +3,9 @@ stages:
 
 pages:
   stage: deploy
-  image: pandoc/core:latest
+  image:
+    name: pandoc/core:latest
+    entrypoint: [""]
   script:
     - mkdir public
     - pandoc docs/manual.md -o public/index.html --standalone --metadata title="dragiter"
