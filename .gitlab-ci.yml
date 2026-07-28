@@ -9,6 +9,7 @@ pages:
     - pip install --no-cache-dir mkdocs mkdocs-material
   script:
     # Build the static site into the 'public' directory
+    - cp -f docs/manual.md web/manual.md
     - mkdocs build --site-dir public
   artifacts:
     paths:
