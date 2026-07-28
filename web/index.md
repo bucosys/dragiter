@@ -78,7 +78,7 @@ cat server_logs.txt | grep "ERROR" | dragiter -p analyze_errors.toml
 
 ## Documentation
 
-You are currently looking at the official documentation. To learn more about practical examples (code review, batch report analysis, marketing copy generation, tool chaining, etc.) and advanced features such as context window management and JSONL processing, please read the **[Manual](../docs/manual.md)**.
+You are currently looking at the official documentation. To learn more about practical examples (code review, batch report analysis, marketing copy generation, tool chaining, etc.) and advanced features such as context window management and JSONL processing, please read the **[Manual](manual.md)**.
 
 ## Acknowledgements
 
