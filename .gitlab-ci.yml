@@ -1,0 +1,16 @@
+stages:
+  - deploy
+
+pages:
+  stage: deploy
+  image: pandoc/core:latest
+  script:
+    - mkdir public
+    - pandoc docs/manual.md -o public/index.html --standalone --metadata title="dragiter"
+    - cp -r docs/* public/ 2>/dev/null || true
+    - cp README.md public/README.md
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
