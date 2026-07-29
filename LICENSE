@@ -1,5 +1,5 @@
 dragiter (Deterministic RAG Iterator)
-Copyright (C) 2026 Michael Buchold <michael.buchold@bucosys.com>
+Copyright (C) 2026 Michael Buchold <michael.buchold@dragiter.app>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -17,4 +17,4 @@ Commercial License Inquiry
 ──────────────────────────
 For commercial use without AGPL obligations (e.g. SaaS offering, closed-source
 integration, no source disclosure), please contact:
-Michael Buchold <michael.buchold@bucosys.com>
+Michael Buchold <michael.buchold@dragiter.app>

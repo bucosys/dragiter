@@ -87,4 +87,8 @@ The development of dragiter has been a journey of continuous learning. Bringing 
 A massive thank you to the AI models Grok and Gemini. As tireless pair-programming partners, your guidance, code reviews, and structural suggestions were invaluable in adapting the Python code for this project.
 
 Equally important is the global Python community. The rich ecosystem, extensive documentation, and open-source spirit provide the foundation for tools like dragiter. Thank you to all the developers who make Python such a powerful language to work with.
-```
+
+## Legal
+
+- [Legal Notice / Imprint](legal_notice.md)
+- [Privacy Policy](privacy_policy.md)
