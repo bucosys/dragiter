@@ -2,11 +2,12 @@
 [![PyPI](https://img.shields.io/pypi/v/dragiter)](https://pypi.org/project/dragiter/)
 [![Python](https://img.shields.io/pypi/pyversions/dragiter)](https://pypi.org/project/dragiter/)
 
-## dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows.
+## dragiter – Deterministic Context Iterator. A focused CLI for structured, reproducible LLM workflows.
 
-dragiter is a modular command-line interface (CLI) designed to integrate Large Language Models (LLMs) directly into your
-automated terminal workflows. It acts as a bridge between your local file system and AI APIs, eliminating "copy-paste
-fatigue" by allowing you to chain AI agents exactly like standard Unix pipes.
+dragiter is a command-line tool designed to integrate Large Language Models (LLMs) directly into 
+your automated terminal workflows. It acts as a bridge between your local file system and AI APIs, 
+eliminating “copy-paste fatigue” by allowing you to chain AI processing steps exactly like 
+standard Unix pipes.
 
 ## Why dragiter?
 

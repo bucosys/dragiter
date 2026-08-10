@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026.8.10] - 2026-08-10
+
+### Added
+- MkDocs-based project documentation under `web/` (including index.md with logo and links)
+- GitLab CI pipeline: unit tests on Python 3.13 + automatic documentation deployment via GitLab Pages
+- Legal Notice (Impressum) and Privacy Policy (English, DDG/MStV compliant)
+- Set `site_url` to https://www.dragiter.app/
+
+### Changed
+- Version 2026.7.26 → 2026.8.10
+- Rebranding: “Deterministic RAG Iterator” / “modular CLI” → “Deterministic Context Iterator” / “focused CLI”
+- Homepage URL updated to https://www.dragiter.app/
+- Classifier updated to `Topic :: Scientific/Engineering :: Artificial Intelligence`
+- Packaging: include CHANGELOG.md in sdist; exclude `web/` and `site/`
+- Unified contact email to `michael.buchold@dragiter.app`
+- mkdocs.yml: legal pages in flat navigation (`navigation.sections`)
+
 ## [2026.7.26] - 2026-07-26
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26)
 

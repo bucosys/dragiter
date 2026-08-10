@@ -67,6 +67,6 @@ class InfoPresenter:
                   |___/        
 """
         print(banner)
-        print(f"[dragiter v{__version__} – Deterministic RAG Iterator.]")
+        print(f"[dragiter v{__version__} – Deterministic Context Iterator.]")
         print("-" * 70)
         print("")

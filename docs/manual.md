@@ -1,7 +1,7 @@
-dragiter (Deterministic RAG Iterator) Manual
+dragiter (Deterministic Context Iterator) Manual
 =================================================
 
-dragiter is a modular command-line tool (CLI) designed to integrate working with
+dragiter is a focused command-line tool (CLI) designed to integrate working with
 large language models (LLMs) into automated workflows. It allows for the
 chaining of AI agents similar to pipes in a terminal.
 

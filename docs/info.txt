@@ -1,7 +1,7 @@
 dragiter(1)                      July 2026                          dragiter(1)
 
 NAME
-       dragiter - deterministic RAG iterator – command line tool for structured
+       dragiter - deterministic Context iterator – command line tool for structured
        LLM-based processing of materials with prompts and looping
 
 SYNOPSIS
