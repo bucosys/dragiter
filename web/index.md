@@ -1,14 +1,15 @@
-# dragiter: Deterministic RAG Iterator
+# dragiter: Deterministic Context Iterator
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![PyPI](https://img.shields.io/pypi/v/dragiter)](https://pypi.org/project/dragiter/)
 [![Python](https://img.shields.io/pypi/pyversions/dragiter)](https://pypi.org/project/dragiter/)
 
-**A modular CLI for structured, reproducible LLM workflows.**
+**A focused CLI for structured, reproducible LLM workflows.**
 
-dragiter is a modular command-line interface (CLI) designed to integrate Large Language Models (LLMs) directly into your automated terminal workflows. It acts as a bridge between your local file system and AI APIs, eliminating "copy-paste fatigue" by allowing you to chain AI agents exactly like standard Unix pipes.
+dragiter is a focused command-line interface (CLI) designed to integrate Large Language Models (LLMs) directly into your automated terminal workflows. It acts as a bridge between your local file system and AI APIs, eliminating "copy-paste fatigue" by allowing you to chain AI processing steps exactly like standard Unix pipes.
 
 **Source & Project**
+- [Homepage](https://www.dragiter.app/)
 - [GitLab Repository](https://gitlab.com/bucosys/dragiter) (Code)
 - [Releases](https://gitlab.com/bucosys/dragiter/-/releases)
 - [Issues](https://gitlab.com/bucosys/dragiter/-/issues)
@@ -42,7 +43,7 @@ First, extract them into your current directory by running:
 dragiter-gen-examples .
 ```
 
-You will find the examples in the `../examples` subdirectory. To follow along with the first example, navigate into it:
+You will find the examples in the `/examples` subdirectory. To follow along with the first example, navigate into it:
 
 ```
 cd examples/01_md_sample

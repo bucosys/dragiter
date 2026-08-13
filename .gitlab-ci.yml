@@ -23,6 +23,16 @@ pages:
     - pip install --no-cache-dir mkdocs mkdocs-material
   script:
     - cp -f docs/manual.md web/manual.md
+    - cp -f docs/reference.md web/reference.md
+    - cp -f README.md web/index.md
+    - |
+      cat << 'EOF' >> web/index.md
+      
+      ## Legal
+      
+      - [Legal Notice / Imprint](legal_notice.md)
+      - [Privacy Policy](privacy_policy.md)
+      EOF
     - mkdocs build --site-dir public
   artifacts:
     paths:

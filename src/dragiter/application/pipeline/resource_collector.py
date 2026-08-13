@@ -1,5 +1,5 @@
 # =============================================================================
-# dragiter - Deterministic RAG Iterator
+# dragiter - Deterministic Context Iterator
 # Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
 #
 # This file is part of dragiter.
@@ -95,11 +95,11 @@ class ResourceCollector(Worker):
                 # so containment against root_path does not apply here.
                 base = Path(p.anchor)  # '/' or 'C:\' etc
                 rel_pattern = str(p.relative_to(base))
-                matches = list(base.glob(rel_pattern, recurse_symlinks=False))
+                matches = list(base.glob(rel_pattern))
                 logger.debug(f"(Abs.) Matches: {len(matches)}")
                 contained_matches = [m.resolve() for m in matches if m.exists()]
             else:
-                matches = list(Path(root_path).glob(pattern, recurse_symlinks=False))
+                matches = list(Path(root_path).glob(pattern))
                 logger.debug(f"(Rel.) Matches: {len(matches)}")
 
                 contained_matches = []

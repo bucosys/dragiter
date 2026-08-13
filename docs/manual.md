@@ -1,760 +1,346 @@
-dragiter (Deterministic Context Iterator) Manual
-=================================================
+# dragiter Manual
 
-dragiter is a focused command-line tool (CLI) designed to integrate working with
-large language models (LLMs) into automated workflows. It allows for the
-chaining of AI agents similar to pipes in a terminal.
+**dragiter** (Deterministic Context Iterator) is a focused command-line tool that integrates large language models into automated workflows. It treats LLM processing as a Unix-style pipeline: material is read, chunked, combined with prompt templates and optional iteration data, then sent to an OpenAI-compatible endpoint. Results are written according to explicit routing rules.
 
-Chapter 1: Getting Started
-==========================
+This manual follows the Diátaxis framework. It contains:
 
-Getting Started with Examples
------------------------------
-The easiest way to explore dragiter is by using the included examples.
+- a **Tutorial** for first-time users,
+- **How-to guides** for concrete tasks,
+- **Explanations** of the underlying concepts.
 
-First, extract them into your current directory by running:
+Complete technical details — every configuration key, validation rule, exact TOML schemas, placeholder lists, defaults and activity-log record formats — are documented in the separate **Technical Reference**. This manual deliberately avoids duplicating that information.
 
-    dragiter-gen-examples .
+British English is used throughout.
 
-You will find the examples in the `examples/` subdirectory.  
-To follow along with the first example, navigate into it:
+---
 
-    cd examples/01_md_sample
+## Tutorial: Your first workflow
 
+The quickest way to understand dragiter is to run the included examples.
 
+### 1. Extract the examples
 
-Test Safely with Simulation Mode
---------------------------------
-It is highly recommended to always run a simulation first. This allows you to
-safely verify your workflow and file routing without making actual API calls
-or spending your API credits. You can do this by adding the `-s` flag to your
-command.
+```bash
+dragiter-gen-examples .
+cd examples/01_md_sample
+```
 
-Run the simulation by typing:
+You now have a self-contained demonstration directory containing prompt templates, resource definitions, a loop file and several ready-to-use configuration files.
 
-    dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+### 2. Always start with simulation mode
 
-What Happens Without Further Configuration?
--------------------------------------------
-If you try to run the example without the `-s` flag, you will see an error
-similar to this:
+Before spending API credits or waiting for a local model, verify that file routing and prompt assembly work correctly:
 
-    ERROR | dragiter.cli | A critical error occurred: Failed to execute
-    application manager run cycle: [ConfigurationValidatorFinding(rule='base_url',
-    finding='value not set', description='Path to LLM is mandatory.')]
+```bash
+dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+```
 
-This is expected. For real LLM requests, dragiter needs connection settings
-for an LLM service.
+The `-s` flag prevents any network or model calls. You see exactly which files would be read, how they would be chunked, and which prompts would be constructed.
 
-### Using Ollama
+### 3. Run against a local Ollama instance
 
-The file `config-ollama.toml` is ready to use out of the box, provided that
-Ollama is installed and running locally with its default settings.
+If Ollama is installed and running with its default settings, use the provided configuration:
 
-When using Ollama it is recommended to run the command with the `-v` (verbose)
-flag:
+```bash
+dragiter -v -c config-ollama.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+```
 
-    dragiter -v -c config-ollama.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+The `-v` (verbose) flag is recommended for local models. They can take considerably longer to respond than cloud services; without it the terminal appears frozen.
 
-**Why use `-v` with Ollama?**  
-Local models can take significantly longer to respond than cloud services.
-Without the verbose flag you will see no output for quite some time, which can
-be confusing. The `-v` flag lets you follow the progress of the request.
+### 4. Optional: make the configuration permanent
 
-### Optional: Making Configuration Permanent
+Copy a working configuration to the default location:
 
-You can optionally copy a working configuration file to the default location
-`~/.config/dragiter/config.toml`. After doing so, dragiter will automatically
-load the settings without requiring the `-c` flag.
+```bash
+mkdir -p ~/.config/dragiter
+cp config-ollama.toml ~/.config/dragiter/config.toml
+```
 
-Example:
+Subsequent runs no longer need the `-c` flag:
 
-    mkdir -p ~/.config/dragiter
-    cp config-ollama.toml ~/.config/dragiter/config.toml
+```bash
+dragiter -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+```
 
-You can then run the example without `-c`:
+Alternatively keep the configuration file inside the project and create a symbolic link:
 
-    dragiter -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+```bash
+ln -s $(pwd)/config-ollama.toml ~/.config/dragiter/config.toml
+```
 
-Alternatively, you can keep your configuration file in your project folder and
-create a symlink:
+If you frequently switch between providers it is usually clearer to keep using the `-c` flag.
 
-    ln -s $(pwd)/config-ollama.toml ~/.config/dragiter/config.toml
+### 5. Use a cloud provider
 
-**Note:** Creating a permanent configuration is convenient if you mostly work
-with the same service. If you frequently switch between different providers
-(Ollama, Grok, Gemini, etc.), it can be more practical to continue using the
-`-c` flag instead.
+Edit one of the cloud configuration files (for example `config-google.toml` or `config-grok.toml`) and insert your API key. Then run:
 
-### Using Cloud Providers (Google, Grok, etc.)
+```bash
+dragiter -v -c config-google.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+```
 
-The example directory also contains configuration files for cloud providers,
-such as `config-google.toml`.
+### 6. Configuration via environment variables
 
-These files contain placeholder values. Before you can use them, you must edit
-the file and insert your own API key.
+For CI pipelines or situations where credentials must not appear in files:
 
-Once the API key is set, you can run the example with:
+```bash
+export DRAGITER_BASE_URL="http://localhost:11434/v1"
+export DRAGITER_MODEL_NAME="qwen3:8b"
+export DRAGITER_API_KEY="ollama"
+dragiter -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+```
 
-    dragiter -v -c config-google.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+Configuration sources are evaluated in a strict order of precedence (see the Explanation section and the Technical Reference). Command-line arguments always win; environment variables only fill values that have not already been set by a higher-priority source.
 
-### Alternative: Using Environment Variables
+You have now completed the essential first workflow. The remaining sections show how to solve real tasks and explain the design decisions behind the tool.
 
-You can also configure dragiter using environment variables. This is useful
-when you want to avoid storing credentials in files or when working in
-automated environments:
+---
 
-    export DRAGITER_BASE_URL="http://localhost:11434/v1"
-    export DRAGITER_MODEL_NAME="qwen3:8b"
-    export DRAGITER_API_KEY="ollama"
+## How-to guides
 
-Once set, you can run the example without the `-c` flag:
+### How to connect to different LLM services
 
-    dragiter -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
+dragiter speaks the OpenAI-compatible chat-completions protocol. Changing the underlying model therefore requires only three settings: `base_url`, `model_name` and (when required) `api_key`.
 
-### Mixed Configuration
+**Local Ollama**
 
-dragiter evaluates configuration sources in the following order (highest priority first):
+```bash
+dragiter ... --base-url "http://localhost:11434/v1" \
+             --model-name "llama3" \
+             --api-key "dummy-key"
+```
 
-1. Command-line arguments
-2. TOML configuration file
-3. Environment variables
-4. Hard-coded defaults
+**xAI Grok**
 
-This means:
-- Values passed via the command line (e.g. `-c`, `--api-key`, `--model-name`) always take precedence.
-- Settings from a TOML file are used if they were not already provided on the command line.
-- Environment variables (`DRAGITER_*`) are only applied to settings that have not been set by either the command line or a configuration file.
+```bash
+dragiter ... --base-url "https://api.x.ai/v1" \
+             --model-name "grok-beta" \
+             --api-key "YOUR_XAI_KEY"
+```
 
-**Practical consequence:**  
-You cannot override a value defined in a TOML file using an environment variable. Environment variables are mainly useful when you are **not** using a configuration file, or when you want to provide sensitive values (such as an API key) without storing them in a file.
+**Google or other compatible providers**
 
-If you frequently work with different services, it is often more practical to use the `-c` flag to switch between configuration files rather than relying on environment variables.
+Point `--base-url` at the provider’s OpenAI-compatible endpoint (or a proxy such as LiteLLM) and supply the appropriate model name and key.
 
-Chapter 2: Configuration Parameters and Flags
-=============================================
+All three values may also be placed in a TOML configuration file or supplied as environment variables. Full details of every configuration key appear in the Technical Reference.
 
-dragiter configuration values can be provided in three main ways. The application
-reads them in the following order of precedence:
+### How to define material (resources)
 
-1. Command-line arguments (e.g., --api-key)
-2. TOML configuration file (e.g., api_key = "...")
-3. Environment variables (e.g., DRAGITER_API_KEY)
+A resource file tells dragiter which documents to load and how to split them into manageable chunks.
 
-General and System Flags
-------------------------
+Create a TOML file containing one or more named sections. Each section lists glob patterns and an optional regular expression used for chunking:
 
-### Base Directory
-
--b, --base-directory Environment: DRAGITER_BASE_DIRECTORY
-Meaning: This option defines the base directory for all
-relative file paths used in the workflow
-(prompt files, resource files, loop files, output directory, etc.).
-If not specified, dragiter uses the current working directory.
-This flag is especially useful when running dragiter from scripts,
-CI/CD pipelines, or when your configuration and data files are located
-in a project-specific subdirectory. All relative paths in resources
-TOML files (`glob_patterns`) and other file references will be resolved
-relative to this base directory.
-
-This is particularly helpful for reproducible workflows, version-controlled projects, and when DRAGITER is called from
-different locations (e.g. from a parent directory or via scripts). Once set, dragiter automatically rebases all relative
-paths to this directory.
-
--d, --debug Environment: DRAGITER_DEBUG
-Meaning: Enables debug logging to display detailed
-internal application processes.
-
--s, --simulate Environment: DRAGITER_SIMULATE
-Meaning: Runs the application in simulation mode. No real
-API calls are made, allowing you to safely test
-your file routing and prompts.
-
--v, --verbose Environment: DRAGITER_VERBOSE
-Meaning: Enables verbose mode for detailed progress
-tracking during execution.
-
--c, --config-file Environment: DRAGITER_CONFIG_FILE
-Meaning: Path to a specific TOML configuration file,
-overriding the default path.
-
--h, --help Meaning: Displays the help message and exits the program.
-
-
-API and Connection Settings
----------------------------
---api-key Environment: DRAGITER_API_KEY
-Meaning: The API key used to authenticate with your
-chosen LLM service.
-
---base-url Environment: DRAGITER_BASE_URL
-Meaning: The base URL of the AI service endpoint. This is
-especially useful if you are routing requests to
-a custom, proxy, or local LLM instance.
-
---model-name Environment: DRAGITER_MODEL_NAME
-Meaning: The specific model identifier you want to query
-(e.g., gpt-4o, claude-3-5).
-
---ca-bundle-file Environment: DRAGITER_CA_BUNDLE_FILE
-Meaning: Path to custom CA certificate bundle (PEM) for TLS verification
-
---client-cert-file Environment: DRAGITER_CLIENT_CERT_FILE
-Meaning: Path to client certificate (PEM) for mutual TLS (mTLS)
-
---client-key-file Environment: DRAGITER_CLIENT_KEY_FILE
-Meaning: Path to client private key (optional if key is embedded in cert file)
-
-Task and Input Control
-----------------------
-
-You must provide either a direct task or a prompt template. Note that advanced
-input options like material and loop files require the template mode (-p).
-
-[ Choice A: Direct Task Mode ]
-
--t, --task Environment: DRAGITER_TASK
-Meaning: An explicit task description string. If <STDIN>
-is provided, it is automatically prepended to
-this task string.
-
-[Choice B: Template Mode]
-
--p, --prompt-file Environment: DRAGITER_PROMPT_FILE
-Meaning: Path to a prompt template file (TOML). This file
-defines the system instructions and structure.
-If <STDIN> is provided, use the [STDIN]
-placeholder within the template.
-
--r, --resource-file Environment: DRAGITER_RESOURCE_FILE
-Meaning: Path to the resource definition file (TOML). This
-file defines which reference documents, code, or
-data chunks are loaded as context for the AI.
-Note: Requires -p.
-
--l, --loop-file Environment: DRAGITER_LOOP_FILE
-Meaning: Path to a file (like a text or JSONL file)
-containing iteration items. dragiter will loop
-through this file line-by-line, executing the
-prompt for each item.
-Note: Requires -p.
-
-
-Output Routing and Control
---------------------------
--m, --output-mode Environment: DRAGITER_OUTPUT_MODE
-Meaning: Determines the file writing behavior. Valid
-single-character options are:
-w = Overwrite existing files
-a = Append to existing files
-x = Exclusive creation (fails if the file
-already exists)
-
--o, --output-file Environment: DRAGITER_OUTPUT_FILE
-Meaning: Directs the final AI result to be written into
-a specific single file.
-
--O, --output-directory
-Environment: DRAGITER_OUTPUT_DIRECTORY
-Meaning: Directs the output results to a specific
-directory. This is highly recommended when using
-batch processing loops.
-
--a, --activity-file Environment: DRAGITER_ACTIVITY_FILE
-Meaning: Path to write a detailed activity trace and log
-of the executed workflow for auditing purposes.
-
-Advanced LLM Settings
----------------------
-
---max-context-tokens Environment: DRAGITER_MAX_CONTEXT_TOKENS
-Meaning: Sets the maximum number of input and output tokens allowed
-to be transmitted to and from the AI service. This helps
-limit the usage of the context window and
-prevents unexpected API costs.
-
---max-output-tokens Environment: DRAGITER_MAX_OUTPUT_TOKENS
-Meaning: Specifies the maximum number of output tokens
-that the model is permitted to generate for a
-single response.
-
---chars-per-token Environment: DRAGITER_CHARS_PER_TOKEN
-Meaning: A floating-point value indicating the average
-number of characters that correspond to one token.
-Used internally by dragiter for estimating text
-lengths and token consumption.
-
---temperature Environment: DRAGITER_TEMPERATURE
-Meaning: Controls the creativity or unpredictability of
-the LLM's responses. A lower value (e.g. 0.0)
-ensures deterministic, precise answers, whereas
-higher values increase variance.
-
-
-Fault Tolerance and Rate Limits
--------------------------------
-
---retry-delay Environment: DRAGITER_RETRY_DELAY
-Meaning: Determines the pause duration in seconds that
-dragiter waits before retrying a failed API
-call (e.g. when encountering rate limits).
-
---max-retry Environment: DRAGITER_MAX_RETRY
-Meaning: Configures the maximum number of times (<num>)
-dragiter will retry a failed API call before
-aborting the entire execution process.
-
-**A Note on Best Practices**
-Because these advanced parameters dictate the fundamental behaviour, connection limits,
-and pacing of your AI workflow, they rarely change between individual runs.
-It is highly recommended to define these values permanently within your `config.toml`
-file rather than passing them via the command line every time.
-
-
-Chapter 3: Using Material and Prompt Templates
-==============================================
-
-To harness the full power of dragiter, you need to understand how to feed it
-context and how to instruct the AI. This is done using Material files and
-Prompt Templates, both of which are written in standard TOML format.
-
-1. Defining the resources (Your Knowledge Base)
-
-----------------------------------------------
-The resource file tells dragiter which files to read and how to divide their
-content into digestible chunks for the AI.
-
-Selecting Files:
-Inside the resource TOML file, you define configuration sections. Each section
-can have a "glob_patterns" list. You can point directly to concrete files or
-use wildcards to include entire folders, such as ["docs/manual.md"],
-["data/**/*.csv"] or ["*.md"].
-
-The optional "base_directory" key allows you to set a section-specific root
-path. It overrides the global --base-directory (-b) flag for that section only.
-
-Regex Chunking:
-To prevent sending massive, unformatted walls of text to the AI, you can
-provide a "regex_pattern". This splits the documents into logical sections.
-For example, a regex pattern like '(^#+\s+.*$)' will chunk Markdown files by
-their headers. You can also use "exclude_filters" and "include_filters" to
-strictly control which chunks are kept.
-
-2. Creating the Prompt Template (Your Instructions)
-
----------------------------------------------------
-The prompt file dictates how the AI should behave and how the material is
-presented. It is divided into specific blocks:
-
-The System Block:
-Defined as [system], this block contains the "instruction" variable. Here you
-define the AI's persona or core rules.
-
-The Task Block:
-Defined as [task], this block contains the main prompt structure. It is usually
-broken down into:
-
-- "first": An introductory text.
-- "material": A formatting template for how each chunk of context is presented.
-- "synthesis": The final question or command for the AI.
-
-The Output Block:
-Defined as [output], this block can contain "output_filename_schema" and
-"output_delimiter" to control how resulting files are named and separated.
-
-3. Connecting Content with Dynamic Placeholders
-
------------------------------------------------
-dragiter uses reserved keywords and bracketed placeholders to inject your data
-dynamically during execution.
-
-Global Keywords:
-Use [MATERIAL] to specify exactly where your reference files should be
-injected. Use [STDIN] to define the target location for standard input data.
-
-Chunk Variables:
-Inside the "material" section of your task block, you can format each piece of
-reference text using variables like:
-
-- {CHUNK_NUM_ID:04d} for a sequential ID number.
-- {CHUNK_FILE_NAME} for the source file name.
-- {CHUNK_SECTION_NAME} for the section name.
-- {CHUNK_SECTION_NUM_ID} for the section number.
-- {CHUNK_CONTENT} for the actual text extracted from the file.
-
-Loop Variables:
-If you are running a batch process using a loop file, place the {LOOP_CONTENT}
-variable inside your "synthesis" block. dragiter will replace this placeholder with
-the current line (or JSON fields) from your loop file for each iteration.
-
-Chapter 4: Context Window and Token Management
-==============================================
-
-Large language models have a limited "attention span" — known as the **context window**. This is the maximum amount of 
-text (measured in tokens) the model can process in a single request.
-
-If your prompt and reference material exceed this limit, the request will fail or be cut off. dragiter helps you avoid
-such problems with built-in token estimation.
-
-#### Why This Matters
-
-- **Cost control**: You only pay for what you actually send.
-- **Reliability**: Prevents unexpected failures during important tasks.
-- **Transparency**: You know in advance whether your material fits.
-
-dragiter activates automatic context validation as soon as you define three key parameters.
-
-#### The Three Essential Settings
-
-| Setting              | Recommended Value                  | What it does                                                                    |
-|----------------------|------------------------------------|---------------------------------------------------------------------------------|
-| `chars_per_token`    | 4.0 (or 3.8 for more precision)    | Average number of characters per token. Used to estimate token count from text. |
-| `max_context_tokens` | 128000 (for most modern models)    | Total context window size of the model (input + output combined)                |
-| `max_output_tokens`  | 4096 or 8192                       | Maximum number of tokens the model is allowed to generate as output.            |
-
-**Important:** `max_context_tokens` represents the **total context window** of the model (input + output combined). 
-`max_output_tokens` is the portion reserved for the model's answer. Always leave enough room for a meaningful response.
-Example: If you set `max_context_tokens = 128000` and `max_output_tokens = 8192`, the model has room for up to 
-approximately 119808 tokens of input material.
-
-#### How to Activate Token Estimation
-
-You can set these values in three ways (in order of priority):
-
-**1. In your configuration file** (recommended for regular use)
 ```toml
-chars_per_token = 4.0
-max_context_tokens = 128000
-max_output_tokens = 8192
-```
-**2. Via environment variables**
-```
-export DRAGITER_CHARS_PER_TOKEN=4.0
-export DRAGITER_MAX_CONTEXT_TOKENS=128000
-export DRAGITER_MAX_OUTPUT_TOKENS=8192
-```
-**3. Directly on the command line**
-```
-dragiter --chars-per-token 4.0 \
-         --max-context-tokens 128000 \
-         --max-output-tokens 8192 \
-         -p your_prompt.toml ...
+[config01]
+glob_patterns = ["docs/**/*.md"]
+regex_pattern = '(^#+\s+.*$)'
 ```
 
-#### Practical Recommendations
+The regex splits Markdown files at heading boundaries. Additional filters (`include_filters`, `exclude_filters`) and a section-local `base_directory` are available; see the Technical Reference for the complete schema.
 
-- For **Ollama** (local models): Start with `max_context_tokens = 32000` or `128000` depending on your model.
-- For **Gemini / GPT-4 class models**: Use `128000` or higher.
-- `chars_per_token = 4.0` is a safe default for most European languages.
+When you later run dragiter with `-r your_resource.toml`, the matched files are read, split according to the regex, and become the material that can be injected into prompts via the `[MATERIAL]` placeholder and the `{CHUNK_*}` variables.
 
-#### Summary
+### How to write a prompt template
 
-By configuring these three values you give dragiter the ability to act as an intelligent gatekeeper. It protects you from failed requests, helps control costs, and gives you confidence when working with large documents or complex analysis tasks.
+Prompt templates are also written in TOML and follow a fixed conceptual structure:
 
+- `[system]` – the persona / system instruction
+- `[task]` – the body of the prompt, normally subdivided into
+  - `first` (introductory text),
+  - `material` (how each chunk is formatted),
+  - `synthesis` (the actual question or instruction given to the model)
+- `[behaviour]` – temperature and sequential-processing flags
+- `[outcome]` – output-filename schema and delimiter
 
-Chapter 5: Practical Examples and Concrete Jobs
-===============================================
+Inside the `material` and `synthesis` strings you may use the reserved placeholders `{CHUNK_CONTENT}`, `{CHUNK_FILE_NAME}`, `{LOOP_CONTENT}` and others. A complete list of recognised placeholders is given in the Technical Reference.
 
-Now that you understand how to configure materials, prompts, and loops, let us
-look at two real-world scenarios where dragiter can automate complex workflows.
+A minimal working skeleton looks like this:
 
+```toml
+[system]
+instruction = """
+You are a precise technical analyst.
+Answer in British English and use Markdown tables.
+"""
 
-Scenario 1: Automated Code Security Audits
-------------------------------------------
-Imagine a development team needs to review a legacy C codebase for potential
-memory leaks and security vulnerabilities. Manually reading thousands of lines
-of code is error-prone and time-consuming.
+[task]
+first = """
+### REFERENCE MATERIAL
+"""
 
-The Setup:
+material = """
+FILE: {CHUNK_FILE_NAME}
+CONTENT:
+{CHUNK_CONTENT}
+"""
 
-* Resource: The resource TOML file is configured to scan the "src" folder for
-  all "*.c" and "*.h" files. A regex pattern is applied to chunk the code
-  block by block, specifically splitting the text at every function definition.
-  This ensures the AI evaluates the code one function at a time.
-* Prompt: The prompt TOML file defines the [system] instruction as a
-  "Senior Security Auditor." The [task] block is set up to inject the
-  {CHUNK_CONTENT} and asks the AI to identify any buffer overflows or memory
-  mismanagement, formatting the output as a Markdown table.
-* Loop: No loop file is needed here; the AI processes the provided material
-  chunk by chunk based on the prompt's internal logic.
+synthesis = """
+Using the material above, answer the following question:
 
-The Command:
+{LOOP_CONTENT}
+"""
+
+[behaviour]
+temperature = 0.0
+
+[outcome]
+output_filename_schema = "result.txt"
+```
+
+### How to iterate over many items (loop files)
+
+Two formats are supported.
+
+**Plain text** – one task per line. Each non-empty line becomes the value of `{LOOP_CONTENT}`.
+
+**JSON Lines** – one JSON object per line. Every key of the object is available as a placeholder (for example `{language}`, `{region}`, `{tone}`).
+
+Example JSONL:
+
+```json
+{"language": "German", "region": "DACH", "tone": "formal"}
+{"language": "Spanish", "region": "Latin America", "tone": "enthusiastic"}
+```
+
+Place the corresponding placeholders inside the `synthesis` block of your prompt template. dragiter executes the entire prompt once for each line.
+
+### How to control where results are written
+
+- `-o FILE` writes everything to a single file.
+- `-O DIRECTORY` writes one file per result into the given directory (recommended for batch work).
+- `-m x|w|a` selects exclusive-create, overwrite or append behaviour.
+- An `output_filename_schema` (defined in the prompt’s `[outcome]` section or via configuration) may contain chunk- and loop-related placeholders so that each result receives a meaningful name.
+
+When multiple results land in the same file, the value of `output_delimiter` is inserted between them.
+
+### How to keep requests inside the model’s context window
+
+Three related settings govern token estimation:
+
+- `chars_per_token` – average characters per token (commonly 4.0 for European languages),
+- `max_context_tokens` – the model’s total context window (input + output),
+- `max_output_tokens` – the portion reserved for the model’s reply.
+
+Once these values are set, dragiter estimates the size of every assembled prompt and refuses to send requests that would exceed the limit. This protects both reliability and cost.
+
+Recommended starting points appear in the Technical Reference and in the example configuration files. For local models with smaller windows begin with a conservative `max_context_tokens`; for modern cloud models 128 000 is a typical safe value.
+
+### How to build larger automation pipelines
+
+Because dragiter follows the Unix philosophy it composes cleanly with ordinary shell tools.
+
+**Fetch live web data and summarise it**
+
+```bash
+#!/bin/bash
+curl -s https://example-competitor.com/pricing > /tmp/current_pricing.html
+dragiter -p summarize_pricing.toml -r web_resources.toml -o pricing_report.txt
+```
+
+**Export database rows and analyse sentiment**
+
+```bash
+#!/bin/bash
+psql -U admin -d support_db -c \
+  "COPY (SELECT review_text FROM tickets WHERE date = CURRENT_DATE - 1) TO STDOUT WITH CSV;" \
+  > /tmp/daily_reviews.csv
+dragiter -p sentiment_prompt.toml -r review_resources.toml -o daily_sentiment.md
+```
+
+The same pattern works with any tool that can produce a file: version-control checkouts, log aggregators, document converters, etc.
+
+### How to run a security audit over a legacy codebase
+
+Configure a resource file that selects `*.c` / `*.h` files and splits them at function boundaries. Write a prompt that casts the model as a senior security auditor and asks for buffer-overflow and memory-management findings formatted as a Markdown table. Then:
+
+```bash
 dragiter -p audit_prompt.toml -r legacy_code_resource.toml -O ./audit_results
+```
 
-Result:
-dragiter processes the source code functions and deposits the individual analysis
-reports into the "audit_results" directory, giving the team a structured
-security overview of their legacy code.
+Each function-level analysis lands in its own file inside `audit_results`.
 
+### How to extract metrics from a collection of quarterly reports
 
-Scenario 2: Batch Processing Quarterly Reports
-----------------------------------------------
-A financial analyst has a folder filled with dense text reports spanning
-several years. They need to extract specific performance metrics without
-reading every page.
+Prepare a loop file containing the metric names of interest (“Operating Costs”, “Net Profit”, \ldots). Point the resource file at the report directory and chunk by major section headers. Use `{LOOP_CONTENT}` inside the synthesis block. Finally:
 
-The Setup:
-
-* Resource: The resource TOML file points to a "reports" directory, loading all
-  "*.txt" files. A regex pattern chunks the documents by major section headers
-  (e.g., "Introduction", "Financials", "Outlook").
-* Loop: The analyst creates a simple text file named "metrics_loop.txt"
-  containing three lines: "Operating Costs", "Net Profit", and
-  "Year-over-Year Growth".
-* Prompt: The prompt template uses the {LOOP_CONTENT} variable in the
-  synthesis block. It instructs the AI: "Scan the provided reference material
-  and extract the exact figures and a brief summary specifically for
-  {LOOP_CONTENT}."
-
-The Command:
+```bash
 dragiter -p extract_prompt.toml -r quarterly_reports.toml -l metrics_loop.txt \
--o final_summary.txt -m a
+         -o final_summary.txt -m a
+```
 
-Result:
-dragiter iterates through the loop file. First, it asks the AI to find
-"Operating Costs" across all reports. Next, it asks for "Net Profit", and
-finally "Year-over-Year Growth". Because the analyst used the "-M a" (append)
-flag, dragiter writes all three consolidated answers into a single, highly
-readable "final_summary.txt" document.
+All answers are appended to a single readable summary file.
 
+### How to generate localised marketing copy from a master manual
 
-Chapter 6: Advanced Batch Processing with JSONL
-===============================================
+Create a JSONL loop file whose objects contain `language`, `region` and `tone`. Write a prompt that inserts those three placeholders into the synthesis instruction. Run:
 
-While simple text files are great for looping through single variables (using
-the {LOOP_CONTENT} placeholder), dragiter also natively supports JSON Lines (JSONL)
-files for more complex batch processing.
-
-By using a JSONL file, you can pass multiple structured data points into your
-prompt during each iteration. dragiter automatically parses the JSON objects and
-makes every key available as a dynamic placeholder in your prompt template.
-
-
-Scenario 3: Localized Content Generation
-----------------------------------------
-Imagine a marketing manager needs to take a master product manual and generate
-localized, region-specific sales summaries in different languages and tones.
-
-The Setup:
-
-- Resource: The resource TOML file points to "master_manual.md", extracting the
-  core features and specifications of the new product.
-
-- Loop File: The manager creates a file named "target_markets.jsonl". Each line
-  is a valid JSON object containing specific parameters for that iteration:
-  {"language": "German", "region": "DACH", "tone": "formal"}
-  {"language": "Spanish", "region": "Latin America", "tone": "enthusiastic"}
-  {"language": "English", "region": "Gen Z", "tone": "casual and trendy"}
-
-- Prompt: The prompt template uses these exact JSON keys as placeholders in the
-  synthesis block. It instructs the AI:
-  "Using the provided product material, write a {tone} marketing summary
-  targeted at the {region} demographic. The final output MUST be written
-  entirely in {language}."
-
-The Command:
+```bash
 dragiter -p localized_prompt.toml -r master_manual.toml -l target_markets.jsonl \
--O ./campaigns
+         -O ./campaigns
+```
 
-Result:
-dragiter loops through the JSONL file. In the first iteration, it replaces the
-placeholders to request a formal German summary for the DACH region. In the
-next, it requests an enthusiastic Spanish version. Because the "-O" flag was
-used, dragiter deposits three distinct, perfectly tailored marketing documents
-into the "campaigns" directory.
+One tailored document appears for each market.
 
+---
 
-Chapter 7: Tool Chaining and External Data Fetching
-===================================================
+## Explanation
 
-Because dragiter is built around the Unix philosophy of doing one thing well, it is
-designed to be a seamless part of larger automation pipelines. You are not
-limited to the files already sitting on your hard drive; you can use external
-tools to fetch live data, save it locally, and immediately pass it to dragiter for
-AI-driven analysis.
+### Design philosophy
 
-By combining dragiter with standard command-line utilities like "wget", "curl", or
-database CLI clients, you can build powerful, autonomous workflows.
+dragiter is intentionally narrow. It does not try to be a full agent framework, a prompt IDE or a model-serving platform. Its single responsibility is to turn a deterministic combination of material, template and iteration data into one or more well-formed LLM requests and to route the answers according to explicit rules.
 
+This design yields three practical benefits:
 
-Scenario 4: Competitor Website Analysis via wget
-------------------------------------------------
-Imagine you want to track changes to a competitor's pricing page and have an AI
-summarize the differences or current tiers every Monday morning.
+1. **Reproducibility** – the same inputs always produce the same request payloads (temperature 0.0 is the recommended default).
+2. **Composability** – the tool slots into ordinary shell pipelines and CI jobs.
+3. **Provider independence** – any OpenAI-compatible endpoint can be used simply by changing three configuration values.
 
-The Setup:
-First, you use "wget" or "curl" in a simple shell script to download the target
-webpage and save it as a text or HTML file.
-Next, your dragiter resources TOML file is configured to read this newly downloaded
-file. You might use a regex pattern in the material config to strip away
-massive HTML headers or isolate the specific <body> tags.
+### Configuration precedence
 
-The Workflow Script:
-#!/bin/bash
+Settings are resolved once, in a fixed order:
 
-    # 1. Fetch the live data
-    curl -s https://example-competitor.com/pricing > /tmp/current_pricing.html
+1. Command-line arguments  
+2. TOML configuration file (explicit `-c`, `DRAGITER_CONFIG_FILE`, or `~/.config/dragiter/config.toml`)  
+3. Environment variables (`DRAGITER_*`)  
+4. Built-in defaults  
 
-    # 2. Run dragiter to analyze the downloaded file
-    dragiter -p summarize_pricing.toml -r web_resources.toml -o pricing_report.txt
+A value set by a higher-priority source can never be overwritten by a lower-priority source. Consequently an environment variable cannot override a key that is already present in a configuration file. Environment variables are therefore most useful when no configuration file is loaded at all, or when you wish to inject secrets without writing them to disk.
 
-Result:
-The script automatically pulls the freshest data from the internet, feeds it
-into your local dragiter environment, and generates a clean, human-readable summary
-of the competitor's pricing strategy.
+Full lists of recognised keys and their types appear in the Technical Reference.
 
+### Material, chunks and the context window
 
-Scenario 5: Database Export and Sentiment Analysis
---------------------------------------------------
-Customer support teams often have thousands of feedback tickets trapped in a
-relational database. dragiter can be chained to database export tools to analyze
-this data on the fly.
+Large documents are rarely useful when sent as a single undifferentiated block. dragiter therefore encourages (and helps you enforce) a deliberate chunking strategy. The resource file’s regular expression determines the logical units; the prompt template decides how those units are presented to the model.
 
-The Setup:
-You have a PostgreSQL or MySQL database containing user reviews. You use the
-database's CLI tool to export yesterday's reviews into a CSV or JSONL file.
+Token estimation is deliberately simple and conservative: character count divided by `chars_per_token`. The resulting estimate is compared against the remaining context budget (`max_context_tokens` − `max_output_tokens`). Requests that would exceed the budget are rejected before any network call is made. This behaviour is intentional: it is better to fail early and loudly than to discover mid-batch that half the work was truncated by the provider.
 
-The Workflow Script:
-#!/bin/bash
+### Sequential versus batched processing
 
-    # 1. Export data from the database to a file
-    psql -U admin -d support_db -c "COPY (SELECT review_text FROM tickets \
-         WHERE date = CURRENT_DATE - 1) TO STDOUT WITH CSV;" > /tmp/daily_reviews.csv
+By default all chunks belonging to a single iteration are assembled into one request. The `sequential_processing` flag (or the corresponding configuration key) forces each chunk to be processed in its own request. Sequential mode is useful when individual chunks are already large, when you need per-chunk output files, or when you want to stay well below a provider’s rate limits.
 
-    # 2. Process the exported data with dragiter
-    dragiter -p sentiment_prompt.toml -r review_resources.toml -o daily_sentiment.md
+### Activity logging
 
-Result:
-The database query dumps the raw data into a temporary file. dragiter instantly
-picks up that file, chunks the reviews, asks the AI to identify negative
-trends or bugs, and writes a comprehensive Markdown report for the product
-team's morning meeting.
+When an activity file is requested (`-a` / `DRAGITER_ACTIVITY_FILE`) dragiter appends a structured JSON Lines record for every major stage of the pipeline: configuration snapshot, discovered resources, material statistics, loop items, assembled sessions, token counts and final results. Sensitive fields whose names contain the substring “key” are masked. The resulting file is suitable for auditing and for post-mortem analysis of long-running batch jobs. The exact record formats are described in the Technical Reference.
 
+---
 
-Chapter 8: Connecting to Different AI Engines
-=============================================
+## Running the test suite
 
-One of the greatest strengths of dragiter is that it does not lock you into a
-single ecosystem. Because the tool is built to communicate with OpenAI-compatible
-API endpoints, you can easily swap out the underlying brain of your workflow
-just by changing a few configuration parameters.
+The test suite is not shipped inside the installed wheel. Obtain the source distribution, install the development extras and run pytest:
 
-Whether you want to use the latest frontier models from Google or xAI (Grok),
-or run fully local, privacy-respecting open-source models, dragiter handles the
-connection seamlessly.
+```bash
+pip download dragiter --no-binary=:all: -d .
+tar xf dragiter-*.tar.gz
+cd dragiter-*/
+pip install -e ".[dev]"
+pytest -q
+```
 
+Most tests execute without any network access or API keys. Optional integration tests that require a local Ollama instance are automatically skipped when the service is unavailable.
 
-The Magic Flags: Base URL and Model Name
-----------------------------------------
-To switch AI engines, you primarily rely on three configuration flags (which
-can also be set in your config.toml or environment variables):
+---
 
-* --base-url   : This tells dragiter exactly where to send your prompt payload.
-* --model-name : This tells the receiving server which specific model to use.
-* --api-key    : The authentication token for the service.
+## Acknowledgements
 
-Scenario 6: Zero-Cost, Private Local AI with Ollama
----------------------------------------------------
-If you are processing highly sensitive corporate data or simply want to avoid
-API costs, you can run LLMs locally on your own hardware using a tool like
-Ollama. Ollama provides a local API endpoint that dragiter can talk to.
+The development of dragiter benefited greatly from the pair-programming assistance of the Grok and Gemini models and from the broader Python open-source ecosystem. Their documentation, libraries and community norms remain the foundation on which tools of this kind are built.
 
-The Setup:
-First, you install Ollama on your machine and download a model, such as Meta's
-Llama 3 or Mistral, using your terminal: "ollama run llama3".
-
-The Command:
-Once Ollama is running in the background, you instruct dragiter to bypass the cloud
-and send the data to your localhost:
-
-    dragiter -p code_review.toml -r local_files.toml --base-url "http://localhost:11434/v1" \
-         --model-name "llama3" --api-key "dummy-key"
-
-Result:
-dragiter packages your prompt and material, but instead of sending it over the open
-internet, it routes it to your local machine's port 11434. The local Llama 3
-model processes the data, completely off the grid.
-
-
-Scenario 7: Tapping into Alternative Cloud Providers (Grok, Google, etc.)
-------------------------------------------------------------------------
-Many modern AI providers offer "OpenAI-compatible" API endpoints. This means
-their servers speak the exact same technical language as OpenAI, allowing tools
-like dragiter to connect instantly without needing custom code.
-
-For Grok (xAI):
-If you want to use xAI's Grok model, you simply point the Base URL to their
-endpoint and provide your xAI API key.
-
-    dragiter -p analysis.toml -r data.toml --base-url "https://api.x.ai/v1" \
-         --model-name "grok-beta" --api-key "YOUR_XAI_KEY"
-
-For Google Vertex AI or Other Services:
-While some services use their own unique SDKs, many offer compatibility layers
-or intermediary proxy gateways (like LiteLLM). As long as you have the
-compatible base URL, you can route dragiter to virtually any model on the market:
-
-    dragiter -p creative_prompt.toml -r context.toml --base-url "YOUR_PROVIDER_BASE_URL" \
-         --model-name "gemini-1.5-pro" --api-key "YOUR_API_KEY"
-
-By keeping the application logic separate from the LLM provider, dragiter ensures
-your automated workflows are future-proof. If a faster, cheaper, or smarter
-model is released tomorrow, you only need to change a single line in your
-configuration file to upgrade your entire toolchain.
-
-
-Chapter 9: Tests
-================
-
-dragiter comes with a comprehensive test suite that verifies the CLI,
-configuration handling, security aspects, and core pipeline behaviour.
-
-### Obtaining the Tests
-
-The tests are **not** included in the installed wheel.  
-To run them, download the source distribution:
-
-    pip download dragiter --no-binary=:all: -d .
-    tar xf dragiter-*.tar.gz
-    cd dragiter-*/
-
-### Running the Tests
-
-    pip install -e ".[dev]"   # installs pytest and the package in editable mode
-    pytest -q
-
-Most tests run safely without any API keys or real LLM calls.  
-A few optional integration tests (e.g. against a local Ollama instance)
-are automatically skipped when the required service is not available.
-
-### Extending the Tests
-
-New tests should follow the naming convention `test_*.py` and can be placed
-directly in the `tests/` directory. The existing files serve as practical
-examples for both unit and end-to-end testing styles.
-
-Chapter 10: Acknowledgements and Special Thanks
-==============================================
-
-
-The development of dragiter (Deterministic RAG Iterator) has been a
-journey of continuous learning and exploration. Bringing this project to life
-would not have been possible without the support of some extraordinary tools
-and communities.
-
-Thanks to Grok and Gemini:
-A massive and special thank you goes to the AI models Grok and Gemini. Your
-guidance, code reviews, and structural suggestions were invaluable. You not
-only helped in writing, debugging, and adapting the Python code for this
-project, but you also played a crucial role in elevating my own Python skills.
-Acting as tireless pair-programming partners, you helped turn the vision for
-this CLI tool into a working reality.
-
-Thanks to the Python Community:
-Equally important is the global Python community. The rich ecosystem of
-standard libraries, the extensive documentation, and the unwavering open-source
-spirit provide the foundation upon which tools like dragiter are built. Thank you
-to all the developers, contributors, and enthusiasts who continue to make
-Python such an accessible and powerful language to work with.
-
-Happy automating!
+Happy automating.

@@ -51,7 +51,7 @@ def test_dragiter_help():
     """The help output must be accessible and contain the project description."""
     result = _run_dragiter(["--help"])
     assert result.returncode == 0, f"Unexpected exit code: {result.returncode}\n{result.stderr}"
-    assert "Deterministic RAG Iterator" in result.stdout
+    assert "Deterministic Context Iterator" in result.stdout
 
 
 def test_dragiter_simulate_flag_accepted():

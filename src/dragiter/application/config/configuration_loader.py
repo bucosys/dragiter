@@ -1,5 +1,5 @@
 # =============================================================================
-# dragiter - Deterministic RAG Iterator
+# dragiter - Deterministic Context Iterator
 # Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
 #
 # This file is part of dragiter.
@@ -267,7 +267,7 @@ class ConfigurationLoader(Worker):
     def _get_args(self) -> None:
 
         parser = argparse.ArgumentParser(
-            description="dragiter – Deterministic RAG Iterator. A modular CLI for structured, reproducible LLM workflows.",
+            description="dragiter – Deterministic Context Iterator. A focused CLI for structured, reproducible LLM workflows.",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
 

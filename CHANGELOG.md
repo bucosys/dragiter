@@ -3,11 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project uses [Calendar Versioning](https://calver.org/)
+in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
-
-## [2026.8.10] - 2026-08-10
 
 ### Added
 - MkDocs-based project documentation under `web/` (including index.md with logo and links)
@@ -16,13 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Set `site_url` to https://www.dragiter.app/
 
 ### Changed
-- Version 2026.7.26 → 2026.8.10
+- Complete rewrite of documentation following the Diátaxis framework
+  (new Tutorial / How-to / Explanation Manual + separate Technical Reference)
+- Polished and rewritten README
+- Updated man-page style `info.txt`
+- Removed `recurse_symlinks=False` from `Path.glob()` calls
+- Relaxed `requires-python` to `>=3.11`
+- Updated GitLab CI: copy new Diátaxis docs into MkDocs site and ignore some functional tests
 - Rebranding: “Deterministic RAG Iterator” / “modular CLI” → “Deterministic Context Iterator” / “focused CLI”
 - Homepage URL updated to https://www.dragiter.app/
 - Classifier updated to `Topic :: Scientific/Engineering :: Artificial Intelligence`
 - Packaging: include CHANGELOG.md in sdist; exclude `web/` and `site/`
 - Unified contact email to `michael.buchold@dragiter.app`
 - mkdocs.yml: legal pages in flat navigation (`navigation.sections`)
+
+### Fixed
+- Crash on Python < 3.13 caused by the 3.13-only `recurse_symlinks` argument
 
 ## [2026.7.26] - 2026-07-26
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26)
@@ -60,11 +68,6 @@ Promote dragiter from 2026.7.20rc2 (Beta) to Production/Stable.
 ### Changed
 - Removed `tests/outputs/` folder from package distribution (Wheel)
 - Fixes installation error on Windows caused by excessively long paths
-
-## [2026.7.20rc2] - 2026-07-20
-[https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc2](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.20rc2)
-
-### Changed
 - Removed folder tests/outputs from package building
 
 ## [2026.7.20rc1] - 2026-07-20

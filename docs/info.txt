@@ -1,8 +1,9 @@
-dragiter(1)                      July 2026                          dragiter(1)
+dragiter(1)                     August 2026                         dragiter(1)
 
 NAME
-       dragiter - deterministic Context iterator – command line tool for structured
-       LLM-based processing of materials with prompts and looping
+       dragiter - Deterministic Context Iterator – command-line tool for
+       structured, reproducible LLM-based processing of materials with
+       prompts and looping
 
 SYNOPSIS
        dragiter [OPTIONS]
@@ -10,79 +11,91 @@ SYNOPSIS
        dragiter-gen-examples [PATH]
 
 DESCRIPTION
-       dragiter is a command-line tool that allows controlled, reproducible
-       calls to LLM services (OpenAI compatible APIs and others) while
-       combining:
+       dragiter is a focused command-line tool that performs controlled,
+       reproducible calls to OpenAI-compatible LLM services. It combines:
 
-       * input material (documents, chunks, JSONL, ...)
+       * input material (documents, chunks, JSONL, …)
        * prompt templates
        * optional looping / iteration logic
-       * configurable output routing (file, directory, append/overwrite)
+       * configurable output routing (single file, directory, append /
+         overwrite / exclusive)
 
-       Configuration values are read in the following order of precedence:
+       Configuration values are resolved in the following strict order of
+       precedence (highest priority first):
 
            1. Command-line arguments
-           2. TOML configuration file (specified via -c / --config-file)
-           3. Environment variables (DRAGITER_...)
-           4. Default user config (~/.config/dragiter/config.toml)
-           5. Hard-coded program defaults
+           2. TOML configuration file
+              (via -c / --config-file, DRAGITER_CONFIG_FILE, or
+              ~/.config/dragiter/config.toml if present)
+           3. Environment variables (DRAGITER_*)
+           4. Hard-coded program defaults
+
+       Once a value has been set by a higher-priority source it cannot be
+       overwritten by a lower-priority source.
 
 OPTIONS
        General Flags
            -d, --debug                Enable debug logging
            -s, --simulate             Simulation mode (no real API calls)
-           -v, --verbose              Verbose mode for detailed message output
-           -c, --config-file PATH     Read configuration from a specific file
+           -v, --verbose              Verbose progress output
+           -c, --config-file PATH     Path to a specific TOML configuration
+                                      file
            -b, --base-directory PATH  Base directory for all relative file
-                                      operations
-           -L, --log-file PATH        Write application log output to the given
-                                      file (simple append mode, no rotation).
-                                      Only active when explicitly provided.
-           --sequential-processing    Process each material chunk individually
-                                      instead of sending all chunks in a single
-                                      request.
+                                      paths (default: current working
+                                      directory)
+           -L, --log-file PATH        Write application log to the given
+                                      file (simple append, no rotation)
+           --sequential-processing    Process each material chunk in its
+                                      own request instead of batching
 
-       API & Connection Configuration
+       API & Connection
            --api-key KEY              API key for the LLM service
-           --base-url URL             Base URL to the AI service endpoint
-           --model-name MODEL         Model identifier (e.g. gpt-4o, qwen3:8b)
-           --chars-per-token FLT      Estimated characters per token for
-                                      chunking
-           --max-context-tokens INT   Maximum context window limit of the model (input + output combined)
-           --max-output-tokens INT    Maximum output tokens (part of context window limit)
-           --temperature FLT          LLM temperature
-           --max-retry INT            Maximum number of retries on failure (LLM)
-           --retry-delay INT          Delay in seconds between retries
-
-           --ca-bundle-file PATH      Path to custom CA certificate bundle (PEM) for TLS verification
-           --client-cert-file PATH    Path to client certificate (PEM) for mutual TLS (mTLS)
-           --client-key-file PATH     Path to client private key (optional if key is embedded in cert file)
+           --base-url URL             Base URL of the OpenAI-compatible
+                                      endpoint
+           --model-name MODEL         Model identifier (e.g. qwen3:8b,
+                                      llama3, grok-beta)
+           --temperature FLT          Sampling temperature (0.0 =
+                                      deterministic)
+           --chars-per-token FLT      Average characters per token used
+                                      for context estimation
+           --max-context-tokens INT   Total context window of the model
+                                      (input + output)
+           --max-output-tokens INT    Maximum tokens the model may generate
+           --retry-delay INT          Seconds to wait between retries
+           --max-retry INT            Maximum number of retry attempts
+           --ca-bundle-file PATH      Custom CA certificate bundle (PEM)
+           --client-cert-file PATH    Client certificate for mTLS (PEM)
+           --client-key-file PATH     Client private key for mTLS
 
        Task & Prompt Control
-           -p, --prompt-file PATH     Read instruction and task template file
-           -t, --task TEXT            Ask a specific explicit task
+           -p, --prompt-file PATH     Path to prompt template (TOML)
+           -t, --task TEXT            Direct task string (alternative to
+                                      -p)
+           -r, --resource-file PATH   Path to resource definition (TOML)
+           -l, --loop-file PATH       Path to loop file (.txt or .jsonl)
 
-       Input Files (Materials & Loops)
-           -l, --loop-file PATH       Read JSONL file for iteration items
-           -r, --resource-file PATH   Read resource definition file
-
-       Output Control & Logging
-           -m, --output-mode CHAR     Output mode:
-                                      w=overwrite, a=append, x=exclusive
-           -o, --output-file PATH     Write output to a single file
-           -O, --output-directory DIR Write outputs to a specified directory
-           -a, --activity-file PATH   Write detailed activity trace (JSONL) to
-                                      file
-           --output-delimiter TEXT    Delimiter inserted between multiple
-                                      results (default: newline)
-           --output-filename-schema   Filename template used with
-                                      -O/--output-directory
-                                      (supports {CHUNK_*}, {LOOP_*})
+       Output Control
+           -m, --output-mode MODE     File open mode: x = exclusive
+                                      (default), w = overwrite, a = append
+           -o, --output-file PATH     Write all results to a single file
+           -O, --output-directory DIR Write results into the given
+                                      directory
+           --output-delimiter TEXT    Text inserted between multiple
+                                      results
+           --output-filename-schema   Filename template for -O (supports
+                                      {CHUNK_*}, {LOOP_*} placeholders)
+           -a, --activity-file PATH   Write detailed activity trace (JSONL)
 
        Help & Utilities
-           -h, --help                 Show this help message and exit
-           dragiter-gen-docs [PATH]       Extract documentation to folder
-           dragiter-gen-examples [PATH]   Extract examples to folder
+           -h, --help                 Show short argparse help and exit
+           --info                     Show this detailed information page
+           --version                  Show program version and exit
+
+       Utility Commands
+           dragiter-gen-docs [PATH]       Extract documentation (default:
+                                          ./docs/)
+           dragiter-gen-examples [PATH]   Extract examples (default:
+                                          ./examples/)
 
 EXIT STATUS
        0      Success
@@ -90,30 +103,63 @@ EXIT STATUS
        130    Process interrupted by user (KeyboardInterrupt)
 
 ENVIRONMENT
-       DRAGITER_DEBUG, DRAGITER_SIMULATE, DRAGITER_VERBOSE (TRUE / FALSE)
-       DRAGITER_SEQUENTIAL_PROCESSING (TRUE / FALSE)
-       DRAGITER_API_KEY, DRAGITER_BASE_URL, DRAGITER_MODEL_NAME
-       DRAGITER_TEMPERATURE, DRAGITER_CHARS_PER_TOKEN
-       DRAGITER_MAX_CONTEXT_TOKENS, DRAGITER_MAX_OUTPUT_TOKENS
-       DRAGITER_RETRY_DELAY, DRAGITER_MAX_RETRY
-       DRAGITER_OUTPUT_MODE (w / a / x)
-       DRAGITER_OUTPUT_DELIMITER, DRAGITER_OUTPUT_FILENAME_SCHEMA
-       DRAGITER_ACTIVITY_FILE, DRAGITER_BASE_DIRECTORY, DRAGITER_CONFIG_FILE
-       DRAGITER_CA_BUNDLE_FILE, DRAGITER_CLIENT_CERT_FILE
-       DRAGITER_CLIENT_KEY_FILE, DRAGITER_LOG_FILE, DRAGITER_LOOP_FILE
-       DRAGITER_OUTPUT_FILE, DRAGITER_OUTPUT_DIRECTORY, DRAGITER_PROMPT_FILE
-       DRAGITER_RESOURCE_FILE
+       Boolean flags accept any non-empty value (commonly TRUE / FALSE):
+
+           DRAGITER_DEBUG
+           DRAGITER_SIMULATE
+           DRAGITER_VERBOSE
+           DRAGITER_SEQUENTIAL_PROCESSING
+
+       String / numeric settings:
+
+           DRAGITER_API_KEY
+           DRAGITER_BASE_URL
+           DRAGITER_MODEL_NAME
+           DRAGITER_TEMPERATURE
+           DRAGITER_CHARS_PER_TOKEN
+           DRAGITER_MAX_CONTEXT_TOKENS
+           DRAGITER_MAX_OUTPUT_TOKENS
+           DRAGITER_RETRY_DELAY
+           DRAGITER_MAX_RETRY
+           DRAGITER_OUTPUT_MODE          (x | w | a)
+           DRAGITER_OUTPUT_DELIMITER
+           DRAGITER_OUTPUT_FILENAME_SCHEMA
+           DRAGITER_ACTIVITY_FILE
+           DRAGITER_BASE_DIRECTORY
+           DRAGITER_CONFIG_FILE
+           DRAGITER_CA_BUNDLE_FILE
+           DRAGITER_CLIENT_CERT_FILE
+           DRAGITER_CLIENT_KEY_FILE
+           DRAGITER_LOG_FILE
+           DRAGITER_LOOP_FILE
+           DRAGITER_OUTPUT_FILE
+           DRAGITER_OUTPUT_DIRECTORY
+           DRAGITER_PROMPT_FILE
+           DRAGITER_RESOURCE_FILE
+
+FILES
+       ~/.config/dragiter/config.toml
+              Default user configuration file (loaded when neither -c nor
+              DRAGITER_CONFIG_FILE is set).
+
+SEE ALSO
+       Full documentation (Tutorial, How-to guides, Explanation and
+       Technical Reference) can be extracted with:
+
+           dragiter-gen-docs .
 
 REPORTING BUGS
-       dragiter is a community-driven tool. If you encounter a bug, you are
-       cordially invited to fix it yourself—after all, you have the ultimate
-       AI toolkit at your fingertips! Feel free to let your favorite LLM
-       analyze the code and suggest a patch.
+       dragiter is a small, community-driven tool. Bug reports are of
+       course accepted. Should you feel inclined to investigate the
+       matter yourself, modern language models have been known to be
+       surprisingly competent at reading the code and suggesting
+       patches.
 
-       For major issues that even the AI cannot solve, contact:
+       For issues that prove rather more troublesome, please contact:
        Michael Buchold <michael.buchold@dragiter.app>
+
 
 AUTHOR
        Michael Buchold <michael.buchold@dragiter.app>
 
-dragiter(1)                      July 2026                          dragiter(1)
+dragiter(1)                     August 2026                         dragiter(1)

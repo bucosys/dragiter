@@ -1,5 +1,5 @@
 # =============================================================================
-# dragiter - Deterministic RAG Iterator
+# dragiter - Deterministic Context Iterator
 # Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
 #
 # This file is part of dragiter.
