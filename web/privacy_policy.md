@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Effective Date:** July 2026  
+**Effective Date:** August 2026  
 **Website:** https://www.dragiter.app
 
 ## 1. Controller

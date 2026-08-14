@@ -36,6 +36,8 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 - Crash on Python < 3.13 caused by the 3.13-only `recurse_symlinks` argument
 - Memory leak: `FileActivityLogger` now clears its buffer after syncing or when disabled
 - OOM vulnerability: `write_or_append_lines_to_unique_file` uses a direct append stream (`mode="at"`) instead of loading files into RAM
+- Enabled local hosting of Google Fonts via the MkDocs privacy plugin to ensure strict GDPR compliance.
+- Updated legal notice (Impressum) for German DDG compliance and changed contact phone number.
 
 ## [2026.7.26] - 2026-07-26
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26)

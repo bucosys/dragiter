@@ -1,7 +1,7 @@
 site_name: dragiter
 site_url: https://www.dragiter.app/
 docs_dir: web
-site_description: "Documentation for dragiter"
+site_description: "Deterministic CLI for structured, reproducible LLM workflows. Treats LLMs like a Unix pipeline — no chat, no hidden state."
 
 theme:
   name: material
@@ -32,3 +32,7 @@ nav:
   - Reference: reference.md
   - Legal Notice / Impressum: legal_notice.md
   - Privacy Policy: privacy_policy.md
+
+plugins:
+  - search
+  - privacy
