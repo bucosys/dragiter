@@ -30,7 +30,7 @@ pages:
       
       ## Legal
       
-      - [Legal Notice / Imprint](legal_notice.md)
+      - [Legal Notice / Impressum](legal_notice.md)
       - [Privacy Policy](privacy_policy.md)
       EOF
     - mkdocs build --site-dir public
