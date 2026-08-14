@@ -33,6 +33,12 @@ logger = logging.getLogger(__name__)
 
 
 class MaterialTokenizer(Worker):
+    # Hard limit: Prevents combinatorial explosion
+    MAX_TOTAL_CHUNKS :int = 200
+    # Warning thresholds for semantic chunking (in characters)
+    WARN_MIN_CHARS = 50
+    WARN_MAX_CHARS = 20000
+
     def __init__(self, text_file_reader: TextFileReader) -> None:
         self.text_file_reader = text_file_reader
 
@@ -42,6 +48,13 @@ class MaterialTokenizer(Worker):
         try:
             for resource_section in resources.resource_sections:
                 all_chunks.extend(self._process_markdown_configs(resource_section))
+
+                # --- CIRCUIT BREAKER ---
+                if len(all_chunks) > self.MAX_TOTAL_CHUNKS:
+                    raise MaterialTokenizerError(
+                        f"Generated {len(all_chunks)} chunks, which exceeds the hard limit of {self.MAX_TOTAL_CHUNKS}. "
+                        f"Please refine your regex pattern or process fewer files at once."
+                    )
 
             return Material(chunks=all_chunks)
 
@@ -65,6 +78,7 @@ class MaterialTokenizer(Worker):
             # If no matches are found, parts[0] contains the entire file content.
             preamble = parts[0].strip()
             if preamble:
+                self._warn_if_chunk_size_suboptimal(preamble, path_obj.path.name, "preamble")
                 section_chunks.append(Chunk(
                     num_id=global_id,
                     filename=path_obj.path.as_posix(),
@@ -85,6 +99,8 @@ class MaterialTokenizer(Worker):
                 full_content = (header + body).strip()
 
                 if full_content:
+                    self._warn_if_chunk_size_suboptimal(full_content, path_obj.path.name,
+                                                        f"chunk {section_internal_id}")
                     section_chunks.append(Chunk(
                         num_id=global_id,
                         filename=path_obj.path.as_posix(),
@@ -97,6 +113,20 @@ class MaterialTokenizer(Worker):
                     section_internal_id += 1
 
         return section_chunks
+
+    def _warn_if_chunk_size_suboptimal(self, content: str, filename: str, chunk_identifier: str) -> None:
+        """Logs a warning if a chunk is too small to provide context or too large for optimal attention."""
+        size = len(content)
+        if size < self.WARN_MIN_CHARS:
+            logger.warning(
+                f"Chunk too small ({size} chars) in {filename} ({chunk_identifier}). "
+                f"Check if your regex pattern splits too aggressively."
+            )
+        elif size > self.WARN_MAX_CHARS:
+            logger.warning(
+                f"Chunk extremely large ({size} chars) in {filename} ({chunk_identifier}). "
+                f"The LLM might suffer from attention dilution. Consider refining your regex."
+            )
 
     @staticmethod
     def _is_content_valid(content: str, exclude_patterns: list[str], include_patterns: list[str]) -> bool:

@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 class LoopBuilder(Worker):
+    MAX_LOOP_ITEMS: int = 50
+
     def __init__(self) -> None:
         pass
 
@@ -46,6 +48,16 @@ class LoopBuilder(Worker):
             if loop_file_path_setting.is_set:  # should lines be read?
                 contents = read_stripped_lines_from_file(
                     loop_file_path_setting.value)  # read lines from file, no empty lines into
+
+                # --- CIRCUIT BREAKER ---
+                if len(contents) > self.MAX_LOOP_ITEMS:
+                    raise LoopBuilderError(
+                        f"Loop file contains {len(contents)} items. "
+                        f"Execution aborted. The hard limit is {self.MAX_LOOP_ITEMS}. "
+                        f"Please split your loop file into smaller batches and run dragiter multiple times."
+                    )
+
+
                 for index, line in enumerate(contents, start=1):
                     try:
                         data = loads(line)

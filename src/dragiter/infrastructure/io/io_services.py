@@ -21,6 +21,7 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
+import sys
 import json
 import logging
 import os
@@ -124,6 +125,16 @@ def append_jsonl_to_file(file_path: Path, lines: list[dict]) -> os.stat_result:
         with file_path.open(mode="a", encoding="utf-8") as f:
             for line in lines:
                 jsonl = json.dumps(line, ensure_ascii=False, default=str)
+                # JSONL safety: json.dumps(ensure_ascii=False) does not escape
+                # U+0085 (NEL), U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR).
+                # These characters act as line breaks and would break the one-object-per-line
+                # guarantee of JSONL. We escape them explicitly while keeping all other
+                # Unicode characters readable.
+                jsonl = (jsonl
+                         .replace("\u0085", "\\u0085")
+                         .replace("\u2028", "\\u2028")
+                         .replace("\u2029", "\\u2029"))
+
                 f.write(jsonl + "\n")
 
             # paranoid
@@ -142,40 +153,45 @@ def write_or_append_lines_to_unique_file(file_path: Path, output_mode: str, line
     new_file_path = None
     current_file_content = None
 
-    # preconditions
-    match output_mode:
-        case "x":  # exclusive, not overwrite
-            if file_path.exists(): raise IOServiceError(f"File already exists: {file_path.name}.")
-        case "a":
-            # check if output file has content, then load content
-            if file_path.exists():
-                current_file_content = file_path.read_text()
-                # and put the content at the beginning of lines - array
-                if (current_file_content):
-                    lines.insert(0, current_file_content)
-
-    temp_path = file_path.with_suffix(f".tmp_{os.getpid()}")
-
     try:
-        with temp_path.open(mode="xt", encoding="utf-8") as f:
-            for line in lines:
-                f.write(f"{line.strip()}\n")
 
-            # paranoid
-            f.flush()
-            os.fsync(f.fileno())
+        if output_mode == "a":
+            with file_path.open(mode="at", encoding="utf-8") as f:
+                for line in lines:
+                    f.write(f"{line.strip()}\n")
 
-        # atomic swap
-        os.replace(temp_path, file_path)
-        logger.debug(f"{len(lines)} entries written to {file_path}.")
+                # paranoid
+                f.flush()
+                os.fsync(f.fileno())
 
-        return file_path.stat()  # ---> return file stat info
+            logger.debug(f"{len(lines)} entries appended to {file_path}.")
+            return file_path.stat()
+
+        else:
+            if output_mode == "x" and file_path.exists():
+                raise IOServiceError(f"File already exists: {file_path.name}.")
+
+            temp_path = file_path.with_suffix(f".tmp_{os.getpid()}")
+
+            with temp_path.open(mode="xt", encoding="utf-8") as f:
+                for line in lines:
+                    f.write(f"{line.strip()}\n")
+
+                # paranoid
+                f.flush()
+                os.fsync(f.fileno())
+
+            # atomic swap
+            os.replace(temp_path, file_path)
+            logger.debug(f"{len(lines)} entries written to {file_path}.")
+
+            return file_path.stat()  # ---> return file stat info
 
     except Exception as e:
         raise IOServiceError(f"Failed to write file content: {file_path}.") from e
 
 
-import sys
+
 
 
 class StdinReadError(Exception):

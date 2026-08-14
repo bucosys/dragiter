@@ -21,6 +21,7 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 from pathlib import PosixPath
+from typing import Optional
 
 from dragiter.application.core.buffered_activity_logger import BufferedActivityLogger
 from dragiter.domain.ports.activity_logger import ActivityLogger
@@ -33,7 +34,9 @@ class FileActivityLogger(BufferedActivityLogger):
 
     def __init__(self) -> None:
         super().__init__()
-        self.lines_written: int = 0
+
+        self.activity_file_found: bool = False
+        self.activity_file_path: Optional[PosixPath] = None
 
 
     def write_activity(self, activity_provider: ActivityProvider) -> int:
@@ -50,12 +53,24 @@ class FileActivityLogger(BufferedActivityLogger):
     def _sync_buffer_to_file(self) -> int:
 
         # find first element w/ key
-        activity_file: PosixPath = next((d["activity_file"] for d in self.activity_dict_list if "activity_file" in d), None)
-        if activity_file:
-            lines_to_write: list[dict] = self.activity_dict_list[self.lines_written:]
+        if not self.activity_file_found:
+            for d in self.activity_dict_list:
+                if "activity_file" in d:
+                    self.activity_file_found = True
+                    self.activity_file_path = d["activity_file"]
+                    break
 
-            if lines_to_write:
-                append_jsonl_to_file(activity_file, lines_to_write)
-                self.lines_written = len(self.activity_dict_list)
+        if self.activity_file_found and self.activity_file_path is None:
+            self.activity_dict_list.clear()
+            return 0
 
 
+
+        if self.activity_file_path and self.activity_dict_list:
+            append_jsonl_to_file(self.activity_file_path, self.activity_dict_list)
+            lines_written = len(self.activity_dict_list)
+            self.activity_dict_list.clear()
+            return lines_written
+
+        ##fallback
+        return 0

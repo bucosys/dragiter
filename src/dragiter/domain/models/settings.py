@@ -23,7 +23,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 T = TypeVar('T')
 
@@ -46,21 +46,38 @@ class ValueSetting(Generic[T]):
         return self._value
 
     @value.setter
-    def value(self, new_value: T):
+    def value(self, new_value: T) -> None:
         if self.is_set:
-            raise AttributeError("Value has already been set and cannot be changed!")
-
+            raise AttributeError(
+                f"Setting '{self.key}' has already been set and cannot be changed!"
+            )
+        self._validate(new_value)
         self._value = new_value
         self.is_set = True
+
+    def _validate(self, new_value: Any) -> None:
+        """Hook for subclasses to validate the incoming value. Default: no-op."""
+        pass
+
 
 # typed inheritance
 
 @dataclass
-class StringSetting(ValueSetting[str]): ...
+class StringSetting(ValueSetting[str]):
+    def _validate(self, new_value: Any) -> None:
+        if not isinstance(new_value, str):
+            raise TypeError(
+                f"StringSetting '{self.key}' expected str, got {type(new_value).__name__}"
+            )
 
 
 @dataclass
-class BoolSetting(ValueSetting[bool]): ...
+class BoolSetting(ValueSetting[bool]):
+    def _validate(self, new_value: Any) -> None:
+        if not isinstance(new_value, bool):
+            raise TypeError(
+                f"BoolSetting '{self.key}' expected bool, got {type(new_value).__name__}"
+            )
 
 
 @dataclass
@@ -91,7 +108,9 @@ class PathSetting(ValueSetting[Path]):
     def value(self, new_value: str | Path) -> None:
         """Set the path. First assignment only (immutable after that)."""
         if self.is_set:
-            raise AttributeError("Value has already been set and cannot be changed!")
+            raise AttributeError(
+                f"PathSetting '{self.key}' has already been set and cannot be changed!"
+            )
 
         if isinstance(new_value, str):
             new_value = Path(new_value)
@@ -142,11 +161,22 @@ class PathSetting(ValueSetting[Path]):
 
 
 @dataclass
-class FloatSetting(ValueSetting[float]): ...
+class FloatSetting(ValueSetting[float]):
+    def _validate(self, new_value: Any) -> None:
+        if not isinstance(new_value, float):
+            raise TypeError(
+                f"FloatSetting '{self.key}' expected float, got {type(new_value).__name__}"
+            )
 
 
 @dataclass
-class IntegerSetting(ValueSetting[int]): ...
+class IntegerSetting(ValueSetting[int]):
+    def _validate(self, new_value: Any) -> None:
+        # bool is a subclass of int in Python – reject it explicitly
+        if type(new_value) is not int:
+            raise TypeError(
+                f"IntegerSetting '{self.key}' expected int, got {type(new_value).__name__}"
+            )
 
 
 # bool first ####
@@ -225,20 +255,26 @@ class TemperatureFloatSetting(FloatSetting): ...
 @dataclass
 class ActivityFilePathSetting(PathSetting): ...
 
+
 @dataclass
 class CaBundleFilePathSetting(PathSetting): ...
+
 
 @dataclass
 class ClientCertFilePathSetting(PathSetting): ...
 
+
 @dataclass
 class ClientKeyFilePathSetting(PathSetting): ...
+
 
 @dataclass
 class ConfigFilePathSetting(PathSetting): ...
 
+
 @dataclass
 class LogFilePathSetting(PathSetting): ...
+
 
 @dataclass
 class PromptFilePathSetting(PathSetting): ...

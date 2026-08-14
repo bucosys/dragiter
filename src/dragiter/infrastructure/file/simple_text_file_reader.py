@@ -25,7 +25,7 @@
 import logging
 
 from dragiter.domain.models.text_file import TextFile
-from dragiter.domain.ports.text_file_reader import TextFileReader
+from dragiter.domain.ports.text_file_reader import TextFileReader, TextFileReaderError
 
 logger = logging.getLogger(__name__)
 
@@ -38,5 +38,16 @@ class SimpleTextFileReader(TextFileReader):
     structurally matches the Protocol.
     """
 
+    # 100 MB Hard Limit für Textdateien
+    MAX_FILE_SIZE_BYTES: int = 100 * 1024 * 1024
+
     def read(self, text_file: TextFile) -> str:
+        # CIRCUIT BREAKER:
+        file_size = text_file.path.stat().st_size
+        if file_size > self.MAX_FILE_SIZE_BYTES:
+            raise TextFileReaderError(
+                f"File {text_file.path.name} exceeds the maximum allowed size of 100 MB. "
+                f"Please split your input files."
+            )
+
         return text_file.path.read_text(encoding=text_file.encoding)

@@ -161,26 +161,36 @@ class ConfigurationLoader(Worker):
             if config_file_value is None:
                 continue  # --> operate on next item in list
 
-            # 4 if found, then ...
-            if (isinstance(value_setting_object, BoolSetting)):
-                if config_file_value:
-                    value_setting_object.value = True
-                    logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif (isinstance(value_setting_object, StringSetting)):
-                value_setting_object.value = config_file_value.strip()
+            # 4 if found, then convert + assign
+            if isinstance(value_setting_object, BoolSetting):
+                if isinstance(config_file_value, bool):
+                    # natives TOML true / false
+                    value_setting_object.value = config_file_value
+                elif isinstance(config_file_value, str):
+                    # String analog zum Env-Verhalten: nur "true" (case-insensitive) zählt
+                    value_setting_object.value = config_file_value.strip().lower() == "true"
+                else:
+                    raise ConfigurationLoaderError(
+                        f"Invalid value for '{item.long_key}' in config file: "
+                        f"expected bool or string, got {type(config_file_value).__name__}"
+                    )
+                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
+            elif isinstance(value_setting_object, StringSetting):
+                value_setting_object.value = str(config_file_value).strip()
                 display_value = "********" if "key" in item.long_key else value_setting_object.value
                 logger.debug(f"[{item.long_key}: {display_value}]")
-            elif (isinstance(value_setting_object, IntegerSetting)):
-                value_setting_object.value = config_file_value
+            elif isinstance(value_setting_object, IntegerSetting):
+                value_setting_object.value = int(config_file_value)
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif (isinstance(value_setting_object, FloatSetting)):
-                value_setting_object.value = config_file_value
+            elif isinstance(value_setting_object, FloatSetting):
+                value_setting_object.value = float(config_file_value)
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif (isinstance(value_setting_object, PathSetting)):
-                value_setting_object.value = Path(config_file_value.strip())
+            elif isinstance(value_setting_object, PathSetting):
+                value_setting_object.value = Path(str(config_file_value).strip())
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
             else:
                 pass
+
 
     def _set_settings_from_environment(self) -> None:
         block_name = "PARSE ENVIRONMENT"
