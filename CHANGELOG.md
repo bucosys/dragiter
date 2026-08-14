@@ -13,6 +13,9 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 - GitLab CI pipeline: unit tests on Python 3.13 + automatic documentation deployment via GitLab Pages
 - Legal Notice (Impressum) and Privacy Policy (English, DDG/MStV compliant)
 - Set `site_url` to https://www.dragiter.app/
+- Circuit breakers: 100 MB file size limit in `SimpleTextFileReader`
+- Circuit breakers: 200 chunk limit and size warnings (<50 / >20k chars) in `MaterialTokenizer`
+- Circuit breakers: 50 item limit in `LoopBuilder` to prevent combinatorial explosion and API cost spikes
 
 ### Changed
 - Complete rewrite of documentation following the Diátaxis framework
@@ -31,6 +34,8 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ### Fixed
 - Crash on Python < 3.13 caused by the 3.13-only `recurse_symlinks` argument
+- Memory leak: `FileActivityLogger` now clears its buffer after syncing or when disabled
+- OOM vulnerability: `write_or_append_lines_to_unique_file` uses a direct append stream (`mode="at"`) instead of loading files into RAM
 
 ## [2026.7.26] - 2026-07-26
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26](https://gitlab.com/bucosys/dragiter/-/tags/2026.7.26)

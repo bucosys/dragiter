@@ -197,6 +197,12 @@ class ApplicationManager:
             if self.activity_logger:
                 self.activity_logger.write_exception(e)
 
+
+            ## future code for optimization:
+            # adding context: worker name
+            #worker_name = worker.__class__.__name__ if 'worker' in locals() else "UnknownWorker"
+            #raise ApplicationManagerError(f"Worker '{worker_name}' failed during run cycle: {e}") from e
+
             raise ApplicationManagerError(f"Failed to execute application manager run cycle: {e}") from e
 
 
