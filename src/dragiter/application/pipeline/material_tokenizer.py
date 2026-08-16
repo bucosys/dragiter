@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 
 class MaterialTokenizer(Worker):
     # Hard limit: Prevents combinatorial explosion
-    MAX_TOTAL_CHUNKS :int = 200
+    MAX_TOTAL_CHUNKS: int = 200
     # Warning thresholds for semantic chunking (in characters)
-    WARN_MIN_CHARS = 50
-    WARN_MAX_CHARS = 20000
+    WARN_MIN_CHARS: int = 50
+    WARN_MAX_CHARS: int = 20000
 
     def __init__(self, text_file_reader: TextFileReader) -> None:
         self.text_file_reader = text_file_reader
@@ -57,6 +57,9 @@ class MaterialTokenizer(Worker):
                     )
 
             return Material(chunks=all_chunks)
+
+        except MaterialTokenizerError:
+            raise  # preserve the specific, actionable message
 
         except Exception as e:
             raise MaterialTokenizerError(f"Failed to create chunks.") from e

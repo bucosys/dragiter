@@ -38,7 +38,7 @@ class SimpleTextFileReader(TextFileReader):
     structurally matches the Protocol.
     """
 
-    # 100 MB Hard Limit für Textdateien
+    # 100 MB hard limit for text files
     MAX_FILE_SIZE_BYTES: int = 100 * 1024 * 1024
 
     def read(self, text_file: TextFile) -> str:

@@ -6,7 +6,7 @@ This example demonstrates a loop file value mixin
 ## Preparation
 First, open your terminal and navigate to the example directory by typing:
 
-    cd examples/03_md_sample
+    cd examples/03_jsonl_sample
 
 It is highly recommended to run a simulation first.
 

@@ -1,9 +1,9 @@
 # dragiter Technical Reference
 
-**Version:** derived from source (2026.7.x)  
+**Version:** derived from source (2026.8.x)  
 **Language:** British English  
 **Scope:** Configuration, file formats, CLI, defaults, output behaviour and activity log  
-**Sources:** Source code (`src/dragiter/`) and example TOML files under `examples/`
+**Sources:** Source code (`src/dragiter/`), in particular `PromptCreator`, and example TOML files under `examples/`
 
 This document is the technical reference. It describes what the program actually accepts and does. It does **not** replace the user manual or how-to guides.
 
@@ -14,11 +14,31 @@ This document is the technical reference. It describes what the program actually
 dragiter resolves every setting in the following order (highest priority first):
 
 1. Command-line arguments
-2. TOML configuration file
+2. TOML configuration file (`-c` / `DRAGITER_CONFIG_FILE` / `~/.config/dragiter/config.toml`)
 3. Environment variables (`DRAGITER_*`)
 4. Built-in defaults (applied only when a value is still unset)
 
 Once a value has been set by a higher-priority source it cannot be overwritten by a lower-priority source.
+
+### Special case: prompt-related settings
+
+Four settings that can also appear inside a prompt template file are handled by the `PromptCreator`:
+
+- `temperature`
+- `sequential_processing`
+- `output_delimiter`
+- `output_filename_schema`
+
+When a prompt file (`-p`) is supplied, the effective precedence for these four settings becomes:
+
+1. Command-line arguments
+2. Main configuration system (TOML config file or environment variables)
+3. Values present in the prompt template itself (`[behaviour]` / `[outcome]` sections)
+4. Hard-coded defaults inside `PromptCreator`  
+   (`temperature = 0.0`, `sequential_processing = false`,  
+   `output_delimiter = "\n"`, `output_filename_schema = "dragiter-out.txt"`)
+
+In other words, the prompt template acts as an additional, lower-priority layer that is consulted only when the setting has not already been supplied by the CLI or the main configuration system.
 
 ### Config file discovery order
 
@@ -79,6 +99,20 @@ All settings that appear in the configuration loader are listed below.
 - `retry_delay` (when set) must be between 0 and 20 inclusive.
 - `chars_per_token` (when set) must be greater than 0.0.
 - Paths that are required must be readable (or writable for output paths).
+
+### Hard limits (circuit breakers)
+
+These limits are enforced at runtime and **cannot be configured**. They exist to protect against accidental combinatorial explosion, excessive memory consumption and runaway API costs.
+
+| Limit | Value | Component | Behaviour on breach |
+|-------|-------|-----------|---------------------|
+| Maximum file size | 100 MB | `SimpleTextFileReader` | Raises `TextFileReaderError` and aborts |
+| Maximum total chunks | 200 | `MaterialTokenizer` | Raises an error and aborts processing |
+| Maximum loop items | 50 | `LoopBuilder` | Raises `LoopBuilderError` and aborts |
+
+In addition the `MaterialTokenizer` emits warnings (but continues) when an individual chunk is unusually small (< 50 characters) or unusually large (> 20 000 characters). These warnings help detect poorly chosen regular expressions.
+
+The limits are intentional design decisions. When a limit is hit the recommended action is to split the input (smaller files, fewer loop entries, or a tighter chunking regex) and run dragiter multiple times.
 
 ---
 
@@ -194,6 +228,24 @@ output_filename_schema = "sample_01.txt"
 - `{CHUNK_CONTENT}`
 - `{LOOP_CONTENT}`
 - `{LOOP_NUM_ID}` (and other keys that may appear in a loop dictionary)
+- `{STDIN}` (replaced by content read from standard input, if any)
+
+### Defaults applied by PromptCreator
+
+The example values shown in the sample `prompt.toml` above are **not** the code defaults.  
+They are merely the values chosen for that particular demonstration file.
+
+When a prompt file is loaded, the `PromptCreator` applies the following **hard-coded defaults** for any key that is missing from both the main configuration system and the prompt template itself:
+
+| Key                        | Hard-coded default   |
+|----------------------------|----------------------|
+| `temperature`              | `0.0`                |
+| `sequential_processing`    | `false`              |
+| `output_delimiter`         | `"\n"`               |
+| `output_filename_schema`   | `"dragiter-out.txt"` |
+
+These form the lowest priority layer (see section 1).  
+Consequently a prompt template that omits `[behaviour]` or `[outcome]` entirely still receives a fully populated `PromptTemplate` object.
 
 The `PromptTemplate` object stores:
 
@@ -565,6 +617,8 @@ Exact presence and cardinality depend on the pipeline path taken (simulation mod
 
 ## 11. Built-in defaults summary
 
+### Main configuration system
+
 | Setting | Applied default |
 |---------|-----------------|
 | `base_directory` | Current working directory (`Path.cwd()`) |
@@ -573,6 +627,17 @@ Exact presence and cardinality depend on the pipeline path taken (simulation mod
 | All other settings | Remain unset until supplied by CLI, config file or environment |
 
 Token-related values (`chars_per_token`, `max_context_tokens`, `max_output_tokens`) have no hard-coded numeric default inside the validator; the example configuration files document the conventional values used for estimation (`chars_per_token = 4.0`).
+
+### PromptCreator hard-coded defaults
+
+These defaults are applied by the `PromptCreator` when a prompt file is loaded and the corresponding key has not been supplied by a higher-priority source (CLI, main config, environment, or the prompt template itself). See also section 1 and section 5.
+
+| Setting | Hard-coded default |
+|---------|--------------------|
+| `temperature` | `0.0` |
+| `sequential_processing` | `false` |
+| `output_delimiter` | `"\n"` |
+| `output_filename_schema` | `"dragiter-out.txt"` |
 
 ---
 

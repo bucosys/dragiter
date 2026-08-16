@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from test_e2e_infrastructure import _run_dragiter
+from tests.e2e.test_e2e_infrastructure import _run_dragiter
 
 
 def ollama_is_available() -> bool:

@@ -42,5 +42,5 @@ class TextFileReader(Protocol):
         ...  # Using an ellipsis (...) is the pythonic standard for Protocol bodies
 
 
-class TextFileReaderError:
-    pass
+class TextFileReaderError(Exception):
+    """Raised when a text file cannot be read (missing, oversized, encoding, …)."""

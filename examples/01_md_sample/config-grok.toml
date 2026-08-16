@@ -1,22 +1,47 @@
 # ===================================================================
-# REVISITED: 2026-07-02 Configuration Update
+# REVISITED: 2026-08-16 Configuration Update
+# ===================================================================
+#
+# dragiter Configuration Template for xAI Grok
+# (OpenAI-compatible endpoint)
+#
+# IMPORTANT SECURITY NOTICE
+# ------------------------------------------------------------------
+# NEVER put a real API key into this file.
+#
+# Storing secrets in configuration files is a serious security risk
+# (version control, backups, shared machines, accidental commits …).
+#
+# Recommended approaches:
+#
+#   A) Single provider (simplest)
+#      Export the key directly into the variable that dragiter reads:
+#
+#        export DRAGITER_API_KEY="xai-..."
+#
+#      Then just call:
+#        dragiter -v -c config-grok.toml -p prompt.toml …
+#
+#   B) Multiple providers
+#      Keep provider-specific keys and map them only for the current call:
+#
+#        export GROK_API_KEY="xai-..."
+#        export CLAUDE_API_KEY="sk-ant-..."
+#        export GEMINI_API_KEY="AIza..."
+#        # …
+#
+#        DRAGITER_API_KEY="$GROK_API_KEY" \
+#          dragiter -v -c config-grok.toml -p prompt.toml …
+#
+# You can also pass the key on the command line with --api-key,
+# but the environment-variable forms above are preferred.
+#
+# Leave the api_key line below commented out.
 # ===================================================================
 
-# dragiter Configuration Template for Google Gemini (OpenAI compatible)
-
-# API Key options:
-# You can either uncomment the line below and insert your Google API key,
-# or leave it commented out and provide the key via command line
-# (--api-key) or the DRAGITER_API_KEY environment variable.
-#
-# Storing API keys in configuration files requires careful consideration
-# regarding security and access control. In shared, team, or production
-# environments it is generally advisable to use environment variables
-# or dedicated secret management solutions instead.
-
-# api_key="YOUR-GROK-API-KEY-HERE"
+# api_key = "DO-NOT-PUT-A-REAL-KEY-HERE"
 base_url = "https://api.x.ai/v1"
-model_name = "grok-4.3"
+model_name = "grok-4.6"
 
 # ===================================================================
 # Optional advanced settings (uncomment and adjust as needed)

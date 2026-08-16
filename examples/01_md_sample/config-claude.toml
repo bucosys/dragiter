@@ -2,7 +2,7 @@
 # REVISITED: 2026-08-15 Configuration Update
 # ===================================================================
 #
-# dragiter Configuration Template (google gemini)
+# dragiter Configuration Template (claude)
 #
 # IMPORTANT SECURITY NOTICE
 # ------------------------------------------------------------------
@@ -16,10 +16,10 @@
 #   A) Single provider (simplest)
 #      Export the key directly into the variable that dragiter reads:
 #
-#        export DRAGITER_API_KEY="AIza..."
+#        export DRAGITER_API_KEY="sk-ant-..."
 #
 #      Then just call:
-#        dragiter -v -c config-google.toml -p prompt.toml …
+#        dragiter -v -c config-claude.toml -p prompt.toml …
 #
 #   B) Multiple providers
 #      Keep provider-specific keys and map them only for the current call:
@@ -28,8 +28,8 @@
 #        export GEMINI_API_KEY="AIza..."
 #        # …
 #
-#        DRAGITER_API_KEY="$GEMINI_API_KEY" \
-#          dragiter -v -c config-google.toml -p prompt.toml …
+#        DRAGITER_API_KEY="$CLAUDE_API_KEY" \
+#          dragiter -v -c config-claude.toml -p prompt.toml …
 #
 # You can also pass the key on the command line with --api-key,
 # but the environment-variable forms above are preferred.
@@ -38,9 +38,9 @@
 # ===================================================================
 
 # api_key = "DO-NOT-PUT-A-REAL-KEY-HERE"
+base_url = "https://api.anthropic.com/v1"
+model_name = "claude-sonnet-4-6"
 
-base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-model_name = "gemini-3.6-flash"
 
 # ===================================================================
 # Optional advanced settings (uncomment and adjust as needed)
@@ -50,8 +50,7 @@ model_name = "gemini-3.6-flash"
 # chars_per_token = 3.8
 
 # Maximum context window of the model (input + output)
-# Gemini 2.5 Flash supports up to 1M tokens. 200k–500k is a good practical range.
-# max_context_tokens = 200000
+# max_context_tokens = 128000
 
 # Maximum number of tokens the model is allowed to generate as output.
 # This value is used for dragiter's token estimation AND passed to the API

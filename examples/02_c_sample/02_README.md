@@ -10,7 +10,7 @@ This example demonstrates a C code security analysis workflow.
 
 ## Preparation
 Open your terminal and navigate to the example directory:
-    cd examples/02_md_sample
+    cd examples/02_c_sample
 
 It is highly recommended to run a simulation first.
 

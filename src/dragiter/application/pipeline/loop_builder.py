@@ -40,7 +40,6 @@ class LoopBuilder(Worker):
         pass
 
     def run(self, loop_file_path_setting: LoopFilePathSetting) -> Loop:
-        # missing: check if file is JSON-L ...
         try:
             contents: List[str] = []  # filled with lines from file (if set)
             dict_list: List[dict[str, Any]] = []  # for return purpose
@@ -76,7 +75,9 @@ class LoopBuilder(Worker):
             return Loop(lines=dict_list)
 
         except Exception as e:
-            raise LoopBuilderError(f"Failed to load loop data.") from e
+            raise LoopBuilderError(
+                f"Failed to load loop data from {loop_file_path_setting.value}: {e}"
+            ) from e
 
 
 class LoopBuilderError(Exception):

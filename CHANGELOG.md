@@ -8,6 +8,9 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+## [2026.8.16] - 2026-08-16
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.8.16](https://gitlab.com/bucosys/dragiter/-/tags/2026.8.16)
+
 ### Added
 - MkDocs-based project documentation under `web/` (including index.md with logo and links)
 - GitLab CI pipeline: unit tests on Python 3.13 + automatic documentation deployment via GitLab Pages
@@ -16,6 +19,8 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 - Circuit breakers: 100 MB file size limit in `SimpleTextFileReader`
 - Circuit breakers: 200 chunk limit and size warnings (<50 / >20k chars) in `MaterialTokenizer`
 - Circuit breakers: 50 item limit in `LoopBuilder` to prevent combinatorial explosion and API cost spikes
+- Documented the existing circuit-breaker limits and soft chunk-size warnings in the Technical Reference and Manual
+- Expanded `tests/README.md` with live cloud E2E key setup and Caddy TLS/mTLS recipes
 
 ### Changed
 - Complete rewrite of documentation following the Diátaxis framework

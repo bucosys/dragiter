@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from test_e2e_infrastructure import _run_dragiter
+from tests.e2e.test_e2e_infrastructure import _run_dragiter
 
 
 def caddy_tls_is_available(host: str = "localhost", port: int = 8443) -> bool:

@@ -72,7 +72,10 @@ If you frequently switch between providers it is usually clearer to keep using t
 
 ### 5. Use a cloud provider
 
-Edit one of the cloud configuration files (for example `config-google.toml` or `config-grok.toml`) and insert your API key. Then run:
+Edit one of the cloud configuration files (for example `config-google.toml` or `config-grok.toml`).  
+**Do not put a real API key into the file** — see “How to supply API keys securely” below.
+
+Then run:
 
 ```bash
 dragiter -v -c config-google.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
@@ -113,7 +116,7 @@ dragiter ... --base-url "http://localhost:11434/v1" \
 
 ```bash
 dragiter ... --base-url "https://api.x.ai/v1" \
-             --model-name "grok-beta" \
+             --model-name "grok-4.3" \
              --api-key "YOUR_XAI_KEY"
 ```
 
@@ -122,6 +125,95 @@ dragiter ... --base-url "https://api.x.ai/v1" \
 Point `--base-url` at the provider’s OpenAI-compatible endpoint (or a proxy such as LiteLLM) and supply the appropriate model name and key.
 
 All three values may also be placed in a TOML configuration file or supplied as environment variables. Full details of every configuration key appear in the Technical Reference.
+
+### How to supply API keys securely
+
+**Never put a real API key into a configuration file.**  
+Configuration files are frequently committed to version control, copied, backed up or shared. Doing so is a serious security risk.
+
+dragiter reads the key from the environment variable `DRAGITER_API_KEY` (or from the `--api-key` command-line flag). Two safe patterns are recommended.
+
+#### A) Single provider (simplest)
+
+Export the key once into the variable that dragiter expects, then call the tool normally.
+
+**Linux / macOS / Git Bash / WSL**
+
+```bash
+export DRAGITER_API_KEY="xai-…"          # or your Claude / Gemini / OpenAI key
+dragiter -v -c config-grok.toml -p prompt.toml -r resource.toml -l loop.txt
+```
+
+**Windows PowerShell**
+
+```powershell
+$env:DRAGITER_API_KEY = "xai-…"
+dragiter -v -c config-grok.toml -p prompt.toml -r resource.toml -l loop.txt
+```
+
+**Windows cmd.exe**
+
+```cmd
+set DRAGITER_API_KEY=xai-…
+dragiter -v -c config-grok.toml -p prompt.toml -r resource.toml -l loop.txt
+```
+
+#### B) Multiple providers
+
+Keep provider-specific keys and map them only for the current invocation. The mapping exists solely for that one process and disappears afterwards.
+
+**Linux / macOS / Git Bash / WSL**
+
+```bash
+export GROK_API_KEY="xai-…"
+export CLAUDE_API_KEY="sk-ant-…"
+export GEMINI_API_KEY="AIza…"
+
+# use Grok for this run
+DRAGITER_API_KEY="$GROK_API_KEY" \
+  dragiter -v -c config-grok.toml -p prompt.toml -r resource.toml -l loop.txt
+
+# switch to Claude without changing any file
+DRAGITER_API_KEY="$CLAUDE_API_KEY" \
+  dragiter -v -c config-claude.toml -p prompt.toml -r resource.toml -l loop.txt
+```
+
+**Windows PowerShell**
+
+```powershell
+$env:GROK_API_KEY   = "xai-…"
+$env:CLAUDE_API_KEY = "sk-ant-…"
+$env:GEMINI_API_KEY = "AIza…"
+
+# use Grok for this run
+$env:DRAGITER_API_KEY = $env:GROK_API_KEY
+dragiter -v -c config-grok.toml -p prompt.toml -r resource.toml -l loop.txt
+
+# switch to Claude
+$env:DRAGITER_API_KEY = $env:CLAUDE_API_KEY
+dragiter -v -c config-claude.toml -p prompt.toml -r resource.toml -l loop.txt
+```
+
+**Windows cmd.exe**
+
+```cmd
+set GROK_API_KEY=xai-…
+set CLAUDE_API_KEY=sk-ant-…
+set GEMINI_API_KEY=AIza…
+
+REM use Grok for this run
+set DRAGITER_API_KEY=%GROK_API_KEY% && dragiter -v -c config-grok.toml -p prompt.toml -r resource.toml -l loop.txt
+
+REM switch to Claude
+set DRAGITER_API_KEY=%CLAUDE_API_KEY% && dragiter -v -c config-claude.toml -p prompt.toml -r resource.toml -l loop.txt
+```
+
+#### Additional notes
+
+- Leave the `api_key = "…"` line in every `config-*.toml` **commented out**.
+- Environment variables are ignored when the same key is already present in a loaded configuration file (see Configuration precedence). Therefore keep secrets out of the TOML files.
+- The activity log automatically masks any field whose name contains the substring “key”.
+- On Windows PowerShell the assignment `$env:VAR = …` persists for the remainder of the session; remove it afterwards with `Remove-Item Env:DRAGITER_API_KEY` if desired.
 
 ### How to define material (resources)
 
@@ -312,6 +404,20 @@ Full lists of recognised keys and their types appear in the Technical Reference.
 Large documents are rarely useful when sent as a single undifferentiated block. dragiter therefore encourages (and helps you enforce) a deliberate chunking strategy. The resource file’s regular expression determines the logical units; the prompt template decides how those units are presented to the model.
 
 Token estimation is deliberately simple and conservative: character count divided by `chars_per_token`. The resulting estimate is compared against the remaining context budget (`max_context_tokens` − `max_output_tokens`). Requests that would exceed the budget are rejected before any network call is made. This behaviour is intentional: it is better to fail early and loudly than to discover mid-batch that half the work was truncated by the provider.
+
+### Hard safety limits (circuit breakers)
+
+In addition to the configurable context-window checks, dragiter enforces three hard, non-configurable limits:
+
+- **100 MB** – maximum size of any single input file
+- **200 chunks** – maximum number of material chunks that may be produced from all resources combined
+- **50 loop items** – maximum number of entries in a loop file
+
+These circuit breakers prevent accidental combinatorial explosion and protect both memory and API budgets. When a limit is exceeded the process aborts with a clear error message. The usual remedy is to split the work into smaller batches.
+
+Soft warnings are also issued when individual chunks fall outside a sensible size range (fewer than 50 or more than 20 000 characters); the run continues, but the warnings should prompt a review of the chunking regular expression.
+
+Full details appear in the Technical Reference.
 
 ### Sequential versus batched processing
 

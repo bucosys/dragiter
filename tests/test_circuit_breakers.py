@@ -1,0 +1,345 @@
+# =============================================================================
+# dragiter - Deterministic Context Iterator
+# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
+#
+# This file is part of dragiter.
+#
+# dragiter is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# dragiter is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
+#
+# For commercial licensing (closed-source use, SaaS, etc.), please contact:
+# Michael Buchold <michael.buchold@dragiter.app>
+# =============================================================================
+
+"""
+Unit tests for the safety circuit breakers.
+
+These limits protect against accidental resource exhaustion and unbounded API
+cost. They must:
+
+  * abort with a clear, actionable error when the hard limit is exceeded
+  * remain invisible for normal workloads
+  * emit diagnostic warnings for suboptimal chunk sizes
+
+All tests are fully isolated (tmp_path / in-memory fakes, no network, no LLM).
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock
+
+import pytest
+
+from dragiter.application.pipeline.loop_builder import LoopBuilder, LoopBuilderError
+from dragiter.application.pipeline.material_tokenizer import (
+    MaterialTokenizer,
+    MaterialTokenizerError,
+)
+from dragiter.domain.models.resources import ResourceSection, Resources
+from dragiter.domain.models.settings import LoopFilePathSetting
+from dragiter.domain.models.text_file import TextFile
+from dragiter.domain.ports.text_file_reader import TextFileReaderError
+from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _error_text(exc: BaseException) -> str:
+    """
+    Collect the full error text including any chained cause.
+
+    The pipeline currently wraps domain exceptions in a generic outer error
+    (`from e`). Checking both layers keeps the tests stable whether or not
+    that wrapping is later removed.
+    """
+    parts = [str(exc)]
+    cause = exc.__cause__
+    if cause is not None:
+        parts.append(str(cause))
+    return " ".join(parts)
+
+
+def _make_resources_with_content(
+    tmp_path: Path,
+    content: str,
+    *,
+    section_name: str = "sec01",
+    regex: str = r"(^#+\s+.*$)",
+) -> Resources:
+    """Build a minimal Resources object pointing at a single temp file."""
+    path = tmp_path / "material.md"
+    path.write_text(content, encoding="utf-8")
+
+    section = ResourceSection(
+        section_name=section_name,
+        text_files=[TextFile(path=path)],
+        regex_pattern=regex,
+        exclude_filters=[],
+        include_filters=[],
+    )
+    resources = Resources()
+    resources.append_resource_section(section)
+    return resources
+
+
+def _heading_document(num_sections: int, body: str = "Body text for this section.") -> str:
+    """Generate a Markdown document with exactly *num_sections* headings."""
+    parts = [f"# Section {i}\n\n{body}\n" for i in range(1, num_sections + 1)]
+    return "\n".join(parts)
+
+
+class _FixedContentReader:
+    """Minimal TextFileReader stand-in that always returns the same string."""
+
+    def __init__(self, content: str) -> None:
+        self._content = content
+
+    def read(self, text_file: TextFile) -> str:
+        return self._content
+
+
+# ---------------------------------------------------------------------------
+# SimpleTextFileReader – 100 MB hard limit
+# ---------------------------------------------------------------------------
+
+class TestSimpleTextFileReaderLimit:
+    """100 MB per-file hard limit."""
+
+    def test_small_file_is_accepted(self, tmp_path: Path) -> None:
+        path = tmp_path / "ok.txt"
+        path.write_text("hello world", encoding="utf-8")
+
+        reader = SimpleTextFileReader()
+        result = reader.read(TextFile(path=path))
+
+        assert result == "hello world"
+
+    def test_oversized_file_raises_with_clear_message(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = tmp_path / "huge.txt"
+        path.write_text("tiny on disk", encoding="utf-8")
+
+        # Avoid creating a real 100 MB file: report a fake size via stat().
+        fake_stat = MagicMock()
+        fake_stat.st_size = SimpleTextFileReader.MAX_FILE_SIZE_BYTES + 1
+        monkeypatch.setattr(Path, "stat", lambda self, *a, **k: fake_stat)
+
+        reader = SimpleTextFileReader()
+        with pytest.raises(TextFileReaderError) as exc_info:
+            reader.read(TextFile(path=path))
+
+        msg = str(exc_info.value)
+        assert "100 MB" in msg
+        assert "huge.txt" in msg
+        assert "split" in msg.lower()
+
+    def test_file_exactly_at_limit_is_accepted(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = tmp_path / "edge.txt"
+        path.write_text("x", encoding="utf-8")
+
+        fake_stat = MagicMock()
+        fake_stat.st_size = SimpleTextFileReader.MAX_FILE_SIZE_BYTES
+        monkeypatch.setattr(Path, "stat", lambda self, *a, **k: fake_stat)
+        # Bypass the real read_text so we do not depend on the fake size.
+        monkeypatch.setattr(Path, "read_text", lambda self, encoding="utf-8": "x")
+
+        reader = SimpleTextFileReader()
+        assert reader.read(TextFile(path=path)) == "x"
+
+
+# ---------------------------------------------------------------------------
+# MaterialTokenizer – 200 chunk hard limit + size warnings
+# ---------------------------------------------------------------------------
+
+class TestMaterialTokenizerChunkLimit:
+    """200 total chunks hard limit."""
+
+    def test_under_limit_succeeds(self, tmp_path: Path) -> None:
+        content = _heading_document(MaterialTokenizer.MAX_TOTAL_CHUNKS)
+        resources = _make_resources_with_content(tmp_path, content)
+        tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
+
+        material = tokenizer.run(resources)
+
+        assert len(material.chunks) == MaterialTokenizer.MAX_TOTAL_CHUNKS
+
+    def test_over_limit_raises_with_actionable_message(self, tmp_path: Path) -> None:
+        over = MaterialTokenizer.MAX_TOTAL_CHUNKS + 1
+        content = _heading_document(over)
+        resources = _make_resources_with_content(tmp_path, content)
+        tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
+
+        with pytest.raises(MaterialTokenizerError) as exc_info:
+            tokenizer.run(resources)
+
+        msg = _error_text(exc_info.value)
+        assert str(MaterialTokenizer.MAX_TOTAL_CHUNKS) in msg
+        assert "refine your regex" in msg.lower() or "fewer files" in msg.lower()
+
+    def test_limit_is_checked_across_multiple_sections(self, tmp_path: Path) -> None:
+        """Chunks from successive resource sections accumulate toward the limit."""
+        half = MaterialTokenizer.MAX_TOTAL_CHUNKS // 2 + 1  # two sections → over limit
+        content = _heading_document(half)
+
+        path_a = tmp_path / "a.md"
+        path_b = tmp_path / "b.md"
+        path_a.write_text(content, encoding="utf-8")
+        path_b.write_text(content, encoding="utf-8")
+
+        resources = Resources()
+        for name, path in (("sec_a", path_a), ("sec_b", path_b)):
+            resources.append_resource_section(
+                ResourceSection(
+                    section_name=name,
+                    text_files=[TextFile(path=path)],
+                    regex_pattern=r"(^#+\s+.*$)",
+                    exclude_filters=[],
+                    include_filters=[],
+                )
+            )
+
+        tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
+        with pytest.raises(MaterialTokenizerError) as exc_info:
+            tokenizer.run(resources)
+
+        assert str(MaterialTokenizer.MAX_TOTAL_CHUNKS) in _error_text(exc_info.value)
+
+
+class TestMaterialTokenizerChunkSizeWarnings:
+    """Soft warnings for chunks that are too small or extremely large."""
+
+    def test_tiny_chunk_emits_warning(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+        # Two headings with almost no body → chunks well under WARN_MIN_CHARS.
+        content = "# A\nx\n# B\ny\n"
+        resources = _make_resources_with_content(tmp_path, content)
+        tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
+
+        with caplog.at_level("WARNING"):
+            tokenizer.run(resources)
+
+        assert any("too small" in r.message.lower() for r in caplog.records)
+
+    def test_huge_chunk_emits_warning(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+        huge_body = "W" * (MaterialTokenizer.WARN_MAX_CHARS + 100)
+        content = f"# Big Section\n\n{huge_body}\n"
+        resources = _make_resources_with_content(tmp_path, content)
+        tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
+
+        with caplog.at_level("WARNING"):
+            tokenizer.run(resources)
+
+        assert any("extremely large" in r.message.lower() for r in caplog.records)
+
+    def test_normal_chunk_emits_no_size_warning(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        body = "Normal paragraph. " * 20  # comfortably inside the sweet spot
+        content = f"# Normal\n\n{body}\n"
+        resources = _make_resources_with_content(tmp_path, content)
+        tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
+
+        with caplog.at_level("WARNING"):
+            tokenizer.run(resources)
+
+        size_warnings = [
+            r for r in caplog.records
+            if "too small" in r.message.lower() or "extremely large" in r.message.lower()
+        ]
+        assert size_warnings == []
+
+
+# ---------------------------------------------------------------------------
+# LoopBuilder – 50 item hard limit
+# ---------------------------------------------------------------------------
+
+class TestLoopBuilderItemLimit:
+    """50 loop-item hard limit."""
+
+    def _loop_setting(self, path: Path) -> LoopFilePathSetting:
+        setting = LoopFilePathSetting(_key="loop_file")
+        setting.value = path
+        return setting
+
+    def test_under_limit_succeeds(self, tmp_path: Path) -> None:
+        path = tmp_path / "loop.txt"
+        path.write_text(
+            "\n".join(f"item-{i}" for i in range(LoopBuilder.MAX_LOOP_ITEMS)),
+            encoding="utf-8",
+        )
+        builder = LoopBuilder()
+
+        loop = builder.run(self._loop_setting(path))
+
+        assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
+
+    def test_over_limit_raises_with_actionable_message(self, tmp_path: Path) -> None:
+        path = tmp_path / "loop.txt"
+        path.write_text(
+            "\n".join(f"item-{i}" for i in range(LoopBuilder.MAX_LOOP_ITEMS + 1)),
+            encoding="utf-8",
+        )
+        builder = LoopBuilder()
+
+        with pytest.raises(LoopBuilderError) as exc_info:
+            builder.run(self._loop_setting(path))
+
+        msg = _error_text(exc_info.value)
+        assert str(LoopBuilder.MAX_LOOP_ITEMS) in msg
+        assert "split" in msg.lower() or "batch" in msg.lower()
+
+    def test_exactly_at_limit_is_accepted(self, tmp_path: Path) -> None:
+        path = tmp_path / "loop.txt"
+        path.write_text(
+            "\n".join(f"item-{i}" for i in range(LoopBuilder.MAX_LOOP_ITEMS)),
+            encoding="utf-8",
+        )
+        builder = LoopBuilder()
+
+        loop = builder.run(self._loop_setting(path))
+        assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
+
+    def test_empty_lines_do_not_count_toward_limit(self, tmp_path: Path) -> None:
+        """read_stripped_lines_from_file drops blank lines before the check."""
+        path = tmp_path / "loop.txt"
+        # 50 real items + many blank lines must still pass.
+        lines = [f"item-{i}" for i in range(LoopBuilder.MAX_LOOP_ITEMS)]
+        padded = []
+        for line in lines:
+            padded.append(line)
+            padded.append("")
+            padded.append("   ")
+        path.write_text("\n".join(padded), encoding="utf-8")
+
+        builder = LoopBuilder()
+        loop = builder.run(self._loop_setting(path))
+        assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
+
+    def test_jsonl_items_are_subject_to_the_same_limit(self, tmp_path: Path) -> None:
+        path = tmp_path / "loop.jsonl"
+        path.write_text(
+            "\n".join(f'{{"id": {i}}}' for i in range(LoopBuilder.MAX_LOOP_ITEMS + 1)),
+            encoding="utf-8",
+        )
+        builder = LoopBuilder()
+
+        with pytest.raises(LoopBuilderError) as exc_info:
+            builder.run(self._loop_setting(path))
+
+        assert str(LoopBuilder.MAX_LOOP_ITEMS) in _error_text(exc_info.value)
