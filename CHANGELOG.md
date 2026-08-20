@@ -10,6 +10,8 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [2026.8.20] - 2026-08-20
 
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.8.20](https://gitlab.com/bucosys/dragiter/-/tags/2026.8.20)
+
 ### Fixed
 - Honour `Chunk.valid` flag set by `include_filters` / `exclude_filters`
   when assembling prompts (sequential mode skips invalid chunks,
@@ -26,6 +28,7 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 - Expand Python classifiers to 3.11–3.13 and add `ruff>=0.16.3`
   plus a full `[tool.ruff]` configuration to `pyproject.toml`.
 - Point Documentation URL to https://www.dragiter.app/.
+- Apply ruff lint and format across the codebase for consistent style.
 
 ## [2026.8.16] - 2026-08-16
 
