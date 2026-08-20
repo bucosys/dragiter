@@ -22,7 +22,7 @@
 # =============================================================================
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Generic
+from typing import Generic, TypeVar
 
 # 1. We define a variable for the type of our arbitrary object (K)
 T = TypeVar('T')

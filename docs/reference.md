@@ -5,7 +5,8 @@
 **Scope:** Configuration, file formats, CLI, defaults, output behaviour and activity log  
 **Sources:** Source code (`src/dragiter/`), in particular `PromptCreator`, and example TOML files under `examples/`
 
-This document is the technical reference. It describes what the program actually accepts and does. It does **not** replace the user manual or how-to guides.
+This document is the technical reference. It describes what the program actually accepts and does. It does **not**
+replace the user manual or how-to guides.
 
 ---
 
@@ -38,7 +39,8 @@ When a prompt file (`-p`) is supplied, the effective precedence for these four s
    (`temperature = 0.0`, `sequential_processing = false`,  
    `output_delimiter = "\n"`, `output_filename_schema = "dragiter-out.txt"`)
 
-In other words, the prompt template acts as an additional, lower-priority layer that is consulted only when the setting has not already been supplied by the CLI or the main configuration system.
+In other words, the prompt template acts as an additional, lower-priority layer that is consulted only when the setting
+has not already been supplied by the CLI or the main configuration system.
 
 ### Config file discovery order
 
@@ -53,39 +55,40 @@ When no `--config-file` / `-c` is given:
 
 All settings that appear in the configuration loader are listed below.
 
-| Key (TOML / long CLI) | Short CLI | Type | Default (when unset) | Description |
-|-----------------------|-----------|------|----------------------|-------------|
-| `debug` | `-d` | bool | `false` | Enable debug logging |
-| `simulate` | `-s` | bool | `false` | Simulation mode (no API calls) |
-| `verbose` | `-v` | bool | `false` | Verbose output |
-| `sequential_processing` | — | bool | `false` | Process chunks one by one |
-| `api_key` | — | string | (none) | API key for the LLM service |
-| `base_url` | — | string | (none) | Base URL of the OpenAI-compatible endpoint |
-| `model_name` | — | string | (none) | Model identifier |
-| `output_delimiter` | — | string | (none) | Delimiter written between multiple results |
-| `output_filename_schema` | — | string | (none) | Filename template for output files |
-| `output_mode` | `-m` | string | `"x"` | File open mode: `x` (exclusive), `w` (overwrite), `a` (append) |
-| `task` | `-t` | string | (none) | Direct task text (alternative to a prompt file) |
-| `max_context_tokens` | — | int | (none) | Maximum total tokens the model can handle |
-| `max_output_tokens` | — | int | (none) | Maximum tokens the model may generate |
-| `chars_per_token` | — | float | (none)* | Average characters per token used for estimation |
-| `temperature` | — | float | (none) | Sampling temperature |
-| `retry_delay` | — | int | (none) | Seconds to wait between retries |
-| `max_retry` | — | int | (none) | Maximum number of retry attempts |
-| `base_directory` | `-b` | path | current working directory | Base directory for relative paths |
-| `activity_file` | `-a` | path | (none) | Write activity log to this file |
-| `ca_bundle_file` | — | path | (none) | Custom CA certificate bundle (PEM) |
-| `client_cert_file` | — | path | (none) | Client certificate for mTLS |
-| `client_key_file` | — | path | (none) | Client private key for mTLS |
-| `config_file` | `-c` | path | (see discovery) | Path to TOML configuration file |
-| `log_file` | `-L` | path | (none) | Write log output to file (with rotation) |
-| `prompt_file` | `-p` | path | (none) | Path to prompt template (`.toml`) |
-| `loop_file` | `-l` | path | (none) | Path to loop file (`.txt` or `.jsonl`) |
-| `resource_file` | `-r` | path | (none) | Path to resource definition (`.toml`) |
-| `output_file` | `-o` | path | (none) | Write all output to a single file |
-| `output_directory` | `-O` | path | (none) | Write outputs into this directory |
+| Key (TOML / long CLI)    | Short CLI | Type   | Default (when unset)      | Description                                                    |
+|--------------------------|-----------|--------|---------------------------|----------------------------------------------------------------|
+| `debug`                  | `-d`      | bool   | `false`                   | Enable debug logging                                           |
+| `simulate`               | `-s`      | bool   | `false`                   | Simulation mode (no API calls)                                 |
+| `verbose`                | `-v`      | bool   | `false`                   | Verbose output                                                 |
+| `sequential_processing`  | —         | bool   | `false`                   | Process chunks one by one                                      |
+| `api_key`                | —         | string | (none)                    | API key for the LLM service                                    |
+| `base_url`               | —         | string | (none)                    | Base URL of the OpenAI-compatible endpoint                     |
+| `model_name`             | —         | string | (none)                    | Model identifier                                               |
+| `output_delimiter`       | —         | string | (none)                    | Delimiter written between multiple results                     |
+| `output_filename_schema` | —         | string | (none)                    | Filename template for output files                             |
+| `output_mode`            | `-m`      | string | `"x"`                     | File open mode: `x` (exclusive), `w` (overwrite), `a` (append) |
+| `task`                   | `-t`      | string | (none)                    | Direct task text (alternative to a prompt file)                |
+| `max_context_tokens`     | —         | int    | (none)                    | Maximum total tokens the model can handle                      |
+| `max_output_tokens`      | —         | int    | (none)                    | Maximum tokens the model may generate                          |
+| `chars_per_token`        | —         | float  | (none)*                   | Average characters per token used for estimation               |
+| `temperature`            | —         | float  | (none)                    | Sampling temperature                                           |
+| `retry_delay`            | —         | int    | (none)                    | Seconds to wait between retries                                |
+| `max_retry`              | —         | int    | (none)                    | Maximum number of retry attempts                               |
+| `base_directory`         | `-b`      | path   | current working directory | Base directory for relative paths                              |
+| `activity_file`          | `-a`      | path   | (none)                    | Write activity log to this file                                |
+| `ca_bundle_file`         | —         | path   | (none)                    | Custom CA certificate bundle (PEM)                             |
+| `client_cert_file`       | —         | path   | (none)                    | Client certificate for mTLS                                    |
+| `client_key_file`        | —         | path   | (none)                    | Client private key for mTLS                                    |
+| `config_file`            | `-c`      | path   | (see discovery)           | Path to TOML configuration file                                |
+| `log_file`               | `-L`      | path   | (none)                    | Write log output to file (with rotation)                       |
+| `prompt_file`            | `-p`      | path   | (none)                    | Path to prompt template (`.toml`)                              |
+| `loop_file`              | `-l`      | path   | (none)                    | Path to loop file (`.txt` or `.jsonl`)                         |
+| `resource_file`          | `-r`      | path   | (none)                    | Path to resource definition (`.toml`)                          |
+| `output_file`            | `-o`      | path   | (none)                    | Write all output to a single file                              |
+| `output_directory`       | `-O`      | path   | (none)                    | Write outputs into this directory                              |
 
-\* The example configuration files document `chars_per_token = 4.0` as the conventional default used for estimation when the setting is left unset.
+\* The example configuration files document `chars_per_token = 4.0` as the conventional default used for estimation when
+the setting is left unset.
 
 ### Mandatory settings (when not in simulation mode)
 
@@ -102,23 +105,27 @@ All settings that appear in the configuration loader are listed below.
 
 ### Hard limits (circuit breakers)
 
-These limits are enforced at runtime and **cannot be configured**. They exist to protect against accidental combinatorial explosion, excessive memory consumption and runaway API costs.
+These limits are enforced at runtime and **cannot be configured**. They exist to protect against accidental
+combinatorial explosion, excessive memory consumption and runaway API costs.
 
-| Limit | Value | Component | Behaviour on breach |
-|-------|-------|-----------|---------------------|
-| Maximum file size | 100 MB | `SimpleTextFileReader` | Raises `TextFileReaderError` and aborts |
-| Maximum total chunks | 200 | `MaterialTokenizer` | Raises an error and aborts processing |
-| Maximum loop items | 50 | `LoopBuilder` | Raises `LoopBuilderError` and aborts |
+| Limit                | Value  | Component              | Behaviour on breach                     |
+|----------------------|--------|------------------------|-----------------------------------------|
+| Maximum file size    | 100 MB | `SimpleTextFileReader` | Raises `TextFileReaderError` and aborts |
+| Maximum total chunks | 200    | `MaterialTokenizer`    | Raises an error and aborts processing   |
+| Maximum loop items   | 50     | `LoopBuilder`          | Raises `LoopBuilderError` and aborts    |
 
-In addition the `MaterialTokenizer` emits warnings (but continues) when an individual chunk is unusually small (< 50 characters) or unusually large (> 20 000 characters). These warnings help detect poorly chosen regular expressions.
+In addition the `MaterialTokenizer` emits warnings (but continues) when an individual chunk is unusually small (< 50
+characters) or unusually large (> 20 000 characters). These warnings help detect poorly chosen regular expressions.
 
-The limits are intentional design decisions. When a limit is hit the recommended action is to split the input (smaller files, fewer loop entries, or a tighter chunking regex) and run dragiter multiple times.
+The limits are intentional design decisions. When a limit is hit the recommended action is to split the input (smaller
+files, fewer loop entries, or a tighter chunking regex) and run dragiter multiple times.
 
 ---
 
 ## 3. Environment variables
 
-Every configuration key can be supplied as an environment variable by prefixing it with `DRAGITER_` and converting it to upper case:
+Every configuration key can be supplied as an environment variable by prefixing it with `DRAGITER_` and converting it to
+upper case:
 
 ```
 DRAGITER_API_KEY
@@ -143,7 +150,8 @@ DRAGITER_LOG_FILE
 ...
 ```
 
-Boolean flags (`debug`, `simulate`, `verbose`, …) are also recognised when the corresponding environment variable is present.
+Boolean flags (`debug`, `simulate`, `verbose`, …) are also recognised when the corresponding environment variable is
+present.
 
 Environment variables are applied **after** the configuration file and only fill values that are still unset.
 
@@ -235,17 +243,19 @@ output_filename_schema = "sample_01.txt"
 The example values shown in the sample `prompt.toml` above are **not** the code defaults.  
 They are merely the values chosen for that particular demonstration file.
 
-When a prompt file is loaded, the `PromptCreator` applies the following **hard-coded defaults** for any key that is missing from both the main configuration system and the prompt template itself:
+When a prompt file is loaded, the `PromptCreator` applies the following **hard-coded defaults** for any key that is
+missing from both the main configuration system and the prompt template itself:
 
-| Key                        | Hard-coded default   |
-|----------------------------|----------------------|
-| `temperature`              | `0.0`                |
-| `sequential_processing`    | `false`              |
-| `output_delimiter`         | `"\n"`               |
-| `output_filename_schema`   | `"dragiter-out.txt"` |
+| Key                      | Hard-coded default   |
+|--------------------------|----------------------|
+| `temperature`            | `0.0`                |
+| `sequential_processing`  | `false`              |
+| `output_delimiter`       | `"\n"`               |
+| `output_filename_schema` | `"dragiter-out.txt"` |
 
 These form the lowest priority layer (see section 1).  
-Consequently a prompt template that omits `[behaviour]` or `[outcome]` entirely still receives a fully populated `PromptTemplate` object.
+Consequently a prompt template that omits `[behaviour]` or `[outcome]` entirely still receives a fully populated
+`PromptTemplate` object.
 
 The `PromptTemplate` object stores:
 
@@ -277,8 +287,9 @@ regex_pattern = '(^\d+\.\s+.*$)'
 Each table name becomes a **section name**.  
 Inside a section the following keys are used:
 
-- `glob_patterns` – list of glob patterns relative to the base directory
-- `regex_pattern` – regular expression used to split the matched files into chunks (default when omitted: a pattern that matches nothing)
+- `glob_patterns` - list of glob patterns relative to the base directory
+- `regex_pattern` - regular expression used to split the matched files into chunks (default when omitted: a pattern that
+  matches nothing)
 - Optional filters (supported by the `ResourceSection` model): `exclude_filters`, `include_filters`
 
 Multiple sections may be defined; they are processed independently.
@@ -342,8 +353,8 @@ dragiter [options]
 
 Additional entry points:
 
-- `dragiter-gen-examples` – extract the example trees
-- `dragiter-gen-docs` – extract the documentation
+- `dragiter-gen-examples` - extract the example trees
+- `dragiter-gen-docs` - extract the documentation
 
 ---
 
@@ -351,7 +362,8 @@ Additional entry points:
 
 ### Filename generation
 
-When an `output_filename_schema` is supplied, the following placeholders are substituted (see `OutputWriter._format_filename`):
+When an `output_filename_schema` is supplied, the following placeholders are substituted (see
+`OutputWriter._format_filename`):
 
 - Chunk-related: `CHUNK_NUM_ID`, `CHUNK_FILE_NAME`, `CHUNK_SECTION_NAME`, `CHUNK_SECTION_NUM_ID`
 - Loop-related: any key present in the current loop dictionary (especially `LOOP_NUM_ID`, `LOOP_CONTENT`)
@@ -363,11 +375,11 @@ Filenames are sanitised before being written.
 
 Controlled by `output_mode`:
 
-| Value | Behaviour |
-|-------|-----------|
+| Value | Behaviour                                                     |
+|-------|---------------------------------------------------------------|
 | `x`   | Exclusive create (default). Fails if the file already exists. |
-| `w`   | Overwrite |
-| `a`   | Append |
+| `w`   | Overwrite                                                     |
+| `a`   | Append                                                        |
 
 ### Delimiter
 
@@ -377,7 +389,8 @@ When multiple results are written to the same file, the value of `output_delimit
 
 ## 10. Activity log format
 
-When the setting `activity_file` (CLI `-a` / environment `DRAGITER_ACTIVITY_FILE`) is set, dragiter writes a detailed activity trace.
+When the setting `activity_file` (CLI `-a` / environment `DRAGITER_ACTIVITY_FILE`) is set, dragiter writes a detailed
+activity trace.
 
 ### 10.1 File format
 
@@ -390,10 +403,10 @@ The activity file is a **JSON Lines** (JSONL) file.
 
 Every record is enhanced with two envelope fields:
 
-| Field | Type     | Description |
-|-------|----------|-------------|
-| `TS`  | datetime | Timestamp of the event in UTC |
-| `RT`  | string   | Runtime type – the class name of the object that produced the record (or a special marker) |
+| Field | Type     | Description                                                                                |
+|-------|----------|--------------------------------------------------------------------------------------------|
+| `TS`  | datetime | Timestamp of the event in UTC                                                              |
+| `RT`  | string   | Runtime type - the class name of the object that produced the record (or a special marker) |
 
 ### 10.2 Lifecycle records
 
@@ -437,11 +450,13 @@ or with `FAILURE`.
 
 ### 10.3 Domain activity records
 
-Whenever an object that implements the `ActivityProvider` protocol is stored, its `to_activity_dict_list()` method is called and the returned dictionaries are written (each with the `TS` / `RT` envelope).
+Whenever an object that implements the `ActivityProvider` protocol is stored, its `to_activity_dict_list()` method is
+called and the returned dictionaries are written (each with the `TS` / `RT` envelope).
 
 #### Value-settings based records
 
-Classes inheriting from `ValueSettingsActivityProvider` (`AIServiceParameters`, `ProcessingParameters`, path/output parameter objects, …).
+Classes inheriting from `ValueSettingsActivityProvider` (`AIServiceParameters`, `ProcessingParameters`, path/output
+parameter objects, …).
 
 Keys that contain the substring `"key"` have their value replaced by `***MASKED***`.
 
@@ -611,7 +626,8 @@ Exact presence and cardinality depend on the pipeline path taken (simulation mod
 
 - The concrete logger is `FileActivityLogger`, which inherits from `BufferedActivityLogger`.
 - Records are kept in an in-memory list and flushed to disk on every `write_activity` / `write_exception` call.
-- Sensitive values are masked only when the setting key contains the substring `"key"` (case-sensitive). Consequently `api_key` is masked; other fields are written in clear text.
+- Sensitive values are masked only when the setting key contains the substring `"key"` (case-sensitive). Consequently
+  `api_key` is masked; other fields are written in clear text.
 
 ---
 
@@ -619,24 +635,28 @@ Exact presence and cardinality depend on the pipeline path taken (simulation mod
 
 ### Main configuration system
 
-| Setting | Applied default |
-|---------|-----------------|
-| `base_directory` | Current working directory (`Path.cwd()`) |
-| `output_mode` | `"x"` |
-| Boolean flags (`debug`, `simulate`, `verbose`, `sequential_processing`) | `false` |
-| All other settings | Remain unset until supplied by CLI, config file or environment |
+| Setting                                                                 | Applied default                                                |
+|-------------------------------------------------------------------------|----------------------------------------------------------------|
+| `base_directory`                                                        | Current working directory (`Path.cwd()`)                       |
+| `output_mode`                                                           | `"x"`                                                          |
+| Boolean flags (`debug`, `simulate`, `verbose`, `sequential_processing`) | `false`                                                        |
+| All other settings                                                      | Remain unset until supplied by CLI, config file or environment |
 
-Token-related values (`chars_per_token`, `max_context_tokens`, `max_output_tokens`) have no hard-coded numeric default inside the validator; the example configuration files document the conventional values used for estimation (`chars_per_token = 4.0`).
+Token-related values (`chars_per_token`, `max_context_tokens`, `max_output_tokens`) have no hard-coded numeric default
+inside the validator; the example configuration files document the conventional values used for estimation
+(`chars_per_token = 4.0`).
 
 ### PromptCreator hard-coded defaults
 
-These defaults are applied by the `PromptCreator` when a prompt file is loaded and the corresponding key has not been supplied by a higher-priority source (CLI, main config, environment, or the prompt template itself). See also section 1 and section 5.
+These defaults are applied by the `PromptCreator` when a prompt file is loaded and the corresponding key has not been
+supplied by a higher-priority source (CLI, main config, environment, or the prompt template itself). See also section 1
+and section 5.
 
-| Setting | Hard-coded default |
-|---------|--------------------|
-| `temperature` | `0.0` |
-| `sequential_processing` | `false` |
-| `output_delimiter` | `"\n"` |
+| Setting                  | Hard-coded default   |
+|--------------------------|----------------------|
+| `temperature`            | `0.0`                |
+| `sequential_processing`  | `false`              |
+| `output_delimiter`       | `"\n"`               |
 | `output_filename_schema` | `"dragiter-out.txt"` |
 
 ---
@@ -663,7 +683,8 @@ These defaults are applied by the `PromptCreator` when a prompt file is loaded a
 - File logger: `src/dragiter/application/core/file_activity_logger.py`
 - JSONL writer: `src/dragiter/infrastructure/io/io_services.py` → `append_jsonl_to_file`
 - Value-settings masking: `src/dragiter/domain/models/value_settings_activity_provider.py`
-- Domain producers: `src/dragiter/domain/models/{resources,material,loop,prompt_template,chat_sessions,chat_results,application_result}.py`
+- Domain producers:
+  `src/dragiter/domain/models/{resources,material,loop,prompt_template,chat_sessions,chat_results,application_result}.py`
 
 **Examples**
 

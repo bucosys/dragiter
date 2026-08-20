@@ -23,9 +23,14 @@
 from dataclasses import dataclass
 
 from dragiter.domain.models.settings import (
+    ActivityFilePathSetting,
+    LogFilePathSetting,
+    OutputDelimiterStringSetting,
     OutputDirectoryPathSetting,
-    ActivityFilePathSetting, LogFilePathSetting, OutputFilePathSetting,
-    OutputDelimiterStringSetting, OutputFilenameSchemaStringSetting, OutputModeStringSetting)
+    OutputFilenameSchemaStringSetting,
+    OutputFilePathSetting,
+    OutputModeStringSetting,
+)
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
 
 

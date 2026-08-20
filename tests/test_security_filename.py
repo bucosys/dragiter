@@ -10,13 +10,12 @@ from pathlib import Path
 
 import pytest
 
-from dragiter.infrastructure.io.filename_utils import (
-    sanitize_filename,
-    ensure_path_within_directory,
-)
 from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.domain.models.chunk import Chunk
-
+from dragiter.infrastructure.io.filename_utils import (
+    ensure_path_within_directory,
+    sanitize_filename,
+)
 
 # ---------------------------------------------------------------------------
 # Unit tests for sanitize_filename

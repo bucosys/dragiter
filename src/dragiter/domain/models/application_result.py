@@ -24,8 +24,9 @@
 from dataclasses import dataclass
 from typing import Any
 
+from dragiter import __tool_name__, __version__
 from dragiter.domain.ports.activity_provider import ActivityProvider
-from dragiter import __version__, __tool_name__
+
 
 @dataclass(frozen=True)
 class ApplicationResult(ActivityProvider):

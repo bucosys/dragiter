@@ -26,11 +26,16 @@ import sys
 
 from dragiter.application.config.configuration_loader import ConfigurationLoader
 from dragiter.application.config.configuration_validator import ConfigurationValidator
-from dragiter.application.config.logging_configuration import LoggingConfiguration, LoggingConfigurator
+from dragiter.application.config.logging_configuration import (
+    LoggingConfiguration,
+    LoggingConfigurator,
+)
 from dragiter.application.core.file_activity_logger import FileActivityLogger
 from dragiter.application.pipeline.application import Application
 from dragiter.application.pipeline.chat_manager import ChatManager
-from dragiter.application.pipeline.context_window_estimator import ContextWindowEstimator
+from dragiter.application.pipeline.context_window_estimator import (
+    ContextWindowEstimator,
+)
 from dragiter.application.pipeline.loop_builder import LoopBuilder
 from dragiter.application.pipeline.material_tokenizer import MaterialTokenizer
 from dragiter.application.pipeline.message_builder import MessageBuilder
@@ -75,26 +80,23 @@ def main():
 
     ## TASK THE CHAIN
     try:
-
         app = Application()
         app.register_activity_logger(FileActivityLogger())
         app.register_worker(ConfigurationLoader())
         app.register_worker(ConfigurationValidator())
-        app.register_worker(ResourceCollector(SimpleFileChecker())) # -> Resources
-        app.register_worker(MaterialTokenizer(SimpleTextFileReader())) # -> Material
-        app.register_worker(LoopBuilder()) # -> Loop
-        app.register_worker(PromptCreator()) # -> PromptTemplate
-        app.register(MessageBuilder(), ChatSessionsValidator()) # -> ChatSessions
-        app.register_worker(ContextWindowEstimator(SimplePayloadEstimator())) # -> None
-        app.register_worker(ChatManager(OpenAIService())) # -> ChatResults
-        app.register_worker(OutputWriter()) # -> ApplicationResult
+        app.register_worker(ResourceCollector(SimpleFileChecker()))  # -> Resources
+        app.register_worker(MaterialTokenizer(SimpleTextFileReader()))  # -> Material
+        app.register_worker(LoopBuilder())  # -> Loop
+        app.register_worker(PromptCreator())  # -> PromptTemplate
+        app.register(MessageBuilder(), ChatSessionsValidator())  # -> ChatSessions
+        app.register_worker(ContextWindowEstimator(SimplePayloadEstimator()))  # -> None
+        app.register_worker(ChatManager(OpenAIService()))  # -> ChatResults
+        app.register_worker(OutputWriter())  # -> ApplicationResult
         app.run()
 
         return 0
 
-
-
-    except (KeyboardInterrupt) as e:
+    except KeyboardInterrupt:
         # Using stderr for the interrupt message is good practice
         print("\n[!] Process interrupted by user.", file=sys.stderr)
         return 130

@@ -20,12 +20,12 @@
 # For commercial licensing (closed-source use, SaaS, etc.), please contact:
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
-import datetime
-from dataclasses import dataclass, fields
+from dataclasses import fields
 from typing import Any
 
 from dragiter.domain.models.settings import ValueSetting
 from dragiter.domain.ports.activity_provider import ActivityProvider
+
 
 class ValueSettingsActivityProvider(ActivityProvider):
 

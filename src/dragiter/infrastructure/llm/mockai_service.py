@@ -21,19 +21,15 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
+from datetime import datetime
 import json
 import logging
-from datetime import datetime
 
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
 from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
-
 from dragiter.domain.ports.payload_estimator import PayloadEstimator
-
-
-
 
 logger = logging.getLogger(__name__)
 

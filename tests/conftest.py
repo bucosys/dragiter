@@ -6,9 +6,9 @@ so that the test suite is completely self-contained.
 It works both in the source tree and after `dragiter-gen-tests`.
 """
 
+from pathlib import Path
 import shutil
 import sys
-from pathlib import Path
 
 import pytest
 

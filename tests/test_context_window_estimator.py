@@ -1,5 +1,5 @@
 # =============================================================================
-# dragiter - Deterministic RAG Iterator
+# dragiter - Deterministic Context Iterator
 # Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
 #
 # This file is part of dragiter.
@@ -61,10 +61,10 @@ from dragiter.domain.models.settings import (
     VerboseBoolSetting,
 )
 
-
 # ---------------------------------------------------------------------------
 # Test doubles / helpers
 # ---------------------------------------------------------------------------
+
 
 class StubPayloadEstimator:
     """
@@ -135,7 +135,9 @@ def make_settings(
 def make_chat_sessions(num_sessions: int = 1) -> ChatSessions:
     """Build `num_sessions` trivial single-message chat sessions."""
     sessions = [
-        ChatSession(input_chat_message_list=[ChatMessage(role="user", content=f"message {i}")])
+        ChatSession(
+            input_chat_message_list=[ChatMessage(role="user", content=f"message {i}")]
+        )
         for i in range(num_sessions)
     ]
     return ChatSessions(session_list=sessions)
@@ -144,6 +146,7 @@ def make_chat_sessions(num_sessions: int = 1) -> ChatSessions:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 def test_run_returns_none_when_required_settings_missing():
     """
@@ -186,7 +189,9 @@ def test_run_does_not_raise_in_verbose_mode():
     """
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(max_context_tokens=1000, max_output_tokens=200, verbose=True)
+    settings = make_settings(
+        max_context_tokens=1000, max_output_tokens=200, verbose=True
+    )
 
     report = estimator.run(chat_sessions=make_chat_sessions(1), **settings)
 
@@ -201,9 +206,13 @@ def test_run_raises_when_limit_exceeded_and_not_simulating():
     ContextWindowValidatorError whose message reflects the actual validation
     failure - never a leaked "name 'debug' is not defined".
     """
-    stub = StubPayloadEstimator(tokens=900)  # 900 input + 200 output = 1100 > 1000 limit
+    stub = StubPayloadEstimator(
+        tokens=900
+    )  # 900 input + 200 output = 1100 > 1000 limit
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(max_context_tokens=1000, max_output_tokens=200, simulate=False)
+    settings = make_settings(
+        max_context_tokens=1000, max_output_tokens=200, simulate=False
+    )
 
     with pytest.raises(ContextWindowValidatorError) as exc_info:
         estimator.run(chat_sessions=make_chat_sessions(1), **settings)
@@ -221,7 +230,9 @@ def test_run_collects_warning_instead_of_raising_when_simulating():
     """
     stub = StubPayloadEstimator(tokens=900)
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(max_context_tokens=1000, max_output_tokens=200, simulate=True)
+    settings = make_settings(
+        max_context_tokens=1000, max_output_tokens=200, simulate=True
+    )
 
     report = estimator.run(chat_sessions=make_chat_sessions(1), **settings)
 
@@ -239,7 +250,9 @@ def test_run_tracks_high_water_mark_across_multiple_sessions():
     """
     stub = StubPayloadEstimator(tokens=[50, 300, 120])
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(max_context_tokens=10_000, max_output_tokens=100, simulate=True)
+    settings = make_settings(
+        max_context_tokens=10_000, max_output_tokens=100, simulate=True
+    )
 
     report = estimator.run(chat_sessions=make_chat_sessions(3), **settings)
 

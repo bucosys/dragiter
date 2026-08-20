@@ -22,12 +22,17 @@
 # =============================================================================
 
 import logging
+
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.context_validation_report import ContextValidationReport
-from dragiter.domain.models.settings import CharsPerTokenFloatSetting, MaxContextTokensIntSetting, \
-    MaxOutputTokensIntSetting, SimulateBoolSetting, \
-    VerboseBoolSetting
+from dragiter.domain.models.settings import (
+    CharsPerTokenFloatSetting,
+    MaxContextTokensIntSetting,
+    MaxOutputTokensIntSetting,
+    SimulateBoolSetting,
+    VerboseBoolSetting,
+)
 from dragiter.domain.ports.payload_estimator import PayloadEstimator
 
 logger = logging.getLogger(__name__)
@@ -50,7 +55,7 @@ class ContextWindowEstimator(Worker):
         if not (
                 chars_per_token_float_setting.is_set and max_context_tokens_int_setting.is_set and max_output_tokens_int_setting.is_set):
             logger.debug(
-                f"Neither chars-per-token nor max-context-tokens-int-setting nor max-output-tokens-int-setting are set. Validation is not applicable.")
+                "Neither chars-per-token nor max-context-tokens-int-setting nor max-output-tokens-int-setting are set. Validation is not applicable.")
             return None
 
         if verbose_boolean_setting.value:

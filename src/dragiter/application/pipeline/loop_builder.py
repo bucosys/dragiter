@@ -21,9 +21,9 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-import logging
 from json import JSONDecodeError, loads
-from typing import List, Any
+import logging
+from typing import Any
 
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.loop import Loop
@@ -41,12 +41,13 @@ class LoopBuilder(Worker):
 
     def run(self, loop_file_path_setting: LoopFilePathSetting) -> Loop:
         try:
-            contents: List[str] = []  # filled with lines from file (if set)
-            dict_list: List[dict[str, Any]] = []  # for return purpose
+            contents: list[str] = []  # filled with lines from file (if set)
+            dict_list: list[dict[str, Any]] = []  # for return purpose
 
             if loop_file_path_setting.is_set:  # should lines be read?
                 contents = read_stripped_lines_from_file(
-                    loop_file_path_setting.value)  # read lines from file, no empty lines into
+                    loop_file_path_setting.value
+                )  # read lines from file, no empty lines into
 
                 # --- CIRCUIT BREAKER ---
                 if len(contents) > self.MAX_LOOP_ITEMS:
@@ -56,7 +57,6 @@ class LoopBuilder(Worker):
                         f"Please split your loop file into smaller batches and run dragiter multiple times."
                     )
 
-
                 for index, line in enumerate(contents, start=1):
                     try:
                         data = loads(line)
@@ -65,9 +65,11 @@ class LoopBuilder(Worker):
                             data["LOOP_NUM_ID"] = index
                             dict_list.append(data)
                         else:
-                            dict_list.append({"LOOP_CONTENT": line, "LOOP_NUM_ID": index})
+                            dict_list.append(
+                                {"LOOP_CONTENT": line, "LOOP_NUM_ID": index}
+                            )
 
-                    except JSONDecodeError as e:
+                    except JSONDecodeError:
                         # not json-l
                         dict_list.append({"LOOP_CONTENT": line, "LOOP_NUM_ID": index})
 

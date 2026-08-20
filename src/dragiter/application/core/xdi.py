@@ -24,12 +24,9 @@
 import copy
 import inspect
 import logging
-from typing import List, Dict, Type, Any, TypeVar, Protocol, Optional
-import traceback
-import sys
+from typing import Any, Protocol, TypeVar
 
 from dragiter.domain.common.base_validator import BaseValidator
-from dragiter.domain.ports import activity_logger
 from dragiter.domain.ports.activity_logger import ActivityLogger
 from dragiter.domain.ports.activity_provider import ActivityProvider
 from dragiter.domain.ports.checksum_generator import ChecksumGenerator
@@ -45,24 +42,23 @@ class Worker(Protocol):
 
 class ApplicationManager:
     def __init__(self, checksum_generator: ChecksumGenerator):
-        self.workers: List['Worker'] = []
-        self.store: Dict[Type[Any], Any] = {}
-        self.activity_logger: Optional[ActivityLogger] = None
-        self._validators: Dict[Type[Any], BaseValidator] = {}
+        self.workers: list[Worker] = []
+        self.store: dict[type[Any], Any] = {}
+        self.activity_logger: ActivityLogger | None = None
+        self._validators: dict[type[Any], BaseValidator] = {}
         self._checksum_generator = checksum_generator
 
-    def register(self, worker: Worker, *validators: 'BaseValidator') -> None:
+    def register(self, worker: Worker, *validators: "BaseValidator") -> None:
         self.register_worker(worker)
         self.register_validators(*validators)
 
-    def register_worker(self, worker: 'Worker'):
+    def register_worker(self, worker: "Worker"):
         self.workers.append(worker)
 
     def register_activity_logger(self, activity_logger: ActivityLogger):
         self.activity_logger = activity_logger
 
-
-    def register_validators(self, *validators: 'BaseValidator') -> None:
+    def register_validators(self, *validators: "BaseValidator") -> None:
         """
         Automatically registers one or multiple validators by analyzing
         the signature of their validate_object methods.
@@ -79,7 +75,7 @@ class ApplicationManager:
 
             # 2. Find the parameter representing the object to be validated
             for name, param in sig.parameters.items():
-                if name == 'self':
+                if name == "self":
                     continue
 
                 # 3. Extract the type (e.g., SensorData)
@@ -94,7 +90,9 @@ class ApplicationManager:
 
                 # 4. Add to the dictionary
                 self._validators[param_type] = validator
-                logger.debug(f"Successfully registered: {validator.__class__.__name__} for type {param_type.__name__}")
+                logger.debug(
+                    f"Successfully registered: {validator.__class__.__name__} for type {param_type.__name__}"
+                )
 
                 parameter_found = True
 
@@ -123,28 +121,27 @@ class ApplicationManager:
         validator = self._validators.get(data_type)
 
         if validator:
-            logger.debug(f"Validating '{data_type.__name__}' using '{validator.__class__.__name__}'...")
+            logger.debug(
+                f"Validating '{data_type.__name__}' using '{validator.__class__.__name__}'..."
+            )
 
             # If the object is invalid, this will raise an exception (e.g., ValueError).
             # The exception will bubble up and stop the execution flow.
             validator.validate_object(data)
         else:
             # Optional: Log that no validation is taking place
-            logger.debug(f"Type '{data_type.__name__}' has no registered validator. Storing as unvalidated data.")
+            logger.debug(
+                f"Type '{data_type.__name__}' has no registered validator. Storing as unvalidated data."
+            )
 
         # 2. Activity logging, if a activity logger is registered
         if self.activity_logger and isinstance(data, ActivityProvider):
             self.activity_logger.write_activity(data)
 
-
         # 3. Store the data securely only AFTER it has passed validation
         self.store[data_type] = data
 
-
-
-
-
-    def _validate_worker_dependencies(self, worker: Worker) -> Dict[str, Any]:
+    def _validate_worker_dependencies(self, worker: Worker) -> dict[str, Any]:
         """
         Inspects the signature of the run method and collects the required dependencies.
         Raises an error if a mandatory dependency is missing.
@@ -181,10 +178,16 @@ class ApplicationManager:
                 args = self._validate_worker_dependencies(worker)
 
                 # 2. Execute worker
-                logger.info(f"\N{WHITE RIGHT-POINTING TRIANGLE} {worker.__class__.__name__}")
+                logger.info(
+                    f"\N{WHITE RIGHT-POINTING TRIANGLE} {worker.__class__.__name__}"
+                )
                 result = worker.run(**args)
-                logger.debug(f"\N{EYEGLASSES} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result!r}")
-                logger.info(f"\N{WHITE SQUARE} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result}")
+                logger.debug(
+                    f"\N{EYEGLASSES} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result!r}"
+                )
+                logger.info(
+                    f"\N{WHITE SQUARE} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result}"
+                )
 
                 if isinstance(result, (list, set, tuple)):
                     for item in result:
@@ -197,20 +200,14 @@ class ApplicationManager:
             if self.activity_logger:
                 self.activity_logger.write_exception(e)
 
-
-            ## future code for optimization:
-            # adding context: worker name
-            #worker_name = worker.__class__.__name__ if 'worker' in locals() else "UnknownWorker"
-            #raise ApplicationManagerError(f"Worker '{worker_name}' failed during run cycle: {e}") from e
-
-            raise ApplicationManagerError(f"Failed to execute application manager run cycle: {e}") from e
+            raise ApplicationManagerError(
+                f"Failed to execute application manager run cycle: {e}"
+            ) from e
 
 
 class MissingDependencyError(Exception):
     """Raised when a worker requires a dependency that is missing from the store."""
-    pass
 
 
 class ApplicationManagerError(Exception):
     """Raised when the application manager encounters an unhandled runtime exception."""
-    pass

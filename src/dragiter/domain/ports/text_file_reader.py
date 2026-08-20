@@ -25,7 +25,6 @@ from typing import Protocol
 
 from dragiter.domain.models.text_file import TextFile
 
-
 # --- Protocol (Structural Interface) ---
 
 class TextFileReader(Protocol):

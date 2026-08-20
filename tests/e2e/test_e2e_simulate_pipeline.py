@@ -54,12 +54,18 @@ def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:
     flags = [
         "-s",
         "-v",
-        "-b", str(tiny_example_dir),
-        "-p", str(tiny_example_dir / "01_tiny_prompt.toml"),
-        "-r", str(tiny_example_dir / "01_tiny_resource.toml"),
-        "-l", str(tiny_example_dir / "01_tiny_loop.txt"),
-        "-O", str(output_dir),
-        "-m", "w",
+        "-b",
+        str(tiny_example_dir),
+        "-p",
+        str(tiny_example_dir / "01_tiny_prompt.toml"),
+        "-r",
+        str(tiny_example_dir / "01_tiny_resource.toml"),
+        "-l",
+        str(tiny_example_dir / "01_tiny_loop.txt"),
+        "-O",
+        str(output_dir),
+        "-m",
+        "w",
     ]
 
     result = _run_dragiter(flags, timeout=60)
@@ -92,13 +98,20 @@ def test_simulate_pipeline_with_activity_log(tiny_example_dir: Path) -> None:
 
     flags = [
         "-s",
-        "-b", str(tiny_example_dir),
-        "-p", str(tiny_example_dir / "01_tiny_prompt.toml"),
-        "-r", str(tiny_example_dir / "01_tiny_resource.toml"),
-        "-l", str(tiny_example_dir / "01_tiny_loop.txt"),
-        "-O", str(output_dir),
-        "-m", "w",
-        "-a", str(activity_file),
+        "-b",
+        str(tiny_example_dir),
+        "-p",
+        str(tiny_example_dir / "01_tiny_prompt.toml"),
+        "-r",
+        str(tiny_example_dir / "01_tiny_resource.toml"),
+        "-l",
+        str(tiny_example_dir / "01_tiny_loop.txt"),
+        "-O",
+        str(output_dir),
+        "-m",
+        "w",
+        "-a",
+        str(activity_file),
     ]
 
     result = _run_dragiter(flags, timeout=60)
@@ -109,7 +122,8 @@ def test_simulate_pipeline_with_activity_log(tiny_example_dir: Path) -> None:
 
     assert activity_file.is_file(), "Activity file was not created"
     lines = [
-        line for line in activity_file.read_text(encoding="utf-8").splitlines()
+        line
+        for line in activity_file.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
     assert len(lines) >= 2, "Activity log should contain several records"

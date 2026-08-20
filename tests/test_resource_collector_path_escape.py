@@ -32,8 +32,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from dragiter.application.pipeline.resource_collector import ResourceCollector
 from dragiter.domain.models.settings import (
     BaseDirectoryPathSetting,

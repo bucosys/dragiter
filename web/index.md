@@ -6,9 +6,12 @@
 
 **A focused CLI for structured, reproducible LLM workflows.**
 
-dragiter is a focused command-line interface (CLI) designed to integrate Large Language Models (LLMs) directly into your automated terminal workflows. It acts as a bridge between your local file system and AI APIs, eliminating "copy-paste fatigue" by allowing you to chain AI processing steps exactly like standard Unix pipes.
+dragiter is a focused command-line interface (CLI) designed to integrate Large Language Models (LLMs) directly into your
+automated terminal workflows. It acts as a bridge between your local file system and AI APIs, eliminating "copy-paste
+fatigue" by allowing you to chain AI processing steps exactly like standard Unix pipes.
 
 **Source & Project**
+
 - [Homepage](https://www.dragiter.app/)
 - [GitLab Repository](https://gitlab.com/bucosys/dragiter) (Code)
 - [Releases](https://gitlab.com/bucosys/dragiter/-/releases)
@@ -16,12 +19,17 @@ dragiter is a focused command-line interface (CLI) designed to integrate Large L
 
 ## Why dragiter?
 
-If you want an AI to review an entire project, manually gathering files, stripping out noise, and pasting them into a web chat is tedious. dragiter solves this through "Prompt as Code."
+If you want an AI to review an entire project, manually gathering files, stripping out noise, and pasting them into a
+web chat is tedious. dragiter solves this through "Prompt as Code."
 
-* **Automated Context Assembly:** Use wildcards (like `src/**/*.py`) and regex patterns to surgically extract exactly what the AI needs to see.
-* **Version-Controllable Prompts:** Define your AI instructions and data context in standard `.toml` files so your workflows are repeatable and shareable.
-* **Advanced Batch Processing:** Feed dragiter a `.jsonl` loop file to automatically iterate through translation tasks, report summaries, or data extraction without writing custom Python scripts.
-* **Vendor Independence:** Switch from cloud providers like OpenAI, Grok, or Google to a completely local, private model like Ollama just by changing a single CLI flag.
+* **Automated Context Assembly:** Use wildcards (like `src/**/*.py`) and regex patterns to surgically extract exactly
+  what the AI needs to see.
+* **Version-Controllable Prompts:** Define your AI instructions and data context in standard `.toml` files so your
+  workflows are repeatable and shareable.
+* **Advanced Batch Processing:** Feed dragiter a `.jsonl` loop file to automatically iterate through translation tasks,
+  report summaries, or data extraction without writing custom Python scripts.
+* **Vendor Independence:** Switch from cloud providers like OpenAI, Grok, or Google to a completely local, private model
+  like Ollama just by changing a single CLI flag.
 
 ## Installation
 
@@ -33,7 +41,8 @@ pip install dragiter
 
 ## Quick Start
 
-The core philosophy of dragiter is to keep your resources (material, context) and your prompts (instructions) separate. The easiest way to explore dragiter is by using the included examples.
+The core philosophy of dragiter is to keep your resources (material, context) and your prompts (instructions) separate.
+The easiest way to explore dragiter is by using the included examples.
 
 ### 1. Extract the Examples
 
@@ -51,7 +60,9 @@ cd examples/01_md_sample
 
 ### 2. Test Safely with Simulation Mode
 
-It is highly recommended to always run a simulation first. This allows you to safely verify your workflow and file routing without making actual API calls or spending your API credits. You can do this by adding the `-s` flag to your command.
+It is highly recommended to always run a simulation first. This allows you to safely verify your workflow and file
+routing without making actual API calls or spending your API credits. You can do this by adding the `-s` flag to your
+command.
 
 Run the simulation by typing:
 
@@ -61,7 +72,8 @@ dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 
 ### 3. Run with Ollama
 
-The file `config-ollama.toml` is ready to use out of the box, provided that Ollama is installed and running locally with its default settings. When using Ollama, it is recommended to run the command with the `-v` (verbose) flag:
+The file `config-ollama.toml` is ready to use out of the box, provided that Ollama is installed and running locally with
+its default settings. When using Ollama, it is recommended to run the command with the `-v` (verbose) flag:
 
 ```
 dragiter -v -c config-ollama.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
@@ -75,19 +87,28 @@ dragiter is built to play nicely with other CLI tools. You can fetch live data a
 cat server_logs.txt | grep "ERROR" | dragiter -p analyze_errors.toml
 ```
 
-**Note:** When piping data into dragiter with a prompt template (`-p`), the template must contain the `[STDIN]` placeholder. The piped content is inserted at that position. Very large inputs are currently not automatically chunked via STDIN; for big log files it is usually better to write the filtered data to a file and load it through a resource definition (`-r`) with proper chunking.
+**Note:** When piping data into dragiter with a prompt template (`-p`), the template must contain the `[STDIN]`
+placeholder. The piped content is inserted at that position. Very large inputs are currently not automatically chunked
+via STDIN; for big log files it is usually better to write the filtered data to a file and load it through a resource
+definition (`-r`) with proper chunking.
 
 ## Documentation
 
-You are currently looking at the official documentation. To learn more about practical examples (code review, batch report analysis, marketing copy generation, tool chaining, etc.) and advanced features such as context window management and JSONL processing, please read the **[Manual](manual.md)**.
+You are currently looking at the official documentation. To learn more about practical examples (code review, batch
+report analysis, marketing copy generation, tool chaining, etc.) and advanced features such as context window management
+and JSONL processing, please read the **[Manual](manual.md)**.
 
 ## Acknowledgements
 
-The development of dragiter has been a journey of continuous learning. Bringing this project to life would not have been possible without the support of some extraordinary tools and communities.
+The development of dragiter has been a journey of continuous learning. Bringing this project to life would not have been
+possible without the support of some extraordinary tools and communities.
 
-A massive thank you to the AI models Grok and Gemini. As tireless pair-programming partners, your guidance, code reviews, and structural suggestions were invaluable in adapting the Python code for this project.
+A massive thank you to the AI models Grok and Gemini. As tireless pair-programming partners, your guidance, code
+reviews, and structural suggestions were invaluable in adapting the Python code for this project.
 
-Equally important is the global Python community. The rich ecosystem, extensive documentation, and open-source spirit provide the foundation for tools like dragiter. Thank you to all the developers who make Python such a powerful language to work with.
+Equally important is the global Python community. The rich ecosystem, extensive documentation, and open-source spirit
+provide the foundation for tools like dragiter. Thank you to all the developers who make Python such a powerful language
+to work with.
 
 ## Legal
 

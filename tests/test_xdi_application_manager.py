@@ -1,5 +1,5 @@
 # =============================================================================
-# dragiter - Deterministic RAG Iterator
+# dragiter - Deterministic Context Iterator
 # Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
 #
 # This file is part of dragiter.
@@ -63,10 +63,10 @@ from dragiter.application.core.xdi import (
 )
 from dragiter.domain.common.base_validator import BaseValidator
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_manager() -> ApplicationManager:
     """
@@ -82,6 +82,7 @@ def make_manager() -> ApplicationManager:
 # ---------------------------------------------------------------------------
 # Dummy domain types used across several tests
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Number:
@@ -101,6 +102,7 @@ class Summary:
 # ---------------------------------------------------------------------------
 # Tests: type-based resolution across a chained pipeline
 # ---------------------------------------------------------------------------
+
 
 def test_run_resolves_dependencies_by_type_across_chained_workers():
     """
@@ -166,6 +168,7 @@ def test_run_unpacks_list_result_and_stores_each_item_by_its_own_type():
 # ---------------------------------------------------------------------------
 # Tests: error paths
 # ---------------------------------------------------------------------------
+
 
 def test_run_raises_missing_dependency_error_wrapped_in_application_manager_error():
     """
@@ -238,6 +241,7 @@ def test_untyped_required_parameter_without_default_raises_type_error():
 # Tests: store semantics
 # ---------------------------------------------------------------------------
 
+
 def test_worker_receives_deep_copy_not_the_stored_instance():
     """
     Workers must not be able to corrupt shared state: mutating the object a
@@ -277,6 +281,7 @@ def test_provide_with_none_is_a_no_op():
 # ---------------------------------------------------------------------------
 # Tests: validator integration
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Payload:

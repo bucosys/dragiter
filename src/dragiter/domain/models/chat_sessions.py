@@ -22,9 +22,8 @@
 # =============================================================================
 
 from dataclasses import dataclass, field
-from typing import Literal
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
+
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.ports.activity_provider import ActivityProvider
 

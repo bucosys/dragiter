@@ -21,10 +21,10 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
+from dataclasses import fields, is_dataclass
 import hashlib
 import json
-from dataclasses import is_dataclass, fields
-from typing import Any, Set, Dict, Union
+from typing import Any
 
 from dragiter.domain.ports.checksum_generator import ChecksumGenerator
 
@@ -34,8 +34,8 @@ class BasicChecksumGenerator(ChecksumGenerator):
     def _to_canonical_dict(
             self,  # <-- ADDED self
             obj: Any,
-            visited: Union[Set[int], None] = None,
-            _memo: Union[dict[int, Any], None] = None
+            visited: set[int] | None = None,
+            _memo: dict[int, Any] | None = None
     ) -> Any:
         """Optimized version with memoization and safe cycle detection."""
         if visited is None:

@@ -21,21 +21,26 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
+from datetime import UTC, datetime
 import logging
-
 import time
-from datetime import datetime, timezone
+from typing import Any
 
 from dragiter.domain.models.application_result import ApplicationResult
 from dragiter.domain.models.chat_results import ChatResults
 from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.prompt_template import PromptTemplate
-from dragiter.domain.models.settings import OutputDirectoryPathSetting, OutputFilePathSetting, OutputModeStringSetting
-from typing import Optional, Any
-
+from dragiter.domain.models.settings import (
+    OutputDirectoryPathSetting,
+    OutputFilePathSetting,
+    OutputModeStringSetting,
+)
+from dragiter.infrastructure.io.filename_utils import (
+    ensure_path_within_directory,
+    sanitize_filename,
+)
 from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
-from dragiter.infrastructure.io.filename_utils import sanitize_filename, ensure_path_within_directory
 
 logger = logging.getLogger(__name__)
 
@@ -61,17 +66,16 @@ class OutputWriter:
         seconds = ns // 1_000_000_000
         nanoseconds = ns % 1_000_000_000
 
-        dt = datetime.fromtimestamp(seconds, tz=timezone.utc)
+        dt = datetime.fromtimestamp(seconds, tz=UTC)
 
         return dt.strftime("%Y%m%d_%H%M%S_") + f"{nanoseconds:09d}"
 
-
     def _format_filename(
-            self,
-            chunk: Optional[Chunk] = None,
-            loop_dict_item: Optional[dict[str, Any]] = None,
-            session_index: Optional[int] = None,
-            template: str = ""
+        self,
+        chunk: Chunk | None = None,
+        loop_dict_item: dict[str, Any] | None = None,
+        session_index: int | None = None,
+        template: str = "",
     ) -> str:
         """
         Formats a filename using the provided template.
@@ -85,7 +89,9 @@ class OutputWriter:
             d["CHUNK_NUM_ID"] = chunk.num_id if chunk.num_id is not None else 0
             d["CHUNK_FILE_NAME"] = sanitize_filename(chunk.filename or "file")
             d["CHUNK_SECTION_NAME"] = sanitize_filename(chunk.section_name or "section")
-            d["CHUNK_SECTION_NUM_ID"] = chunk.section_num_id if chunk.section_num_id is not None else 0
+            d["CHUNK_SECTION_NUM_ID"] = (
+                chunk.section_num_id if chunk.section_num_id is not None else 0
+            )
 
         # Loop data - force numeric fields to int
         if loop_dict_item:
@@ -104,7 +110,10 @@ class OutputWriter:
             if "LOOP_NUM_ID" not in d:
                 d["LOOP_NUM_ID"] = session_index or 0
 
-            d.setdefault("LOOP_ID", sanitize_filename(str(loop_dict_item.get("LOOP_ID", "unknown"))))
+            d.setdefault(
+                "LOOP_ID",
+                sanitize_filename(str(loop_dict_item.get("LOOP_ID", "unknown"))),
+            )
 
         # Timestamp
         d["TIMESTAMP"] = self._get_sortable_timestamp()
@@ -125,13 +134,15 @@ class OutputWriter:
 
         return sanitize_filename(formatted)
 
-    def run(self,
-            chat_sessions: ChatSessions,
-            chat_results: ChatResults,
-            output_file_path_setting: OutputFilePathSetting,
-            output_directory_path_setting: OutputDirectoryPathSetting,
-            output_mode_string_setting: OutputModeStringSetting,
-            prompt: PromptTemplate) -> ApplicationResult:
+    def run(
+        self,
+        chat_sessions: ChatSessions,
+        chat_results: ChatResults,
+        output_file_path_setting: OutputFilePathSetting,
+        output_directory_path_setting: OutputDirectoryPathSetting,
+        output_mode_string_setting: OutputModeStringSetting,
+        prompt: PromptTemplate,
+    ) -> ApplicationResult:
 
         try:
             open_mode: str = output_mode_string_setting.value or "x"
@@ -144,43 +155,49 @@ class OutputWriter:
 
             # if nothin to report - bail out ...
             out_data = " ".join(content_list)
-            if out_data == "": return application_result  # --> out 0
+            if out_data == "":
+                return application_result  # --> out 0
 
             # printable_value = "\n\n\n\n".join(content_list)
             printable_value = prompt.output_delimiter.join(content_list)
             # write result to one file
             if output_file_path_setting.is_set:
-                write_or_append_lines_to_unique_file(output_file_path_setting.value, open_mode, [printable_value])
+                write_or_append_lines_to_unique_file(
+                    output_file_path_setting.value, open_mode, [printable_value]
+                )
 
             # write to many files (all loops, use numbered prompt file name as output filename
             if output_directory_path_setting.is_set:
-
-                #reworking that case
+                # reworking that case
 
                 # generate unique filename
 
                 index: int = 0
-                for chat_session, chat_result in zip(chat_sessions.session_list, chat_results.chat_result_list):
+                for chat_session, chat_result in zip(
+                    chat_sessions.session_list,
+                    chat_results.chat_result_list,
+                    strict=True,
+                ):
                     index += 1
-                    chunk: Chunk | None = chat_session.chunk
-                    dict_item: dict[str, Any] | None = chat_session.loop_item
 
                     formatted_file_name: str = self._format_filename(
                         chat_session.chunk,
                         chat_session.loop_item,
                         index,
-                        prompt.output_filename_schema)
+                        prompt.output_filename_schema,
+                    )
 
-                    target_path = output_directory_path_setting.value / formatted_file_name
+                    target_path = (
+                        output_directory_path_setting.value / formatted_file_name
+                    )
                     # Guarantee the resolved path never leaves the intended output directory
                     safe_path = ensure_path_within_directory(
                         target_path, output_directory_path_setting.value
                     )
 
                     write_or_append_lines_to_unique_file(
-                        safe_path,
-                        open_mode, [chat_result.output_chat_message.content])
-
+                        safe_path, open_mode, [chat_result.output_chat_message.content]
+                    )
 
             print(printable_value)  # to std_out
 

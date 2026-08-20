@@ -23,8 +23,12 @@
 from dataclasses import dataclass
 
 from dragiter.domain.models.settings import (
-    BaseDirectoryPathSetting, LoopFilePathSetting, ResourceFilePathSetting, ConfigFilePathSetting,
-    PromptFilePathSetting)
+    BaseDirectoryPathSetting,
+    ConfigFilePathSetting,
+    LoopFilePathSetting,
+    PromptFilePathSetting,
+    ResourceFilePathSetting,
+)
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
 
 

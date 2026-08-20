@@ -1,7 +1,7 @@
 dragiter(1)                     August 2026                         dragiter(1)
 
 NAME
-       dragiter - Deterministic Context Iterator – command-line tool for
+       dragiter - Deterministic Context Iterator - command-line tool for
        structured, reproducible LLM-based processing of materials with
        prompts and looping
 

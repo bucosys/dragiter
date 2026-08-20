@@ -2,12 +2,11 @@
 Functional test: TLS with custom CA bundle via local Caddy reverse proxy.
 """
 
+from pathlib import Path
 import socket
 import ssl
-from pathlib import Path
 
 import pytest
-
 from tests.e2e.test_e2e_infrastructure import _run_dragiter
 
 
@@ -39,7 +38,6 @@ def test_functional_caddy_ca_bundle(tiny_example_dir):
       - CA cert at ~/mtls-test/ca.crt (or adjust path below)
       - Ollama reachable behind the proxy
     """
-    tests_dir = Path(__file__).parent.resolve()
     ca_bundle = Path.home() / "ca-bundle-test" / "ca.crt"
 
     if not ca_bundle.is_file():
@@ -51,15 +49,24 @@ def test_functional_caddy_ca_bundle(tiny_example_dir):
     # Minimal config: base_url + ca_bundle via CLI, rest from a small toml if needed
     flags = [
         "-v",
-        "--base-url", "https://localhost:8443/v1",
-        "--api-key", "ollama",
-        "--model-name", "qwen3:8b",
-        "--ca-bundle-file", str(ca_bundle),
-        "-p", str(tiny_example_dir / "01_tiny_prompt.toml"),
-        "-r", str(tiny_example_dir / "01_tiny_resource.toml"),
-        "-l", str(tiny_example_dir / "01_tiny_loop.txt"),
-        "-O", str(temp_output_dir),
-        "-m", "w",
+        "--base-url",
+        "https://localhost:8443/v1",
+        "--api-key",
+        "ollama",
+        "--model-name",
+        "qwen3:8b",
+        "--ca-bundle-file",
+        str(ca_bundle),
+        "-p",
+        str(tiny_example_dir / "01_tiny_prompt.toml"),
+        "-r",
+        str(tiny_example_dir / "01_tiny_resource.toml"),
+        "-l",
+        str(tiny_example_dir / "01_tiny_loop.txt"),
+        "-O",
+        str(temp_output_dir),
+        "-m",
+        "w",
     ]
 
     result = _run_dragiter(flags, timeout=360)

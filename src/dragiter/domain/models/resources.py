@@ -30,10 +30,15 @@ from dragiter.domain.ports.activity_provider import ActivityProvider
 logger = logging.getLogger(__name__)
 
 
-class ResourceSection():
-
-    def __init__(self, section_name: str, text_files: list[TextFile], regex_pattern: str, exclude_filters: list[str],
-                 include_filters: list[str]) -> None:
+class ResourceSection:
+    def __init__(
+        self,
+        section_name: str,
+        text_files: list[TextFile],
+        regex_pattern: str,
+        exclude_filters: list[str],
+        include_filters: list[str],
+    ) -> None:
         """Initialise the configuration object and load settings."""
 
         # member
@@ -110,35 +115,30 @@ class Resources(ActivityProvider):
         Provides detailed activity information about loaded resources for auditing.
         Uses aggregation to prevent log bloat with very large file sets.
         """
-        total_files = sum(len(section.file_paths) for section in self._resource_sections)
+        total_files = sum(
+            len(section.file_paths) for section in self._resource_sections
+        )
 
         activity_dict: dict[str, Any] = {
             "resource_sections_count": len(self._resource_sections),
             "total_files": total_files,
         }
 
-        sections_details = []
-        detailed_files_count = 0
+        sections_details: list[dict[str, Any]] = []
 
         for section in self._resource_sections:
-            file_count = len(section.file_paths)
-            file_paths = [str(tf.path) for tf in section.file_paths]
-
-            files_info = file_count
-
             section_info = {
                 "section_name": section.section_name,
-                "file_count": file_count,
+                "file_count": len(section.file_paths),
                 "regex_pattern": section.regex_pattern,
                 "exclude_filters": section.exclude_filters,
                 "include_filters": section.include_filters,
-                "files": files_info
             }
             sections_details.append(section_info)
 
         activity_dict["sections"] = sections_details
-
         return [activity_dict]
+
 
 class ResourceSectionError(Exception):
     pass

@@ -9,9 +9,9 @@ pytest:
     - pip install --no-cache-dir -e ".[dev]"
   script:
     - pytest tests/ -v
-        --ignore=tests/test_functional_ollama.py
-        --ignore=tests/test_functional_caddy_ca_bundle.py
-        --ignore=tests/test_functional_caddy_mtls.py
+      --ignore=tests/test_functional_ollama.py
+      --ignore=tests/test_functional_caddy_ca_bundle.py
+      --ignore=tests/test_functional_caddy_mtls.py
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"

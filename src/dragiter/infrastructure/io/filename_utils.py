@@ -31,9 +31,8 @@ are interpolated into output_filename_schema.
 
 from __future__ import annotations
 
+from pathlib import Path
 import re
-from pathlib import Path, PurePosixPath
-
 
 # Characters that are never allowed in a generated filename component.
 _UNSAFE_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1f]')

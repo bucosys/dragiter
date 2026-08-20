@@ -2,11 +2,10 @@
 Functional / Integration tests with real LLM (Ollama).
 """
 
-import subprocess
 from pathlib import Path
+import subprocess
 
 import pytest
-
 from tests.e2e.test_e2e_infrastructure import _run_dragiter
 
 

@@ -2,12 +2,11 @@
 Functional test: mutual TLS (mTLS) via local Caddy reverse proxy.
 """
 
+from pathlib import Path
 import socket
 import ssl
-from pathlib import Path
 
 import pytest
-
 from tests.e2e.test_e2e_infrastructure import _run_dragiter
 
 

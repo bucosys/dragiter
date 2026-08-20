@@ -21,10 +21,10 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
+from datetime import datetime
 import logging
 import ssl
 import time
-from datetime import datetime
 
 import httpx
 import openai
@@ -37,7 +37,7 @@ from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
 
-from typing import TypedDict, Any
+from typing import Any, TypedDict
 
 
 class OpenAIPayload(TypedDict, total=False):
@@ -49,13 +49,14 @@ class OpenAIPayload(TypedDict, total=False):
 
 
 class OpenAIService(LLMService):
-
-    def process_query(self, aisp: AIServiceParameters, chat_session: ChatSession) -> ChatResult:
+    def process_query(
+        self, aisp: AIServiceParameters, chat_session: ChatSession
+    ) -> ChatResult:
 
         attempt: int = 0
         last_exception: Exception | None = None
         retry_delay: int = aisp.retry_delay_int_setting.value or 3
-        wait_time: int = retry_delay #initial
+        wait_time: int = retry_delay  # initial
         chat_result = ChatResult()
         chat_result.started_at = datetime.now()
 
@@ -68,7 +69,7 @@ class OpenAIService(LLMService):
 
         api_kwargs: OpenAIPayload = {
             "model": aisp.model_name_string_setting.value,
-            "messages": dict_list
+            "messages": dict_list,
         }
 
         if aisp.temperature_float_setting.is_set:
@@ -84,7 +85,7 @@ class OpenAIService(LLMService):
                 "base_url": aisp.base_url_string_setting.value,
             }
 
-            # --- TLS / mTLS Konfiguration ---------------------------------
+            # --- TLS / mTLS configuration ---------------------------------
             verify: bool | str | ssl.SSLContext = True
             cert = None
 
@@ -100,12 +101,14 @@ class OpenAIService(LLMService):
                     key_path = str(aisp.client_key_file_path_setting.value)
                     logger.debug("mTLS: Using client cert + separate key")
 
-                    # Expliziter SSLContext – das ist der entscheidende Fix
                     ctx = ssl.create_default_context(
-                        cafile=ca_path if aisp.ca_bundle_file_path_setting.is_set else None)
+                        cafile=ca_path
+                        if aisp.ca_bundle_file_path_setting.is_set
+                        else None
+                    )
                     ctx.load_cert_chain(certfile=cert_path, keyfile=key_path)
                     verify = ctx
-                    cert = None  # schon im Context geladen
+                    cert = None  # loading in context, see above
                 else:
                     cert = cert_path
                     logger.debug("mTLS: Using combined client cert file")
@@ -115,10 +118,10 @@ class OpenAIService(LLMService):
             # --------------------------------------------------------------
 
             with OpenAI(**client_kwargs) as client:
-
                 while attempt < (aisp.max_retries_int_setting.value or 1):
                     try:
-                        if attempt > 0: time.sleep(wait_time)
+                        if attempt > 0:
+                            time.sleep(wait_time)
                         response = client.chat.completions.create(**api_kwargs)
 
                         answer = response.choices[0].message.content.strip()
@@ -134,12 +137,18 @@ class OpenAIService(LLMService):
 
                         return chat_result
 
-                    except (openai.RateLimitError, openai.APIConnectionError, openai.InternalServerError) as e:
+                    except (
+                        openai.RateLimitError,
+                        openai.APIConnectionError,
+                        openai.APITimeoutError,
+                        openai.InternalServerError,
+                    ) as e:
                         last_exception = e
                         attempt += 1
                         wait_time = retry_delay * (2 ** (attempt - 1))
-                        logger.warning(f"Attempt {attempt} failed: {e}. Retrying in {wait_time}s...")
-
+                        logger.warning(
+                            f"Attempt {attempt} failed: {e}. Retrying in {wait_time}s..."
+                        )
 
                 raise OpenAIServiceError(f"Attempt {attempt} failed: {last_exception}")
 

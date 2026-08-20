@@ -50,7 +50,7 @@ model_name = "gemini-3.6-flash"
 # chars_per_token = 3.8
 
 # Maximum context window of the model (input + output)
-# Gemini 2.5 Flash supports up to 1M tokens. 200k–500k is a good practical range.
+# Gemini 2.5 Flash supports up to 1M tokens. 200k-500k is a good practical range.
 # max_context_tokens = 200000
 
 # Maximum number of tokens the model is allowed to generate as output.

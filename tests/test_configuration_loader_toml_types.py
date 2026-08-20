@@ -30,13 +30,17 @@ Covers stress-test findings 2026-08-13:
   #B  TOML numeric settings given as strings (e.g. max_context_tokens = "1000")
   #C  Invalid Env integer/float values (e.g. DRAGITER_MAX_CONTEXT_TOKENS=abc)
   #D  TOML simulate = false must set the setting to False (not leave it unset)
-  #E  TOML simulate = "false" (string) must become False, not True
+  #E  TOML string values for BoolSetting use the unified truthy set
+      (TRUE / 1 / YES), identical to environment-variable handling and
+      LoggingConfigurator.
 
-Intended behaviour after the corresponding loader/settings fixes.
+Boolean semantics are unified across ConfigurationLoader (TOML + Env) and
+LoggingConfigurator.
 """
 
+from __future__ import annotations
+
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -46,17 +50,15 @@ from dragiter.application.config.configuration_loader import (
 )
 from dragiter.domain.models.settings import (
     ApiKeyStringSetting,
-    SimulateBoolSetting,
-    DebugBoolSetting,
-    VerboseBoolSetting,
-    MaxContextTokensIntSetting,
-    MaxOutputTokensIntSetting,
-    MaxRetryIntSetting,
     CharsPerTokenFloatSetting,
-    TemperatureFloatSetting,
+    DebugBoolSetting,
+    MaxContextTokensIntSetting,
+    MaxRetryIntSetting,
     ModelNameStringSetting,
+    SimulateBoolSetting,
+    TemperatureFloatSetting,
+    VerboseBoolSetting,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -98,7 +100,7 @@ def test_A_toml_int_for_string_setting_is_converted(monkeypatch, tmp_path):
     #A: api_key = 12345 (int in TOML) must not crash.
     Loader converts via str() before assignment → value is "12345".
     """
-    settings = _run_with_toml(monkeypatch, tmp_path, 'api_key = 12345\n')
+    settings = _run_with_toml(monkeypatch, tmp_path, "api_key = 12345\n")
     api = next(s for s in settings if isinstance(s, ApiKeyStringSetting))
     assert api.is_set is True
     assert api.value == "12345"
@@ -107,7 +109,7 @@ def test_A_toml_int_for_string_setting_is_converted(monkeypatch, tmp_path):
 
 def test_A_toml_bool_for_string_setting_is_converted(monkeypatch, tmp_path):
     """Non-string TOML values for StringSetting are stringified."""
-    settings = _run_with_toml(monkeypatch, tmp_path, 'model_name = true\n')
+    settings = _run_with_toml(monkeypatch, tmp_path, "model_name = true\n")
     model = next(s for s in settings if isinstance(s, ModelNameStringSetting))
     assert model.is_set is True
     assert model.value == "True"
@@ -145,14 +147,14 @@ def test_B_toml_float_as_string_is_converted(monkeypatch, tmp_path):
 
 
 def test_B_toml_native_integer_still_works(monkeypatch, tmp_path):
-    settings = _run_with_toml(monkeypatch, tmp_path, 'max_context_tokens = 4096\n')
+    settings = _run_with_toml(monkeypatch, tmp_path, "max_context_tokens = 4096\n")
     s = next(x for x in settings if isinstance(x, MaxContextTokensIntSetting))
     assert s.value == 4096
     assert type(s.value) is int
 
 
 def test_B_toml_native_float_still_works(monkeypatch, tmp_path):
-    settings = _run_with_toml(monkeypatch, tmp_path, 'chars_per_token = 3.5\n')
+    settings = _run_with_toml(monkeypatch, tmp_path, "chars_per_token = 3.5\n")
     s = next(x for x in settings if isinstance(x, CharsPerTokenFloatSetting))
     assert s.value == pytest.approx(3.5)
     assert isinstance(s.value, float)
@@ -222,42 +224,41 @@ def test_D_toml_bool_false_is_set_to_false(monkeypatch, tmp_path):
     #D: simulate = false must result in is_set=True and value=False.
     Previously the setting stayed unset because only truthy values were written.
     """
-    settings = _run_with_toml(monkeypatch, tmp_path, 'simulate = false\n')
+    settings = _run_with_toml(monkeypatch, tmp_path, "simulate = false\n")
     sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
     assert sim.is_set is True, "simulate=false must set the setting, not leave it unset"
     assert sim.value is False
 
 
 def test_D_toml_bool_true_is_set_to_true(monkeypatch, tmp_path):
-    settings = _run_with_toml(monkeypatch, tmp_path, 'simulate = true\n')
+    settings = _run_with_toml(monkeypatch, tmp_path, "simulate = true\n")
     sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
     assert sim.is_set is True
     assert sim.value is True
 
 
 def test_D_toml_debug_false_is_set_to_false(monkeypatch, tmp_path):
-    settings = _run_with_toml(monkeypatch, tmp_path, 'debug = false\n')
+    settings = _run_with_toml(monkeypatch, tmp_path, "debug = false\n")
     dbg = next(s for s in settings if isinstance(s, DebugBoolSetting))
     assert dbg.is_set is True
     assert dbg.value is False
 
 
 def test_D_toml_verbose_false_is_set_to_false(monkeypatch, tmp_path):
-    settings = _run_with_toml(monkeypatch, tmp_path, 'verbose = false\n')
+    settings = _run_with_toml(monkeypatch, tmp_path, "verbose = false\n")
     verb = next(s for s in settings if isinstance(s, VerboseBoolSetting))
     assert verb.is_set is True
     assert verb.value is False
 
 
 # ===========================================================================
-# Finding #E – TOML simulate = "false" (string) must become False
+# Finding #E – TOML string values for BoolSetting (unified semantics)
 # ===========================================================================
 
 def test_E_toml_string_false_becomes_bool_false(monkeypatch, tmp_path):
     """
     #E: simulate = "false" must become False.
-    Must NOT become True (string is truthy) and must NOT raise TypeError
-    after String→Bool conversion.
+    Must NOT become True and must NOT raise TypeError.
     """
     settings = _run_with_toml(monkeypatch, tmp_path, 'simulate = "false"\n')
     sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
@@ -279,12 +280,37 @@ def test_E_toml_string_TRUE_uppercase_becomes_bool_true(monkeypatch, tmp_path):
     assert sim.value is True
 
 
-def test_E_toml_string_yes_is_not_true(monkeypatch, tmp_path):
-    """Only the literal "true" (case-insensitive) counts – same as Env."""
-    settings = _run_with_toml(monkeypatch, tmp_path, 'simulate = "yes"\n')
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        # truthy (unified with Env + LoggingConfigurator)
+        ("true", True),
+        ("TRUE", True),
+        ("True", True),
+        ("1", True),
+        ("yes", True),
+        ("YES", True),
+        ("Yes", True),
+        # falsy
+        ("false", False),
+        ("0", False),
+        ("no", False),
+        ("off", False),
+        ("", False),
+        ("random", False),
+    ],
+)
+def test_E_toml_string_bool_unified_truthy_values(
+    monkeypatch, tmp_path, value: str, expected: bool
+):
+    """
+    TOML string values for BoolSetting use the same truthy set as
+    environment variables and LoggingConfigurator: TRUE / 1 / YES.
+    """
+    settings = _run_with_toml(monkeypatch, tmp_path, f'simulate = "{value}"\n')
     sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
     assert sim.is_set is True
-    assert sim.value is False
+    assert sim.value is expected
 
 
 def test_E_toml_string_false_does_not_become_true(monkeypatch, tmp_path):

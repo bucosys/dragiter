@@ -25,7 +25,7 @@ import logging
 import re
 
 from dragiter.application.core.xdi import Worker
-from dragiter.domain.models.material import Material, Chunk
+from dragiter.domain.models.material import Chunk, Material
 from dragiter.domain.models.resources import Resources, ResourceSection
 from dragiter.domain.ports.text_file_reader import TextFileReader
 
@@ -62,7 +62,7 @@ class MaterialTokenizer(Worker):
             raise  # preserve the specific, actionable message
 
         except Exception as e:
-            raise MaterialTokenizerError(f"Failed to create chunks.") from e
+            raise MaterialTokenizerError("Failed to create chunks.") from e
 
     def _process_markdown_configs(self, rs: ResourceSection) -> list[Chunk]:
         section_chunks: list[Chunk] = []

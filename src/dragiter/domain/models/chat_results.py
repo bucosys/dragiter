@@ -43,7 +43,7 @@ class ChatResult:
 
     def __str__(self) -> str:
         # Shows useful metrics
-        return f"Result(output_chat_message={len(self.output_chat_message.content or "")} chars, tokens_in={self.input_tokens}, tokens_out={self.output_tokens}, duration={self.duration_ms}ms)"
+        return f"Result(output_chat_message={len(self.output_chat_message.content or '')} chars, tokens_in={self.input_tokens}, tokens_out={self.output_tokens}, duration={self.duration_ms}ms)"
 
 
 @dataclass

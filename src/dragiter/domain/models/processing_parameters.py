@@ -22,8 +22,13 @@
 # =============================================================================
 
 from dataclasses import dataclass
+
 from dragiter.domain.models.settings import (
-    DebugBoolSetting, VerboseBoolSetting, SimulateBoolSetting, SequentialProcessingBoolSetting)
+    DebugBoolSetting,
+    SequentialProcessingBoolSetting,
+    SimulateBoolSetting,
+    VerboseBoolSetting,
+)
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
 
 

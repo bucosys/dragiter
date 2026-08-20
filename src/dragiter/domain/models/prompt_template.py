@@ -21,8 +21,8 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any
 
 from dragiter.domain.ports.activity_provider import ActivityProvider

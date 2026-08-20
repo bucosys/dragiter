@@ -39,7 +39,7 @@ class Loop(ActivityProvider):
     def __str__(self) -> str:
         summary = [f"Loop (Total: {len(self.lines)}):"]
         for i, line in enumerate(self.lines):
-            summary.append(f"Line {i + 1:03d}: {len(line or "")} chars")
+            summary.append(f"Line {i + 1:03d}: {len(line or '')} chars")
         return " ".join(summary)
 
     def to_activity_dict_list(self) -> list[dict[str, Any]]:

@@ -1,10 +1,9 @@
 # Tests for dragiter
 
-This directory contains unit, security, functional and end-to-end tests for the
-dragiter CLI tool.
+This directory contains unit, security, functional and end-to-end tests for the dragiter CLI tool.
 
-The tests are **not** included in the installed wheel. They ship only with the
-source distribution (sdist) and the Git repository.
+The tests are **not** included in the installed wheel. They ship only with the source distribution (sdist) and the Git
+repository.
 
 ## Prerequisites
 
@@ -36,21 +35,19 @@ pytest -q
 ```
 
 Most tests run without any network access or API keys.  
-Optional integration tests are skipped automatically when the required service
-or environment variable is missing.
+Optional integration tests are skipped automatically when the required service or environment variable is missing.
 
 ---
 
 ## Live cloud E2E tests (Grok, Gemini, Claude)
 
-These tests make real API calls and are therefore skipped unless the
-corresponding environment variable is set.
+These tests make real API calls and are therefore skipped unless the corresponding environment variable is set.
 
-| Provider | Required environment variable | Notes |
-|----------|-------------------------------|-------|
-| xAI Grok | `GROK_API_KEY`                | Uses the official OpenAI-compatible endpoint |
-| Google Gemini | `GEMINI_API_KEY`          | Uses Google’s OpenAI-compatible endpoint |
-| Anthropic Claude | `CLAUDE_API_KEY`        | Requires an **OpenAI-compatible proxy** (LiteLLM, OpenRouter, custom gateway, …). Anthropic’s native `/v1/messages` API is **not** supported. |
+| Provider         | Required environment variable | Notes                                                                                                                                         |
+|------------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| xAI Grok         | `GROK_API_KEY`                | Uses the official OpenAI-compatible endpoint                                                                                                  |
+| Google Gemini    | `GEMINI_API_KEY`              | Uses Google’s OpenAI-compatible endpoint                                                                                                      |
+| Anthropic Claude | `CLAUDE_API_KEY`              | Requires an **OpenAI-compatible proxy** (LiteLLM, OpenRouter, custom gateway, …). Anthropic’s native `/v1/messages` API is **not** supported. |
 
 **Example (Linux / macOS):**
 
@@ -59,7 +56,7 @@ export GROK_API_KEY="xai-…"
 export GEMINI_API_KEY="AIza…"
 export CLAUDE_API_KEY="sk-ant-…"
 
-# optional – only needed for the Claude test
+# optional - only needed for the Claude test
 export DRAGITER_BASE_URL="http://localhost:4000/v1"   # your OpenAI-compatible proxy
 export DRAGITER_MODEL_NAME="claude-sonnet-4"
 
@@ -68,8 +65,7 @@ pytest tests/e2e/test_grok_e2e_minimal.py \
        tests/e2e/test_claude_e2e_minimal.py -v
 ```
 
-Never commit real API keys. Prefer the patterns described in the user manual
-(“How to supply API keys securely”).
+Never commit real API keys. Prefer the patterns described in the user manual (“How to supply API keys securely”).
 
 ---
 
@@ -89,10 +85,10 @@ pytest tests/test_functional_ollama.py -v
 
 Two functional tests verify the TLS-related CLI flags:
 
-| Test | Port | Required files under `~/mtls-test/` | CLI flags exercised |
-|------|------|-------------------------------------|---------------------|
-| CA-bundle only | 8443 | `ca.crt` | `--ca-bundle-file` |
-| Full mTLS | 8444 | `ca.crt`, `client.crt`, `client.key` | `--ca-bundle-file`, `--client-cert-file`, `--client-key-file` |
+| Test           | Port | Required files under `~/mtls-test/`  | CLI flags exercised                                           |
+|----------------|------|--------------------------------------|---------------------------------------------------------------|
+| CA-bundle only | 8443 | `ca.crt`                             | `--ca-bundle-file`                                            |
+| Full mTLS      | 8444 | `ca.crt`, `client.crt`, `client.key` | `--ca-bundle-file`, `--client-cert-file`, `--client-key-file` |
 
 Both tests expect Ollama to be reachable behind the Caddy reverse proxy.
 
@@ -212,7 +208,6 @@ dragiter \
 ## Notes
 
 - New tests should follow the naming convention `test_*.py`.
-- Security and circuit-breaker tests live directly under `tests/` and need no
-  external services.
-- The tiny self-contained fixtures used by many functional tests are located
-  in `tests/fixtures/01_tiny_functional_test/`.
+- Security and circuit-breaker tests live directly under `tests/` and need no external services.
+- The tiny self-contained fixtures used by many functional tests are located in
+  `tests/fixtures/01_tiny_functional_test/`.

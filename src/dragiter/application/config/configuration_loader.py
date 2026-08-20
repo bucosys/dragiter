@@ -28,21 +28,52 @@ from pathlib import Path
 from typing import Any
 
 from dragiter import __version__
-from dragiter.application.config.configuration_decorators import ArgumentDecorator, BoolSettingArgumentDecorator, \
-    StringSettingArgumentDecorator, IntegerSettingArgumentDecorator, FloatSettingArgumentDecorator, \
-    PathSettingArgumentDecorator
+from dragiter.application.config.configuration_decorators import (
+    ArgumentDecorator,
+    BoolSettingArgumentDecorator,
+    FloatSettingArgumentDecorator,
+    IntegerSettingArgumentDecorator,
+    PathSettingArgumentDecorator,
+    StringSettingArgumentDecorator,
+)
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.settings import (
-    DebugBoolSetting, SimulateBoolSetting, VerboseBoolSetting, SequentialProcessingBoolSetting,
-    ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
-    OutputDelimiterStringSetting, OutputFilenameSchemaStringSetting, OutputModeStringSetting, TaskStringSetting,
-    MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    CharsPerTokenFloatSetting, BaseDirectoryPathSetting, ActivityFilePathSetting, ConfigFilePathSetting,
+    ActivityFilePathSetting,
+    ApiKeyStringSetting,
+    BaseDirectoryPathSetting,
+    BaseURLStringSetting,
+    BoolSetting,
+    CaBundleFilePathSetting,
+    CharsPerTokenFloatSetting,
+    ClientCertFilePathSetting,
+    ClientKeyFilePathSetting,
+    ConfigFilePathSetting,
+    DebugBoolSetting,
+    FloatSetting,
+    IntegerSetting,
     LogFilePathSetting,
-    PromptFilePathSetting, LoopFilePathSetting, OutputFilePathSetting, OutputDirectoryPathSetting,
-    ResourceFilePathSetting, ValueSetting, TemperatureFloatSetting, RetryDelayIntSetting, MaxRetryIntSetting,
-    BoolSetting, StringSetting, IntegerSetting, FloatSetting, PathSetting,
-    CaBundleFilePathSetting, ClientCertFilePathSetting, ClientKeyFilePathSetting)
+    LoopFilePathSetting,
+    MaxContextTokensIntSetting,
+    MaxOutputTokensIntSetting,
+    MaxRetryIntSetting,
+    ModelNameStringSetting,
+    OutputDelimiterStringSetting,
+    OutputDirectoryPathSetting,
+    OutputFilenameSchemaStringSetting,
+    OutputFilePathSetting,
+    OutputModeStringSetting,
+    PathSetting,
+    PromptFilePathSetting,
+    ResourceFilePathSetting,
+    RetryDelayIntSetting,
+    SequentialProcessingBoolSetting,
+    SimulateBoolSetting,
+    StringSetting,
+    TaskStringSetting,
+    TemperatureFloatSetting,
+    ValueSetting,
+    VerboseBoolSetting,
+)
 from dragiter.infrastructure.io.io_services import read_from_toml
 
 logger = logging.getLogger(__name__)
@@ -52,60 +83,131 @@ class ConfigurationLoader(Worker):
     def __init__(self) -> None:
         """Initialise the configuration object and load settings."""
         self.config_values: list[ArgumentDecorator] = [
-            BoolSettingArgumentDecorator(DebugBoolSetting("debug"), short_key="d", help="Enable debug logging"),
-            BoolSettingArgumentDecorator(SimulateBoolSetting("simulate"), short_key="s",
-                                         help="Simulation mode (no API calls)"),
-            BoolSettingArgumentDecorator(VerboseBoolSetting("verbose"), short_key="v", help="Verbose output"),
-            BoolSettingArgumentDecorator(SequentialProcessingBoolSetting("sequential_processing"),
-                                         help="Process chunks sequentially (one by one)"),
-            StringSettingArgumentDecorator(ApiKeyStringSetting("api_key"), help="API key for the LLM service"),
-            StringSettingArgumentDecorator(BaseURLStringSetting("base_url"),
-                                           help="Base URL of the AI API endpoint (e.g. for Ollama or Grok)"),
-            StringSettingArgumentDecorator(ModelNameStringSetting("model_name"),
-                                           help="Model name (e.g. gpt-4o, llama3, grok-beta)"),
-            StringSettingArgumentDecorator(OutputDelimiterStringSetting("output_delimiter"),
-                                           help="Delimiter between multiple results"),
-            StringSettingArgumentDecorator(OutputFilenameSchemaStringSetting("output_filename_schema"),
-                                           help="Filename schema for output files"),
-            StringSettingArgumentDecorator(OutputModeStringSetting("output_mode"), short_key="m",
-                                           help="Output mode: w=overwrite, a=append, x=exclusive (default: x)"),
-            StringSettingArgumentDecorator(TaskStringSetting("task"), short_key="t",
-                                           help="Direct task text (alternative to -p)"),
-            IntegerSettingArgumentDecorator(MaxContextTokensIntSetting("max_context_tokens"),
-                                            help="Maximum total tokens the model can handle (input + output)"),
-            IntegerSettingArgumentDecorator(MaxOutputTokensIntSetting("max_output_tokens"),
-                                            help="Maximum tokens the model may generate in the response"),
-            FloatSettingArgumentDecorator(CharsPerTokenFloatSetting("chars_per_token"),
-                                          help="Average characters per token (usually 3.5-4.0)"),
-            FloatSettingArgumentDecorator(TemperatureFloatSetting("temperature"),
-                                          help="Temperature (0.0 = deterministic, higher = more creative)"),
-            IntegerSettingArgumentDecorator(RetryDelayIntSetting("retry_delay"),
-                                            help="Seconds to wait between retries on rate limits"),
-            IntegerSettingArgumentDecorator(MaxRetryIntSetting("max_retry"), help="Maximum number of retry attempts"),
-            PathSettingArgumentDecorator(BaseDirectoryPathSetting("base_directory"), short_key="b",
-                                         help="Base directory for all relative paths"),
-            PathSettingArgumentDecorator(ActivityFilePathSetting("activity_file"), short_key="a",
-                                         help="Write activity to file"),
-            PathSettingArgumentDecorator(CaBundleFilePathSetting("ca_bundle_file"),
-                                         help="Path to custom CA certificate bundle (PEM) for TLS verification"),
-            PathSettingArgumentDecorator(ClientCertFilePathSetting("client_cert_file"),
-                                         help="Path to client certificate (PEM) for mutual TLS (mTLS)"),
-            PathSettingArgumentDecorator(ClientKeyFilePathSetting("client_key_file"),
-                                         help="Path to client private key (optional if key is embedded in cert file)"),
-            PathSettingArgumentDecorator(ConfigFilePathSetting("config_file"), short_key="c",
-                                         help="Read configuration from file"),
-            PathSettingArgumentDecorator(LogFilePathSetting("log_file"), short_key="L",
-                                         help="Write log output to file (with rotation)"),
-            PathSettingArgumentDecorator(PromptFilePathSetting("prompt_file"), short_key="p",
-                                         help="Read instruction and task template file"),
-            PathSettingArgumentDecorator(LoopFilePathSetting("loop_file"), short_key="l",
-                                         help="Path to loop file (txt or .jsonl)"),
-            PathSettingArgumentDecorator(ResourceFilePathSetting("resource_file"), short_key="r",
-                                         help="Path to resource definition (.toml)"),
-            PathSettingArgumentDecorator(OutputFilePathSetting("output_file"), short_key="o",
-                                         help="Write all output to a single file"),
-            PathSettingArgumentDecorator(OutputDirectoryPathSetting("output_directory"), short_key="O",
-                                         help="Write outputs to directory (recommended for loops)")]
+            BoolSettingArgumentDecorator(
+                DebugBoolSetting("debug"), short_key="d", help="Enable debug logging"
+            ),
+            BoolSettingArgumentDecorator(
+                SimulateBoolSetting("simulate"),
+                short_key="s",
+                help="Simulation mode (no API calls)",
+            ),
+            BoolSettingArgumentDecorator(
+                VerboseBoolSetting("verbose"), short_key="v", help="Verbose output"
+            ),
+            BoolSettingArgumentDecorator(
+                SequentialProcessingBoolSetting("sequential_processing"),
+                help="Process chunks sequentially (one by one)",
+            ),
+            StringSettingArgumentDecorator(
+                ApiKeyStringSetting("api_key"), help="API key for the LLM service"
+            ),
+            StringSettingArgumentDecorator(
+                BaseURLStringSetting("base_url"),
+                help="Base URL of the AI API endpoint (e.g. for Ollama or Grok)",
+            ),
+            StringSettingArgumentDecorator(
+                ModelNameStringSetting("model_name"),
+                help="Model name (e.g. gpt-4o, llama3, grok-beta)",
+            ),
+            StringSettingArgumentDecorator(
+                OutputDelimiterStringSetting("output_delimiter"),
+                help="Delimiter between multiple results",
+            ),
+            StringSettingArgumentDecorator(
+                OutputFilenameSchemaStringSetting("output_filename_schema"),
+                help="Filename schema for output files",
+            ),
+            StringSettingArgumentDecorator(
+                OutputModeStringSetting("output_mode"),
+                short_key="m",
+                help="Output mode: w=overwrite, a=append, x=exclusive (default: x)",
+            ),
+            StringSettingArgumentDecorator(
+                TaskStringSetting("task"),
+                short_key="t",
+                help="Direct task text (alternative to -p)",
+            ),
+            IntegerSettingArgumentDecorator(
+                MaxContextTokensIntSetting("max_context_tokens"),
+                help="Maximum total tokens the model can handle (input + output)",
+            ),
+            IntegerSettingArgumentDecorator(
+                MaxOutputTokensIntSetting("max_output_tokens"),
+                help="Maximum tokens the model may generate in the response",
+            ),
+            FloatSettingArgumentDecorator(
+                CharsPerTokenFloatSetting("chars_per_token"),
+                help="Average characters per token (usually 3.5-4.0)",
+            ),
+            FloatSettingArgumentDecorator(
+                TemperatureFloatSetting("temperature"),
+                help="Temperature (0.0 = deterministic, higher = more creative)",
+            ),
+            IntegerSettingArgumentDecorator(
+                RetryDelayIntSetting("retry_delay"),
+                help="Seconds to wait between retries on rate limits",
+            ),
+            IntegerSettingArgumentDecorator(
+                MaxRetryIntSetting("max_retry"), help="Maximum number of retry attempts"
+            ),
+            PathSettingArgumentDecorator(
+                BaseDirectoryPathSetting("base_directory"),
+                short_key="b",
+                help="Base directory for all relative paths",
+            ),
+            PathSettingArgumentDecorator(
+                ActivityFilePathSetting("activity_file"),
+                short_key="a",
+                help="Write activity to file",
+            ),
+            PathSettingArgumentDecorator(
+                CaBundleFilePathSetting("ca_bundle_file"),
+                help="Path to custom CA certificate bundle (PEM) for TLS verification",
+            ),
+            PathSettingArgumentDecorator(
+                ClientCertFilePathSetting("client_cert_file"),
+                help="Path to client certificate (PEM) for mutual TLS (mTLS)",
+            ),
+            PathSettingArgumentDecorator(
+                ClientKeyFilePathSetting("client_key_file"),
+                help="Path to client private key (optional if key is embedded in cert file)",
+            ),
+            PathSettingArgumentDecorator(
+                ConfigFilePathSetting("config_file"),
+                short_key="c",
+                help="Read configuration from file",
+            ),
+            PathSettingArgumentDecorator(
+                LogFilePathSetting("log_file"),
+                short_key="L",
+                help="Write log output to file (with rotation)",
+            ),
+            PathSettingArgumentDecorator(
+                PromptFilePathSetting("prompt_file"),
+                short_key="p",
+                help="Read instruction and task template file",
+            ),
+            PathSettingArgumentDecorator(
+                LoopFilePathSetting("loop_file"),
+                short_key="l",
+                help="Path to loop file (txt or .jsonl)",
+            ),
+            PathSettingArgumentDecorator(
+                ResourceFilePathSetting("resource_file"),
+                short_key="r",
+                help="Path to resource definition (.toml)",
+            ),
+            PathSettingArgumentDecorator(
+                OutputFilePathSetting("output_file"),
+                short_key="o",
+                help="Write all output to a single file",
+            ),
+            PathSettingArgumentDecorator(
+                OutputDirectoryPathSetting("output_directory"),
+                short_key="O",
+                help="Write outputs to directory (recommended for loops)",
+            ),
+        ]
 
     def run(self, **kwargs: Any) -> list[ValueSetting]:
 
@@ -115,8 +217,12 @@ class ConfigurationLoader(Worker):
 
             # This looks for the decorator where the inner object is an instance of ConfigFilePathSetting
             target_decorator = next(
-                (item for item in self.config_values if isinstance(item.value_setting_object, ConfigFilePathSetting)),
-                None
+                (
+                    item
+                    for item in self.config_values
+                    if isinstance(item.value_setting_object, ConfigFilePathSetting)
+                ),
+                None,
             )
 
             # Must have been found so now we extract the inner object
@@ -130,7 +236,9 @@ class ConfigurationLoader(Worker):
                 self._set_settings_from_config(read_from_toml(real_config_path))
 
             else:
-                logger.warning("No configuration file found or specified. Using defaults/CLI args only.")
+                logger.warning(
+                    "No configuration file found or specified. Using defaults/CLI args only."
+                )
 
             # 3. read environment dragiter_*
             self._set_settings_from_environment()
@@ -138,15 +246,12 @@ class ConfigurationLoader(Worker):
             # builds an array of inner objects
             return [item.value_setting_object for item in self.config_values]
 
-
         except Exception as e:
             raise ConfigurationLoaderError(f"Failed to read configuration: {e}") from e
 
     def _set_settings_from_config(self, config_dict: dict) -> None:
-
-        """ set a particular value"""
+        """set a particular value"""
         for item in self.config_values:
-
             # 1 get the value an
             value_setting_object = item.value_setting_object
 
@@ -168,7 +273,9 @@ class ConfigurationLoader(Worker):
                     value_setting_object.value = config_file_value
                 elif isinstance(config_file_value, str):
                     # String analog zum Env-Verhalten: nur "true" (case-insensitive) zählt
-                    value_setting_object.value = config_file_value.strip().lower() == "true"
+                    value_setting_object.value = (
+                        config_file_value.strip().upper() in ("TRUE", "1", "YES")
+                    )
                 else:
                     raise ConfigurationLoaderError(
                         f"Invalid value for '{item.long_key}' in config file: "
@@ -177,7 +284,9 @@ class ConfigurationLoader(Worker):
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
             elif isinstance(value_setting_object, StringSetting):
                 value_setting_object.value = str(config_file_value).strip()
-                display_value = "********" if "key" in item.long_key else value_setting_object.value
+                display_value = (
+                    "********" if "key" in item.long_key else value_setting_object.value
+                )
                 logger.debug(f"[{item.long_key}: {display_value}]")
             elif isinstance(value_setting_object, IntegerSetting):
                 value_setting_object.value = int(config_file_value)
@@ -191,7 +300,6 @@ class ConfigurationLoader(Worker):
             else:
                 pass
 
-
     def _set_settings_from_environment(self) -> None:
         block_name = "PARSE ENVIRONMENT"
         logger.debug(f"--- START BLOCK: {block_name} ---")
@@ -200,7 +308,6 @@ class ConfigurationLoader(Worker):
         env_key: str = None
 
         for item in self.config_values:
-
             # 1 get the value an
             value_setting_object = item.value_setting_object
 
@@ -217,24 +324,28 @@ class ConfigurationLoader(Worker):
             if env_value.startswith("$"):
                 expanded = os.path.expandvars(env_value)
                 if expanded == env_value:  # not expanded
-                    logger.warning(f"Environment variable reference could not be resolved: {env_value}")
+                    logger.warning(
+                        f"Environment variable reference could not be resolved: {env_value}"
+                    )
                 env_value = expanded
 
             # 4 if found, then ...
-            if (isinstance(value_setting_object, BoolSetting)):
-                value_setting_object.value = env_value.strip().lower() == "true"
+            if isinstance(value_setting_object, BoolSetting):
+                value_setting_object.value = env_value.strip().upper() in ("TRUE", "1", "YES")
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif (isinstance(value_setting_object, StringSetting)):
+            elif isinstance(value_setting_object, StringSetting):
                 value_setting_object.value = env_value.strip()
-                display_value = "********" if "key" in item.long_key else value_setting_object.value
+                display_value = (
+                    "********" if "key" in item.long_key else value_setting_object.value
+                )
                 logger.debug(f"[{item.long_key}: {display_value}]")
-            elif (isinstance(value_setting_object, IntegerSetting)):
+            elif isinstance(value_setting_object, IntegerSetting):
                 value_setting_object.value = int(env_value.strip())
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif (isinstance(value_setting_object, FloatSetting)):
+            elif isinstance(value_setting_object, FloatSetting):
                 value_setting_object.value = float(env_value.strip())
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif (isinstance(value_setting_object, PathSetting)):
+            elif isinstance(value_setting_object, PathSetting):
                 value_setting_object.value = Path(env_value.strip())
                 logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
             else:
@@ -277,14 +388,11 @@ class ConfigurationLoader(Worker):
     def _get_args(self) -> None:
 
         parser = argparse.ArgumentParser(
-            description="dragiter – Deterministic Context Iterator. A focused CLI for structured, reproducible LLM workflows.",
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            description="dragiter - Deterministic Context Iterator. A focused CLI for structured, reproducible LLM workflows.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
-        cmd_long_key: str = None
-
         for item in self.config_values:
-
             # 1 get the value an
             value_setting_object = item.value_setting_object
 
@@ -300,26 +408,50 @@ class ConfigurationLoader(Worker):
 
             type_mapping: dict[str, Any] = {}
 
-            if (isinstance(value_setting_object, BoolSetting)):
-                type_mapping = {"action": "store_true", "default": None, "help": help_text}
-            elif (isinstance(value_setting_object, StringSetting)):
-                type_mapping = {"type": str, "default": None, "required": False, "help": help_text}
-            elif (isinstance(value_setting_object, IntegerSetting)):
-                type_mapping = {"type": int, "default": None, "required": False, "help": help_text}
-            elif (isinstance(value_setting_object, FloatSetting)):
-                type_mapping = {"type": float, "default": None, "required": False, "help": help_text}
-            elif (isinstance(value_setting_object, PathSetting)):
-                type_mapping = {"type": Path, "default": None, "required": False, "help": help_text}
+            if isinstance(value_setting_object, BoolSetting):
+                type_mapping = {
+                    "action": "store_true",
+                    "default": None,
+                    "help": help_text,
+                }
+            elif isinstance(value_setting_object, StringSetting):
+                type_mapping = {
+                    "type": str,
+                    "default": None,
+                    "required": False,
+                    "help": help_text,
+                }
+            elif isinstance(value_setting_object, IntegerSetting):
+                type_mapping = {
+                    "type": int,
+                    "default": None,
+                    "required": False,
+                    "help": help_text,
+                }
+            elif isinstance(value_setting_object, FloatSetting):
+                type_mapping = {
+                    "type": float,
+                    "default": None,
+                    "required": False,
+                    "help": help_text,
+                }
+            elif isinstance(value_setting_object, PathSetting):
+                type_mapping = {
+                    "type": Path,
+                    "default": None,
+                    "required": False,
+                    "help": help_text,
+                }
             else:
                 pass
 
             parser.add_argument(*args, **type_mapping)
 
         parser.add_argument(
-            '--version',
-            action='version',
-            version=f'%(prog)s {__version__}',
-            help="Show program's version number and exit"
+            "--version",
+            action="version",
+            version=f"%(prog)s {__version__}",
+            help="Show program's version number and exit",
         )
 
         parsed_dict = vars(parser.parse_args())

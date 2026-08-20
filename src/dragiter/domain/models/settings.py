@@ -23,7 +23,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar('T')
 
@@ -93,7 +93,7 @@ class PathSetting(ValueSetting[Path]):
     """
 
     # Private storage for the originally provided path (to enable rebasing)
-    _original_path: Optional[Path] = field(default=None, init=False, repr=False)
+    _original_path: Path | None = field(default=None, init=False, repr=False)
     # Current base directory used for resolving relative paths
     _base_dir: Path = field(default_factory=Path.cwd, init=False, repr=False)
 
@@ -145,7 +145,7 @@ class PathSetting(ValueSetting[Path]):
             self._value = (self._base_dir / self._original_path).resolve()
 
     @property
-    def original_value(self) -> Optional[Path]:
+    def original_value(self) -> Path | None:
         """Returns the originally set path (relative or absolute). Useful for debugging."""
         return self._original_path
 
@@ -172,7 +172,7 @@ class FloatSetting(ValueSetting[float]):
 @dataclass
 class IntegerSetting(ValueSetting[int]):
     def _validate(self, new_value: Any) -> None:
-        # bool is a subclass of int in Python – reject it explicitly
+        # bool is a subclass of int in Python - reject it explicitly
         if type(new_value) is not int:
             raise TypeError(
                 f"IntegerSetting '{self.key}' expected int, got {type(new_value).__name__}"

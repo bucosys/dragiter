@@ -21,7 +21,7 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-from typing import Protocol, Any
+from typing import Any, Protocol
 
 
 class ChecksumGenerator(Protocol):

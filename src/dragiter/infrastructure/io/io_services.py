@@ -21,12 +21,12 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-import sys
 import json
 import logging
 import os
-import tomllib
 from pathlib import Path
+import sys
+import tomllib
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,9 @@ def read_stripped_lines_from_file(file_path: Path) -> list[str]:
     return result_list
 
 
-def write_lines_to_unique_file(file_path: Path, overwrite: bool, lines: list[str]) -> os.stat_result:
+def write_lines_to_unique_file(
+    file_path: Path, overwrite: bool, lines: list[str]
+) -> os.stat_result:
     if file_path.exists() or (not overwrite):
         raise IOServiceError(f"File already exists: {file_path.name}.")
 
@@ -130,10 +132,11 @@ def append_jsonl_to_file(file_path: Path, lines: list[dict]) -> os.stat_result:
                 # These characters act as line breaks and would break the one-object-per-line
                 # guarantee of JSONL. We escape them explicitly while keeping all other
                 # Unicode characters readable.
-                jsonl = (jsonl
-                         .replace("\u0085", "\\u0085")
-                         .replace("\u2028", "\\u2028")
-                         .replace("\u2029", "\\u2029"))
+                jsonl = (
+                    jsonl.replace("\u0085", "\\u0085")
+                    .replace("\u2028", "\\u2028")
+                    .replace("\u2029", "\\u2029")
+                )
 
                 f.write(jsonl + "\n")
 
@@ -149,12 +152,11 @@ def append_jsonl_to_file(file_path: Path, lines: list[dict]) -> os.stat_result:
         raise IOServiceError(f"Failed to append file content: {file_path}.") from e
 
 
-def write_or_append_lines_to_unique_file(file_path: Path, output_mode: str, lines: list[str]) -> os.stat_result:
-    new_file_path = None
-    current_file_content = None
+def write_or_append_lines_to_unique_file(
+    file_path: Path, output_mode: str, lines: list[str]
+) -> os.stat_result:
 
     try:
-
         if output_mode == "a":
             with file_path.open(mode="at", encoding="utf-8") as f:
                 for line in lines:
@@ -191,15 +193,15 @@ def write_or_append_lines_to_unique_file(file_path: Path, output_mode: str, line
         raise IOServiceError(f"Failed to write file content: {file_path}.") from e
 
 
-
-
-
 class StdinReadError(Exception):
     """Raised when reading from standard input fails."""
+
     pass
 
 
-def read_stdin_content(max_size_bytes: int = 10 * 1024 * 1024, encoding: str = "utf-8") -> str:
+def read_stdin_content(
+    max_size_bytes: int = 10 * 1024 * 1024, encoding: str = "utf-8"
+) -> str:
     """
     Reads all data from stdin and returns it as a string.
 
@@ -214,7 +216,6 @@ def read_stdin_content(max_size_bytes: int = 10 * 1024 * 1024, encoding: str = "
         StdinReadError: If decoding fails, size limit is exceeded, or I/O error occurs.
     """
     try:
-
         # If it is a terminal and not a pipe/file, we might want to skip reading
         if sys.stdin.isatty():
             return None
@@ -229,7 +230,7 @@ def read_stdin_content(max_size_bytes: int = 10 * 1024 * 1024, encoding: str = "
 
     except UnicodeDecodeError as e:
         raise IOServiceError(f"Encoding error: Input is not valid {encoding}") from e
-    except IOError as e:
+    except OSError as e:
         raise IOServiceError(f"I/O error during stdin read: {e}") from e
     except Exception as e:
         raise IOServiceError(f"Unexpected error while reading stdin: {e}") from e

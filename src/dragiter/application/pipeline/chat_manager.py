@@ -21,9 +21,10 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 import logging
+
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.chat_results import ChatResults, ChatResult
+from dragiter.domain.models.chat_results import ChatResult, ChatResults
 from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.settings import SimulateBoolSetting
 from dragiter.domain.ports.llm_service import LLMService

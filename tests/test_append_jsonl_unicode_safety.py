@@ -41,8 +41,7 @@ from pathlib import Path
 
 import pytest
 
-from dragiter.infrastructure.io.io_services import append_jsonl_to_file, IOServiceError
-
+from dragiter.infrastructure.io.io_services import append_jsonl_to_file
 
 # Characters that must not appear unescaped in a JSONL line
 LINE_BREAKING_CHARS = (
@@ -133,9 +132,9 @@ def test_jsonl_multiple_records_with_evil_content(tmp_path):
     path = tmp_path / "activity.jsonl"
 
     records = [
-        {"idx": 1, "content": f"one\u0085two"},
-        {"idx": 2, "content": f"three\u2028four"},
-        {"idx": 3, "content": f"five\u2029six"},
+        {"idx": 1, "content": "one\u0085two"},
+        {"idx": 2, "content": "three\u2028four"},
+        {"idx": 3, "content": "five\u2029six"},
         {"idx": 4, "content": "harmless ascii only"},
     ]
 
@@ -198,7 +197,7 @@ def test_jsonl_physical_line_contains_no_raw_line_separators(tmp_path):
     for line in _read_jsonl_lines(path):
         for ch in LINE_BREAKING_CHARS:
             assert ch not in line, (
-                f"Raw {ch!r} found in physical JSONL line – "
+                f"Raw {ch!r} found in physical JSONL line - "
                 f"must be escaped as \\\\uXXXX"
             )
 

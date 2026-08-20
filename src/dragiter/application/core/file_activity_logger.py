@@ -21,12 +21,9 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 from pathlib import PosixPath
-from typing import Optional
 
 from dragiter.application.core.buffered_activity_logger import BufferedActivityLogger
-from dragiter.domain.ports.activity_logger import ActivityLogger
 from dragiter.domain.ports.activity_provider import ActivityProvider
-from dragiter.domain.ports.checksum_generator import ChecksumGenerator
 from dragiter.infrastructure.io.io_services import append_jsonl_to_file
 
 
@@ -36,7 +33,7 @@ class FileActivityLogger(BufferedActivityLogger):
         super().__init__()
 
         self.activity_file_found: bool = False
-        self.activity_file_path: Optional[PosixPath] = None
+        self.activity_file_path: PosixPath | None = None
 
 
     def write_activity(self, activity_provider: ActivityProvider) -> int:

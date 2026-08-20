@@ -1,3 +1,26 @@
+# =============================================================================
+# dragiter - Deterministic Context Iterator
+# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
+#
+# This file is part of dragiter.
+#
+# dragiter is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# dragiter is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
+#
+# For commercial licensing (closed-source use, SaaS, etc.), please contact:
+# Michael Buchold <michael.buchold@dragiter.app>
+# =============================================================================
+
 # tests/e2e/test_grok_e2e_minimal.py
 """
 Minimal E2E test against the live Grok API.
@@ -12,9 +35,9 @@ Minimal E2E test against the live Grok API.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import shutil
 import subprocess
-from pathlib import Path
 
 import pytest
 
@@ -23,7 +46,7 @@ import pytest
 # -------------------------------------------------
 pytestmark = pytest.mark.skipif(
     not os.getenv("GROK_API_KEY"),
-    reason="GROK_API_KEY not set – skipping live Grok E2E test",
+    reason="GROK_API_KEY not set - skipping live Grok E2E test",
 )
 
 

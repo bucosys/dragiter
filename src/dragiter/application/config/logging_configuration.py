@@ -21,11 +21,11 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
+from dataclasses import dataclass
 import logging
 import os
-import sys
-from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 
 @dataclass(frozen=True)
@@ -51,12 +51,12 @@ class LoggingConfigurator:
 
         debug = (
                 "--debug" in argv_lower or "-d" in argv_lower or
-                os.environ.get(env_debug_variable, "").upper() in ("TRUE", "1", "YES")
+                os.environ.get(env_debug_variable, "").strip().upper() in ("TRUE", "1", "YES")
         )
 
         verbose = (
                 "--verbose" in argv_lower or "-v" in argv_lower or
-                os.environ.get(env_verbose_variable, "").upper() in ("TRUE", "1", "YES")
+                os.environ.get(env_verbose_variable, "").strip().upper() in ("TRUE", "1", "YES")
         )
 
         # === Parse command line arguments ===
@@ -64,12 +64,10 @@ class LoggingConfigurator:
         base_dir_arg = None
 
         for i, arg in enumerate(sys.argv):
-            if arg in ("--log-file", "-L"):
-                if i + 1 < len(sys.argv):
-                    log_file_arg = sys.argv[i + 1]
-            if arg in ("--base-directory", "-b"):
-                if i + 1 < len(sys.argv):
-                    base_dir_arg = sys.argv[i + 1]
+            if arg in ("--log-file", "-L") and (i + 1 < len(sys.argv)):
+                log_file_arg = sys.argv[i + 1]
+            if arg in ("--base-directory", "-b") and (i + 1 < len(sys.argv)):
+                base_dir_arg = sys.argv[i + 1]
 
         # === Determine base directory (only needed for relative log file paths) ===
         if base_dir_arg:

@@ -27,7 +27,9 @@ Responsible for extracting detailed information from info.txt file
 """
 
 import importlib.resources
-from dragiter import __version__, __tool_name__
+
+from dragiter import __version__
+
 
 class InfoPresenter:
 
@@ -46,7 +48,6 @@ class InfoPresenter:
         """Loads info.txt and renders it like a real Unix man page."""
 
         try:
-            from importlib.resources import files
             help_path = importlib.resources.files("dragiter") / "docs" / "info.txt"
             md_text = help_path.read_text(encoding="utf-8")
             print(md_text)
@@ -67,6 +68,6 @@ class InfoPresenter:
                   |___/        
 """
         print(banner)
-        print(f"[dragiter v{__version__} – Deterministic Context Iterator.]")
+        print(f"[dragiter v{__version__} - Deterministic Context Iterator.]")
         print("-" * 70)
         print("")

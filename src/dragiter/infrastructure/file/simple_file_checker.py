@@ -25,9 +25,8 @@
 import codecs
 import logging
 import pathlib
-from typing import Optional, List, Union
 
-from dragiter.domain.ports.file_checker import FileChecker, BinaryFileError, EmptyFileError
+from dragiter.domain.ports.file_checker import BinaryFileError, EmptyFileError, FileChecker
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +39,11 @@ class SimpleFileChecker(FileChecker):
     structurally matches the Protocol.
     """
 
-    def __init__(self, chunk_size: int = 10240, candidates: Optional[List[str]] = None):
+    def __init__(self, chunk_size: int = 10240, candidates: list[str] | None = None):
         self.chunk_size = chunk_size
         self.candidates = candidates or ['utf-8', 'ascii', 'cp1252', 'latin-1']
 
-    def detect_encoding(self, path: Union[str, pathlib.Path]) -> str:
+    def detect_encoding(self, path: str | pathlib.Path) -> str:
         path_obj = pathlib.Path(path)
 
         self._verify_file_exists_and_not_empty(path_obj)
@@ -79,7 +78,7 @@ class SimpleFileChecker(FileChecker):
         if path_obj.stat().st_size == 0:
             raise EmptyFileError(f"The file {path_obj.name} is entirely empty.")
 
-    def _check_bom(self, raw_data: bytes) -> Optional[str]:
+    def _check_bom(self, raw_data: bytes) -> str | None:
         if raw_data.startswith(codecs.BOM_UTF8): return "utf-8-sig"
         if raw_data.startswith(codecs.BOM_UTF16_LE) or raw_data.startswith(codecs.BOM_UTF16_BE): return "utf-16"
         if raw_data.startswith(codecs.BOM_UTF32_LE) or raw_data.startswith(codecs.BOM_UTF32_BE): return "utf-32"

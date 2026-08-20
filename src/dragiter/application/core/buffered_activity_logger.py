@@ -21,30 +21,27 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 import datetime
-import hashlib
-import json
 import traceback
-from dataclasses import is_dataclass, fields
 from typing import Any
 
+from dragiter import __tool_name__, __version__
 from dragiter.domain.ports.activity_logger import ActivityLogger
 from dragiter.domain.ports.activity_provider import ActivityProvider
 
-from dragiter import __version__, __tool_name__
 
 class BufferedActivityLogger(ActivityLogger):
 
     def __init__(self) -> None:
         self.activity_dict_list: list[dict[str, Any]] = [
             {
-                "TS": datetime.datetime.now(datetime.timezone.utc),
+                "TS": datetime.datetime.now(datetime.UTC),
                 "RT": self.__class__.__bases__[0].__name__, # first superclass
                 "initial_status_message": f"{__tool_name__}({__version__}) process started",
             }
         ]
 
     def write_activity(self, activity_provider: ActivityProvider) -> int:
-        date_time_now: datetime.datetime = datetime.datetime.now(datetime.timezone.utc)
+        date_time_now: datetime.datetime = datetime.datetime.now(datetime.UTC)
         a_p_dict_list:list[dict[str, Any]] = activity_provider.to_activity_dict_list()
 
         for d_a in a_p_dict_list:

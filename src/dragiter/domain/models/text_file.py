@@ -21,14 +21,13 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-import pathlib
 from dataclasses import dataclass
-from typing import Union
+import pathlib
 
 
 @dataclass
 class TextFile:
-    path: Union[str, pathlib.Path]
+    path: str | pathlib.Path
     encoding: str = "utf-8"
 
     def __post_init__(self):

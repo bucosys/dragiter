@@ -22,7 +22,6 @@
 # =============================================================================
 
 from dataclasses import dataclass, field
-from typing import Dict, List
 
 
 @dataclass
@@ -43,5 +42,5 @@ class ContextValidationReport:
     max_session_index: int = -1
 
     # Detailed telemetry
-    session_token_counts: Dict[int, int] = field(default_factory=dict)
-    simulation_warnings: List[str] = field(default_factory=list)
+    session_token_counts: dict[int, int] = field(default_factory=dict)
+    simulation_warnings: list[str] = field(default_factory=list)

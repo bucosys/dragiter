@@ -22,12 +22,21 @@
 # =============================================================================
 
 from dataclasses import dataclass
-from dragiter.domain.models.settings import (
-    ApiKeyStringSetting, BaseURLStringSetting, ModelNameStringSetting,
-    MaxContextTokensIntSetting, MaxOutputTokensIntSetting,
-    TemperatureFloatSetting, MaxRetryIntSetting, RetryDelayIntSetting, CharsPerTokenFloatSetting,
-    CaBundleFilePathSetting, ClientCertFilePathSetting, ClientKeyFilePathSetting)
 
+from dragiter.domain.models.settings import (
+    ApiKeyStringSetting,
+    BaseURLStringSetting,
+    CaBundleFilePathSetting,
+    CharsPerTokenFloatSetting,
+    ClientCertFilePathSetting,
+    ClientKeyFilePathSetting,
+    MaxContextTokensIntSetting,
+    MaxOutputTokensIntSetting,
+    MaxRetryIntSetting,
+    ModelNameStringSetting,
+    RetryDelayIntSetting,
+    TemperatureFloatSetting,
+)
 from dragiter.domain.models.value_settings_activity_provider import ValueSettingsActivityProvider
 
 

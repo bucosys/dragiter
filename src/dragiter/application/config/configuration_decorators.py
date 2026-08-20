@@ -24,7 +24,13 @@
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from dragiter.domain.models.settings import BoolSetting, IntegerSetting, StringSetting, FloatSetting, PathSetting
+from dragiter.domain.models.settings import (
+    BoolSetting,
+    FloatSetting,
+    IntegerSetting,
+    PathSetting,
+    StringSetting,
+)
 
 T = TypeVar('T')
 

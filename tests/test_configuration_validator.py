@@ -71,10 +71,10 @@ from dragiter.domain.models.settings import (
     VerboseBoolSetting,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _blank_settings() -> dict:
     """Fresh, unset settings matching the ConfigurationValidator.run() signature."""
@@ -84,9 +84,15 @@ def _blank_settings() -> dict:
         "model_name_string_setting": ModelNameStringSetting(_key="model_name"),
         "output_mode_string_setting": OutputModeStringSetting(_key="output_mode"),
         "task_string_setting": TaskStringSetting(_key="task"),
-        "chars_per_token_float_setting": CharsPerTokenFloatSetting(_key="chars_per_token"),
-        "max_output_token_int_setting": MaxOutputTokensIntSetting(_key="max_output_tokens"),
-        "max_context_token_int_setting": MaxContextTokensIntSetting(_key="max_context_tokens"),
+        "chars_per_token_float_setting": CharsPerTokenFloatSetting(
+            _key="chars_per_token"
+        ),
+        "max_output_token_int_setting": MaxOutputTokensIntSetting(
+            _key="max_output_tokens"
+        ),
+        "max_context_token_int_setting": MaxContextTokensIntSetting(
+            _key="max_context_tokens"
+        ),
         "temperature_float_setting": TemperatureFloatSetting(_key="temperature"),
         "retry_delay_int_setting": RetryDelayIntSetting(_key="retry_delay"),
         "max_retries_int_setting": MaxRetryIntSetting(_key="max_retry"),
@@ -94,14 +100,20 @@ def _blank_settings() -> dict:
         "base_directory_path_setting": BaseDirectoryPathSetting(_key="base_directory"),
         "config_file_path_setting": ConfigFilePathSetting(_key="config_file"),
         "ca_bundle_file_path_setting": CaBundleFilePathSetting(_key="ca_bundle_file"),
-        "client_cert_file_path_setting": ClientCertFilePathSetting(_key="client_cert_file"),
-        "client_key_file_path_setting": ClientKeyFilePathSetting(_key="client_key_file"),
+        "client_cert_file_path_setting": ClientCertFilePathSetting(
+            _key="client_cert_file"
+        ),
+        "client_key_file_path_setting": ClientKeyFilePathSetting(
+            _key="client_key_file"
+        ),
         "logfile_path_setting": LogFilePathSetting(_key="log_file"),
         "prompt_file_path_setting": PromptFilePathSetting(_key="prompt_file"),
         "loop_file_path_setting": LoopFilePathSetting(_key="loop_file"),
         "resource_file_path_setting": ResourceFilePathSetting(_key="resource_file"),
         "output_file_path_setting": OutputFilePathSetting(_key="output_file"),
-        "output_directory_path_setting": OutputDirectoryPathSetting(_key="output_directory"),
+        "output_directory_path_setting": OutputDirectoryPathSetting(
+            _key="output_directory"
+        ),
         "debug_bool_setting": DebugBoolSetting(_key="debug"),
         "simulate_bool_setting": SimulateBoolSetting(_key="simulate"),
         "verbose_bool_setting": VerboseBoolSetting(_key="verbose"),
@@ -144,6 +156,7 @@ def _minimal_valid(tmp_path: Path, *, simulate: bool = True) -> dict:
 # Tests
 # ---------------------------------------------------------------------------
 
+
 class TestConfigurationValidator:
     def test_missing_prompt_and_task_raises(self, tmp_path: Path) -> None:
         """Either a prompt file or a non-empty task is mandatory."""
@@ -165,7 +178,11 @@ class TestConfigurationValidator:
             ConfigurationValidator().run(**s)
 
         msg = _findings(exc_info.value)
-        assert "output_mode" in msg.lower() or "append" in msg.lower() or "exclusive" in msg.lower()
+        assert (
+            "output_mode" in msg.lower()
+            or "append" in msg.lower()
+            or "exclusive" in msg.lower()
+        )
 
     def test_retry_delay_out_of_range_raises(self, tmp_path: Path) -> None:
         s = _minimal_valid(tmp_path)

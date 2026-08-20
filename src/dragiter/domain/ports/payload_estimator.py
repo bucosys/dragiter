@@ -31,8 +31,9 @@ class PayloadEstimator(Protocol):
     Structural interface for payload token estimation.
     """
 
-    def estimate(self, chat_messages: list[ChatMessage], chars_per_token: float) -> int:
-        ...
+    def estimate(
+        self, chat_messages: list[ChatMessage], chars_per_token: float
+    ) -> int: ...
 
 
 class PayloadEstimatorError(Exception):

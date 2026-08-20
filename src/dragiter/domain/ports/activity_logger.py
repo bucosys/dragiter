@@ -17,7 +17,7 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-from typing import Protocol, runtime_checkable, Any
+from typing import Protocol, runtime_checkable
 
 from dragiter.domain.ports.activity_provider import ActivityProvider
 

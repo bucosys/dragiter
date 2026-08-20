@@ -1,3 +1,26 @@
+# =============================================================================
+# dragiter - Deterministic Context Iterator
+# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
+#
+# This file is part of dragiter.
+#
+# dragiter is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# dragiter is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
+#
+# For commercial licensing (closed-source use, SaaS, etc.), please contact:
+# Michael Buchold <michael.buchold@dragiter.app>
+# =============================================================================
+
 # tests/e2e/test_claude_e2e_minimal.py
 """
 Minimal E2E test against a live Claude endpoint (via OpenAI-compatible proxy).
@@ -18,9 +41,9 @@ exposes an OpenAI-compatible /v1/chat/completions endpoint for Claude models
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import shutil
 import subprocess
-from pathlib import Path
 
 import pytest
 
@@ -29,7 +52,7 @@ import pytest
 # -------------------------------------------------
 pytestmark = pytest.mark.skipif(
     not os.getenv("CLAUDE_API_KEY"),
-    reason="CLAUDE_API_KEY not set – skipping live Claude E2E test",
+    reason="CLAUDE_API_KEY not set - skipping live Claude E2E test",
 )
 
 
@@ -143,8 +166,8 @@ def test_claude_e2e_minimal_deterministic(dragiter_bin: str, minimal_workspace: 
     #   - OpenRouter:     https://openrouter.ai/api/v1  + model "anthropic/claude-sonnet-5"
     #   - Custom gateway: whatever your infra exposes
     # ------------------------------------------------------------------
-    env["DRAGITER_BASE_URL"] = "https://api.anthropic.com/v1"   # ← change if needed
-    env["DRAGITER_MODEL_NAME"] = "claude-sonnet-4-6"    # ← change if needed
+    env["DRAGITER_BASE_URL"] = "https://api.anthropic.com/v1"  # ← change if needed
+    env["DRAGITER_MODEL_NAME"] = "claude-sonnet-4-6"  # ← change if needed
 
     output_dir = minimal_workspace / "out"
     output_dir.mkdir()
@@ -153,10 +176,14 @@ def test_claude_e2e_minimal_deterministic(dragiter_bin: str, minimal_workspace: 
         [
             dragiter_bin,
             "-v",
-            "-p", "prompt.toml",
-            "-r", "resource.toml",
-            "-l", "loop.txt",
-            "-O", str(output_dir),
+            "-p",
+            "prompt.toml",
+            "-r",
+            "resource.toml",
+            "-l",
+            "loop.txt",
+            "-O",
+            str(output_dir),
         ],
         cwd=minimal_workspace,
         env=env,

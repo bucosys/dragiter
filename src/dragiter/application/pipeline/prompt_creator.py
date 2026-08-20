@@ -25,8 +25,14 @@ from pathlib import Path
 
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.prompt_template import PromptTemplate
-from dragiter.domain.models.settings import PromptFilePathSetting, TaskStringSetting, OutputDelimiterStringSetting, \
-    OutputFilenameSchemaStringSetting, TemperatureFloatSetting, SequentialProcessingBoolSetting
+from dragiter.domain.models.settings import (
+    OutputDelimiterStringSetting,
+    OutputFilenameSchemaStringSetting,
+    PromptFilePathSetting,
+    SequentialProcessingBoolSetting,
+    TaskStringSetting,
+    TemperatureFloatSetting,
+)
 from dragiter.infrastructure.io.io_services import read_from_toml, read_stdin_content
 
 logger = logging.getLogger(__name__)

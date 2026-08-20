@@ -27,7 +27,7 @@ import re
 import textwrap
 
 from dragiter.application.core.xdi import Worker
-from dragiter.domain.models.chat_sessions import ChatMessage, ChatSessions, ChatSession
+from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatSessions
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
@@ -124,12 +124,19 @@ class MessageBuilder(Worker):
         loop: Loop,
         verbose_setting: VerboseBoolSetting
     ) -> ChatSessions:
-        """Build all chat sessions based on material, prompt, and loop configuration."""
+        """Build all chat sessions based on material, prompt, and loop configuration.
+        Only chunks with ``valid=True`` are considered:
+        - sequential mode  → skip the chunk entirely (no ChatSession is created)
+        - batched mode     → inject only valid chunks into the prompt
+        """
         chat_sessions = ChatSessions()
+
+        # Pre-filter once – keeps the logic clear and avoids repeated checks
+        valid_chunks = [c for c in material.chunks if c.valid]
 
         if prompt.sequential_processing:
             # Process each chunk individually
-            for chunk in material.chunks:
+            for chunk in valid_chunks:
                 for dict_line in loop.lines:
                     cs = self._create_chat_session(prompt, dict_line, chunk)
                     cs.chunk = chunk
@@ -143,14 +150,14 @@ class MessageBuilder(Worker):
         else:
             # Process all chunks together in one session
             for dict_line in loop.lines:
-                cs = self._create_chat_session(prompt, dict_line, *material.chunks)
-                cs.chunk = material.chunks[-1] if material.chunks else None
+                cs = self._create_chat_session(prompt, dict_line, *valid_chunks)
+                cs.chunk = valid_chunks[-1] if valid_chunks else None
                 cs.loop_item = dict_line
                 chat_sessions.session_list.append(cs)
 
             if not loop.lines:
-                cs = self._create_chat_session(prompt, None, *material.chunks)
-                cs.chunk = material.chunks[-1] if material.chunks else None
+                cs = self._create_chat_session(prompt, None, *valid_chunks)
+                cs.chunk = valid_chunks[-1] if valid_chunks else None
                 chat_sessions.session_list.append(cs)
 
         # Verbose debug logging

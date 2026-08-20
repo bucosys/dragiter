@@ -33,10 +33,10 @@ class SimplePayloadEstimator(PayloadEstimator):
     def estimate(self, chat_messages: list[ChatMessage], chars_per_token: float) -> int:
 
         if len(chat_messages) < 1:
-            raise SimplePayloadEstimatorError(f'Empty chat messages')
+            raise SimplePayloadEstimatorError('Empty chat messages')
 
         if chars_per_token < 0.1:
-            raise SimplePayloadEstimatorError(f'chars per token cannot be less than 0.1')
+            raise SimplePayloadEstimatorError('chars per token cannot be less than 0.1')
 
         total_chars = sum(
             len(msg.content) for msg in chat_messages if msg.content

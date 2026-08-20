@@ -21,8 +21,8 @@
 # Michael Buchold <michael.buchold@dragiter.app>
 # =============================================================================
 
-import logging
 from dataclasses import dataclass
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +38,7 @@ class Chunk:
 
     @property
     def formatted_content(self):
-        return "=== Chunk {num_id:04d} Filename: {filename} Section: {section_name} ===\n\n{content}".format(
-            num_id=self.num_id or 0,
-            filename=self.filename,
-            section_name=self.section_name,
-            content=self.content
-        )
+        return f"=== Chunk {self.num_id or 0:04d} Filename: {self.filename} Section: {self.section_name} ===\n\n{self.content}"
 
     def format_template(self, template: str = "") -> str:
         result = template or ""

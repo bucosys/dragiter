@@ -37,7 +37,6 @@ All tests are fully isolated (tmp_path / in-memory fakes, no network, no LLM).
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -47,16 +46,16 @@ from dragiter.application.pipeline.material_tokenizer import (
     MaterialTokenizer,
     MaterialTokenizerError,
 )
-from dragiter.domain.models.resources import ResourceSection, Resources
+from dragiter.domain.models.resources import Resources, ResourceSection
 from dragiter.domain.models.settings import LoopFilePathSetting
 from dragiter.domain.models.text_file import TextFile
 from dragiter.domain.ports.text_file_reader import TextFileReaderError
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _error_text(exc: BaseException) -> str:
     """
@@ -96,7 +95,9 @@ def _make_resources_with_content(
     return resources
 
 
-def _heading_document(num_sections: int, body: str = "Body text for this section.") -> str:
+def _heading_document(
+    num_sections: int, body: str = "Body text for this section."
+) -> str:
     """Generate a Markdown document with exactly *num_sections* headings."""
     parts = [f"# Section {i}\n\n{body}\n" for i in range(1, num_sections + 1)]
     return "\n".join(parts)
@@ -113,8 +114,9 @@ class _FixedContentReader:
 
 
 # ---------------------------------------------------------------------------
-# SimpleTextFileReader – 100 MB hard limit
+# SimpleTextFileReader - 100 MB hard limit
 # ---------------------------------------------------------------------------
+
 
 class TestSimpleTextFileReaderLimit:
     """100 MB per-file hard limit."""
@@ -165,8 +167,9 @@ class TestSimpleTextFileReaderLimit:
 
 
 # ---------------------------------------------------------------------------
-# MaterialTokenizer – 200 chunk hard limit + size warnings
+# MaterialTokenizer - 200 chunk hard limit + size warnings
 # ---------------------------------------------------------------------------
+
 
 class TestMaterialTokenizerChunkLimit:
     """200 total chunks hard limit."""
@@ -225,7 +228,9 @@ class TestMaterialTokenizerChunkLimit:
 class TestMaterialTokenizerChunkSizeWarnings:
     """Soft warnings for chunks that are too small or extremely large."""
 
-    def test_tiny_chunk_emits_warning(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    def test_tiny_chunk_emits_warning(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
         # Two headings with almost no body → chunks well under WARN_MIN_CHARS.
         content = "# A\nx\n# B\ny\n"
         resources = _make_resources_with_content(tmp_path, content)
@@ -236,7 +241,9 @@ class TestMaterialTokenizerChunkSizeWarnings:
 
         assert any("too small" in r.message.lower() for r in caplog.records)
 
-    def test_huge_chunk_emits_warning(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    def test_huge_chunk_emits_warning(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
         huge_body = "W" * (MaterialTokenizer.WARN_MAX_CHARS + 100)
         content = f"# Big Section\n\n{huge_body}\n"
         resources = _make_resources_with_content(tmp_path, content)
@@ -259,15 +266,18 @@ class TestMaterialTokenizerChunkSizeWarnings:
             tokenizer.run(resources)
 
         size_warnings = [
-            r for r in caplog.records
-            if "too small" in r.message.lower() or "extremely large" in r.message.lower()
+            r
+            for r in caplog.records
+            if "too small" in r.message.lower()
+            or "extremely large" in r.message.lower()
         ]
         assert size_warnings == []
 
 
 # ---------------------------------------------------------------------------
-# LoopBuilder – 50 item hard limit
+# LoopBuilder - 50 item hard limit
 # ---------------------------------------------------------------------------
+
 
 class TestLoopBuilderItemLimit:
     """50 loop-item hard limit."""
