@@ -433,6 +433,9 @@ This design yields three practical benefits:
 2. **Composability** - the tool slots into ordinary shell pipelines and CI jobs.
 3. **Provider independence** - any OpenAI-compatible endpoint can be used simply by changing three configuration values.
 
+Live completions always stream. That keeps the HTTP read side open for long-thinking local models; combine it with
+`-v` (clock heartbeat) and `--tcp-keep-alive` when a run lasts more than a few seconds.
+
 ### Configuration precedence
 
 Settings are resolved once, in a fixed order:

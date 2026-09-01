@@ -23,9 +23,13 @@
 import logging
 
 from dragiter.application.core.xdi import Worker
-from dragiter.domain.models.ai_service_parameters import AIServiceParameters
 from dragiter.domain.models.chat_results import ChatResult, ChatResults
 from dragiter.domain.models.chat_sessions import ChatSessions
+from dragiter.domain.models.parameters import (
+    AIServiceParameters,
+    ExcecutionParameters,
+    LoggingParameters,
+)
 from dragiter.domain.models.settings import SimulateBoolSetting
 from dragiter.domain.ports.llm_service import LLMService
 from dragiter.infrastructure.llm.mockai_service import MockAIService
@@ -39,9 +43,10 @@ class ChatManager(Worker):
         self.llm_service = llm_service
 
     def run(self,
-            ai_service_parameter: AIServiceParameters,
+            aisp: AIServiceParameters,
+            lp: LoggingParameters,
+            ep: ExcecutionParameters,
             chat_sessions: ChatSessions,
-            simulation_boolean_setting: SimulateBoolSetting,
             ) -> ChatResults:
 
         chat_result_list: list[ChatResult] = []
@@ -50,12 +55,12 @@ class ChatManager(Worker):
 
 
             # use the mock service if simulation process requested
-            if simulation_boolean_setting.value:
+            if ep.simulate_bool_setting.value:
                 payload_estimator = SimplePayloadEstimator()
                 self.llm_service = MockAIService(payload_estimator)
 
             for session in chat_sessions.session_list:
-                chat_result_list.append(self.llm_service.process_query(ai_service_parameter, session))
+                chat_result_list.append(self.llm_service.process_query(aisp, lp, session))
 
             return ChatResults(chat_result_list)
 

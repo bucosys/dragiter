@@ -33,9 +33,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from dragiter.application.pipeline.resource_collector import ResourceCollector
+from dragiter.domain.models.parameters import InputParameters, WorkspaceParameters
 from dragiter.domain.models.settings import (
     BaseDirectoryPathSetting,
+    ConfigFilePathSetting,
+    LoopFilePathSetting,
+    PromptFilePathSetting,
     ResourceFilePathSetting,
+    TaskStringSetting,
+    ValueOrigin,
 )
 
 
@@ -46,17 +52,28 @@ class _AcceptAllChecker:
         return "utf-8"
 
 
-def _write_resource_toml(path: Path, patterns: list[str]) -> None:
-    lines = ['[config01]', f"glob_patterns = {patterns!r}"]
+def _write_resource_toml(path: Path, patterns: list[str], base_directory: Path) -> None:
+    lines = [
+        "[config01]",
+        f"glob_patterns = {patterns!r}",
+        f"base_directory = {str(base_directory)!r}",
+    ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _settings(base: Path, resource_toml: Path) -> tuple[ResourceFilePathSetting, BaseDirectoryPathSetting]:
-    res = ResourceFilePathSetting(_key="resource_file")
-    res.value = resource_toml
-    base_setting = BaseDirectoryPathSetting(_key="base_directory")
-    base_setting.value = base
-    return res, base_setting
+def _settings(base: Path, resource_toml: Path) -> tuple[InputParameters, WorkspaceParameters]:
+    res = ResourceFilePathSetting("resource_file")
+    res.set(resource_toml, ValueOrigin.CLI)
+    base_setting = BaseDirectoryPathSetting("base_directory")
+    base_setting.set(base, ValueOrigin.CLI)
+    ip = InputParameters(
+        TaskStringSetting("task"),
+        PromptFilePathSetting("prompt_file"),
+        LoopFilePathSetting("loop_file"),
+        res,
+    )
+    wp = WorkspaceParameters(base_setting, ConfigFilePathSetting("config_file"))
+    return ip, wp
 
 
 class TestResourceCollectorPathEscape:
@@ -80,7 +97,7 @@ class TestResourceCollectorPathEscape:
         evil_link.symlink_to(secret)
 
         resource_toml = base / "resources.toml"
-        _write_resource_toml(resource_toml, ["*.md"])
+        _write_resource_toml(resource_toml, ["*.md"], base)
 
         collector = ResourceCollector(file_checker=_AcceptAllChecker())
         resources = collector.run(*_settings(base, resource_toml))
@@ -112,7 +129,7 @@ class TestResourceCollectorPathEscape:
 
         resource_toml = base / "resources.toml"
         # Attempt to walk out of base via relative parent references.
-        _write_resource_toml(resource_toml, ["../outside/*.md", "*.md"])
+        _write_resource_toml(resource_toml, ["../outside/*.md", "*.md"], base)
 
         collector = ResourceCollector(file_checker=_AcceptAllChecker())
         resources = collector.run(*_settings(base, resource_toml))
@@ -135,7 +152,7 @@ class TestResourceCollectorPathEscape:
         target.write_text("# note\n", encoding="utf-8")
 
         resource_toml = base / "resources.toml"
-        _write_resource_toml(resource_toml, ["docs/**/*.md"])
+        _write_resource_toml(resource_toml, ["docs/**/*.md"], base)
 
         collector = ResourceCollector(file_checker=_AcceptAllChecker())
         resources = collector.run(*_settings(base, resource_toml))

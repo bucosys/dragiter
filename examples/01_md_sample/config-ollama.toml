@@ -6,6 +6,7 @@
 api_key = "Ollama"
 base_url = "http://localhost:11434/v1"
 model_name = "qwen3:8b"
+tcp_keep_alive = true
 
 # ===================================================================
 # Optional advanced settings (uncomment and adjust as needed)

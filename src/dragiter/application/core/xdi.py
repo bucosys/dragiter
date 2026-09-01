@@ -107,13 +107,23 @@ class ApplicationManager:
                     f"in its 'validate_object' method."
                 )
 
-    def provide(self, data: Any) -> None:
+    def provide(self, worker: Worker, data: Any) -> None:
         """
         Stores the provided data in the internal store.
         If a validator is registered for the data's type, it validates the data first.
         """
+
+        logger.info(
+            f"\N{WHITE SQUARE} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {data!s}"
+        )
+
+        logger.debug(
+            f"\N{EYEGLASSES} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {data!r}"
+        )
+
         if data is None:
             return
+
 
         data_type = type(data)
 
@@ -139,6 +149,7 @@ class ApplicationManager:
             self.activity_logger.write_activity(data)
 
         # 3. Store the data securely only AFTER it has passed validation
+
         self.store[data_type] = data
 
     def _validate_worker_dependencies(self, worker: Worker) -> dict[str, Any]:
@@ -169,6 +180,8 @@ class ApplicationManager:
                     f"Worker '{worker.__class__.__name__}' requires '{param_type.__name__}' "
                     f"for parameter '{name}', but this type is not present in the store."
                 )
+
+        logger.info(f"\N{WHITE RIGHT-POINTING TRIANGLE} {worker.__class__.__name__}")
         return args
 
     def run(self) -> None:
@@ -178,22 +191,14 @@ class ApplicationManager:
                 args = self._validate_worker_dependencies(worker)
 
                 # 2. Execute worker
-                logger.info(
-                    f"\N{WHITE RIGHT-POINTING TRIANGLE} {worker.__class__.__name__}"
-                )
+              
                 result = worker.run(**args)
-                logger.debug(
-                    f"\N{EYEGLASSES} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result!r}"
-                )
-                logger.info(
-                    f"\N{WHITE SQUARE} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {result}"
-                )
 
                 if isinstance(result, (list, set, tuple)):
                     for item in result:
-                        self.provide(item)
+                        self.provide(worker, item)
                 else:
-                    self.provide(result)
+                    self.provide(worker, result)
 
         except Exception as e:
             # 2. Activity logging, if a activity logger is registered

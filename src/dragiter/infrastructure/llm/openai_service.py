@@ -30,9 +30,9 @@ import httpx
 import openai
 from openai import OpenAI
 
-from dragiter.domain.models.ai_service_parameters import AIServiceParameters
 from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
+from dragiter.domain.models.parameters import AIServiceParameters, LoggingParameters
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class OpenAIPayload(TypedDict, total=False):
 
 class OpenAIService(LLMService):
     def process_query(
-        self, aisp: AIServiceParameters, chat_session: ChatSession
+        self, aisp: AIServiceParameters, lp: LoggingParameters ,chat_session: ChatSession
     ) -> ChatResult:
 
         attempt: int = 0

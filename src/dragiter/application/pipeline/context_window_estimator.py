@@ -26,6 +26,11 @@ import logging
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.context_validation_report import ContextValidationReport
+from dragiter.domain.models.parameters import (
+    AIServiceParameters,
+    ExcecutionParameters,
+    LoggingParameters,
+)
 from dragiter.domain.models.settings import (
     CharsPerTokenFloatSetting,
     MaxContextTokensIntSetting,
@@ -43,30 +48,35 @@ class ContextWindowEstimator(Worker):
     def __init__(self, payload_estimator: PayloadEstimator) -> None:
         self._payload_estimator = payload_estimator
 
-    def run(self,
-            chat_sessions: ChatSessions,
-            verbose_boolean_setting: VerboseBoolSetting,
-            simulation_boolean_setting: SimulateBoolSetting,
-            chars_per_token_float_setting: CharsPerTokenFloatSetting,
-            max_context_tokens_int_setting: MaxContextTokensIntSetting,
-            max_output_tokens_int_setting: MaxOutputTokensIntSetting
-            ) -> None:
+    def run(
+        self,
+        chat_sessions: ChatSessions,
+        aisp: AIServiceParameters,
+        lp: LoggingParameters,
+        ep: ExcecutionParameters,
+    ) -> ContextValidationReport | None:
 
         if not (
-                chars_per_token_float_setting.is_set and max_context_tokens_int_setting.is_set and max_output_tokens_int_setting.is_set):
+            aisp.chars_per_token_float_setting.is_set
+            and aisp.max_context_token_int_setting.is_set
+            and aisp.max_output_tokens_int_setting.is_set
+        ):
             logger.debug(
-                "Neither chars-per-token nor max-context-tokens-int-setting nor max-output-tokens-int-setting are set. Validation is not applicable.")
+                "Neither chars-per-token nor max-context-tokens nor "
+                "max-output-tokens are set. Validation is not applicable."
+            )
             return None
 
-        if verbose_boolean_setting.value:
-            # show current settings
-            logger.debug(f"Payload estimation: "
-                         f"chars-per-token: {chars_per_token_float_setting.value}, "
-                         f"max-context-tokens: {max_context_tokens_int_setting.value}, "
-                         f"max-output-tokens: {max_output_tokens_int_setting.value}")
+        if lp.verbose_bool_setting.value:
+            logger.debug(
+                "Payload estimation: "
+                f"chars-per-token: {aisp.chars_per_token_float_setting.value}, "
+                f"max-context-tokens: {aisp.max_context_token_int_setting.value}, "
+                f"max-output-tokens: {aisp.max_output_tokens_int_setting.value}"
+            )
 
-        out_tokens: int = max_output_tokens_int_setting.value
-        limit: int = max_context_tokens_int_setting.value
+        out_tokens: int = aisp.max_output_tokens_int_setting.value
+        limit: int = aisp.max_context_token_int_setting.value
 
         report = ContextValidationReport(
             is_valid=True,
@@ -81,7 +91,7 @@ class ContextWindowEstimator(Worker):
             for index, chat_session in enumerate(chat_sessions.session_list):
                 calc_input_tokens = self._payload_estimator.estimate(
                     chat_session.input_chat_message_list,
-                    chars_per_token_float_setting.value)
+                    aisp.chars_per_token_float_setting.value)
 
                 tot_tokens: int = calc_input_tokens + out_tokens
 
@@ -93,31 +103,37 @@ class ContextWindowEstimator(Worker):
                     report.max_session_tokens = tot_tokens
                     report.max_session_index = index
 
-                if verbose_boolean_setting.value:
+                if lp.verbose_bool_setting.value:
                     logger.debug(f"Calculated input token amount: {calc_input_tokens}")
 
-                if (calc_input_tokens + out_tokens) > max_context_tokens_int_setting.value:
+                if (calc_input_tokens + out_tokens) > aisp.max_context_token_int_setting.value:
                     logger.debug(
                         f"Context window exceeded. "
                         f"Input: {calc_input_tokens} | Output reservation: {out_tokens} | "
-                        f"Calculated total: {calc_input_tokens + out_tokens} | Limit: {max_context_tokens_int_setting.value}"
+                        f"Calculated total: {calc_input_tokens + out_tokens} | "
+                        f"Limit: {aisp.max_context_token_int_setting.value}"
                     )
 
                     failed_message = (
                         f"The estimated input tokens ({calc_input_tokens}) plus the reserved output tokens ({out_tokens}) "
-                        f"exceed the total context window limit ({max_context_tokens_int_setting.value})."
+                        f"exceed the total context window limit ({aisp.max_context_token_int_setting.value})."
                     )
 
                     report.is_valid = False
                     report.simulation_warnings.append(failed_message)
-                    if not simulation_boolean_setting.value:
-                        # real life
-                        raise ContextWindowValidatorError(f"Validation failed at messages block index {index}: ")
+                    if not ep.simulate_bool_setting.value:
+                        raise ContextWindowValidatorError(
+                            f"Validation failed at messages block index {index}: {failed_message}"
+                        )
 
             return report
 
+        except ContextWindowValidatorError:
+            raise
         except Exception as e:
-            raise ContextWindowValidatorError(f"Failed to validate context window due to that reason: {e}") from e
+            raise ContextWindowValidatorError(
+                f"Failed to validate context window due to that reason: {e}"
+            ) from e
 
 
 class ContextWindowValidatorError(Exception):

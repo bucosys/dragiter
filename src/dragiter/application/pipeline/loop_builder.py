@@ -27,6 +27,7 @@ from typing import Any
 
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.loop import Loop
+from dragiter.domain.models.parameters import InputParameters
 from dragiter.domain.models.settings import LoopFilePathSetting
 from dragiter.infrastructure.io.io_services import read_stripped_lines_from_file
 
@@ -39,14 +40,14 @@ class LoopBuilder(Worker):
     def __init__(self) -> None:
         pass
 
-    def run(self, loop_file_path_setting: LoopFilePathSetting) -> Loop:
+    def run(self, ip: InputParameters) -> Loop:
         try:
             contents: list[str] = []  # filled with lines from file (if set)
             dict_list: list[dict[str, Any]] = []  # for return purpose
 
-            if loop_file_path_setting.is_set:  # should lines be read?
+            if ip.loop_file_path_setting.is_set:  # should lines be read?
                 contents = read_stripped_lines_from_file(
-                    loop_file_path_setting.value
+                    ip.loop_file_path_setting.value
                 )  # read lines from file, no empty lines into
 
                 # --- CIRCUIT BREAKER ---
@@ -78,7 +79,7 @@ class LoopBuilder(Worker):
 
         except Exception as e:
             raise LoopBuilderError(
-                f"Failed to load loop data from {loop_file_path_setting.value}: {e}"
+                f"Failed to load loop data from {ip.prompt_file_path_setting.value}: {e}"
             ) from e
 
 

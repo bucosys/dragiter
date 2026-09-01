@@ -48,6 +48,7 @@ from dragiter.infrastructure.cli.resource_exporter import ResourceExporter
 from dragiter.infrastructure.file.simple_file_checker import SimpleFileChecker
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
 from dragiter.infrastructure.llm.openai_service import OpenAIService
+from dragiter.infrastructure.llm.openai_service_ext import OpenAIServiceExt
 from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
 
 
@@ -90,7 +91,7 @@ def main():
         app.register_worker(PromptCreator())  # -> PromptTemplate
         app.register(MessageBuilder(), ChatSessionsValidator())  # -> ChatSessions
         app.register_worker(ContextWindowEstimator(SimplePayloadEstimator()))  # -> None
-        app.register_worker(ChatManager(OpenAIService()))  # -> ChatResults
+        app.register_worker(ChatManager(OpenAIServiceExt()))  # -> ChatResults
         app.register_worker(OutputWriter())  # -> ApplicationResult
         app.run()
 

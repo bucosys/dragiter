@@ -49,6 +49,7 @@ from dragiter.application.config.configuration_loader import (
     ConfigurationLoaderError,
 )
 from dragiter.domain.models.settings import (
+    APIKeyStringSetting,
     ApiKeyStringSetting,
     CharsPerTokenFloatSetting,
     DebugBoolSetting,
@@ -59,6 +60,7 @@ from dragiter.domain.models.settings import (
     TemperatureFloatSetting,
     VerboseBoolSetting,
 )
+from tests.support import flatten_settings, setting_of
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -73,11 +75,11 @@ def _setting(loader: ConfigurationLoader, cls):
 
 
 def _run_with_toml(monkeypatch, tmp_path, toml_body: str) -> list:
-    """Write toml_body to a temp config, run loader with -c, return settings list."""
+    """Write toml_body to a temp config, run loader with -c, return flat settings."""
     config_path = tmp_path / "test-config.toml"
     config_path.write_text(toml_body, encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["dragiter", "-c", str(config_path)])
-    return ConfigurationLoader().run()
+    return flatten_settings(ConfigurationLoader().run())
 
 
 def _run_env_only(monkeypatch, env: dict) -> ConfigurationLoader:
@@ -95,25 +97,16 @@ def _run_env_only(monkeypatch, env: dict) -> ConfigurationLoader:
 # Finding #A – StringSetting must accept / convert non-string TOML values
 # ===========================================================================
 
-def test_A_toml_int_for_string_setting_is_converted(monkeypatch, tmp_path):
-    """
-    #A: api_key = 12345 (int in TOML) must not crash.
-    Loader converts via str() before assignment → value is "12345".
-    """
-    settings = _run_with_toml(monkeypatch, tmp_path, "api_key = 12345\n")
-    api = next(s for s in settings if isinstance(s, ApiKeyStringSetting))
-    assert api.is_set is True
-    assert api.value == "12345"
-    assert isinstance(api.value, str)
+def test_A_toml_int_for_string_setting_is_rejected(monkeypatch, tmp_path):
+    """Native TOML integers are not coerced into StringSetting."""
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, "api_key = 12345\n")
 
 
-def test_A_toml_bool_for_string_setting_is_converted(monkeypatch, tmp_path):
-    """Non-string TOML values for StringSetting are stringified."""
-    settings = _run_with_toml(monkeypatch, tmp_path, "model_name = true\n")
-    model = next(s for s in settings if isinstance(s, ModelNameStringSetting))
-    assert model.is_set is True
-    assert model.value == "True"
-    assert isinstance(model.value, str)
+def test_A_toml_bool_for_string_setting_is_rejected(monkeypatch, tmp_path):
+    """Native TOML booleans are not coerced into StringSetting."""
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, "model_name = true\n")
 
 
 def test_A_toml_normal_string_still_works(monkeypatch, tmp_path):
@@ -126,24 +119,16 @@ def test_A_toml_normal_string_still_works(monkeypatch, tmp_path):
 # Finding #B – Integer/Float settings given as strings in TOML
 # ===========================================================================
 
-def test_B_toml_integer_as_string_is_converted(monkeypatch, tmp_path):
-    """
-    #B: max_context_tokens = "1000" must become int 1000, not stay as str.
-    """
-    settings = _run_with_toml(monkeypatch, tmp_path, 'max_context_tokens = "1000"\n')
-    s = next(x for x in settings if isinstance(x, MaxContextTokensIntSetting))
-    assert s.is_set is True
-    assert s.value == 1000
-    assert type(s.value) is int
+def test_B_toml_integer_as_string_is_rejected(monkeypatch, tmp_path):
+    """Quoted integers stay strings and are rejected by IntegerSetting."""
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, 'max_context_tokens = "1000"\n')
 
 
-def test_B_toml_float_as_string_is_converted(monkeypatch, tmp_path):
-    """temperature = "0.7" must become float 0.7."""
-    settings = _run_with_toml(monkeypatch, tmp_path, 'temperature = "0.7"\n')
-    s = next(x for x in settings if isinstance(x, TemperatureFloatSetting))
-    assert s.is_set is True
-    assert s.value == pytest.approx(0.7)
-    assert isinstance(s.value, float)
+def test_B_toml_float_as_string_is_rejected(monkeypatch, tmp_path):
+    """Quoted floats stay strings and are rejected by FloatSetting."""
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, 'temperature = "0.7"\n')
 
 
 def test_B_toml_native_integer_still_works(monkeypatch, tmp_path):
@@ -255,69 +240,33 @@ def test_D_toml_verbose_false_is_set_to_false(monkeypatch, tmp_path):
 # Finding #E – TOML string values for BoolSetting (unified semantics)
 # ===========================================================================
 
-def test_E_toml_string_false_becomes_bool_false(monkeypatch, tmp_path):
-    """
-    #E: simulate = "false" must become False.
-    Must NOT become True and must NOT raise TypeError.
-    """
-    settings = _run_with_toml(monkeypatch, tmp_path, 'simulate = "false"\n')
-    sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
-    assert sim.is_set is True
-    assert sim.value is False
+def test_E_toml_string_bool_is_rejected(monkeypatch, tmp_path):
+    """Quoted TOML booleans are strings and rejected by BoolSetting.set()."""
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, 'simulate = "false"\n')
 
 
-def test_E_toml_string_true_becomes_bool_true(monkeypatch, tmp_path):
-    settings = _run_with_toml(monkeypatch, tmp_path, 'simulate = "true"\n')
-    sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
-    assert sim.is_set is True
-    assert sim.value is True
+def test_E_toml_string_true_is_rejected(monkeypatch, tmp_path):
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, 'simulate = "true"\n')
 
 
-def test_E_toml_string_TRUE_uppercase_becomes_bool_true(monkeypatch, tmp_path):
-    """Case-insensitive, consistent with Env handling."""
-    settings = _run_with_toml(monkeypatch, tmp_path, 'simulate = "TRUE"\n')
-    sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
-    assert sim.value is True
+def test_E_toml_string_TRUE_is_rejected(monkeypatch, tmp_path):
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, 'simulate = "TRUE"\n')
 
 
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        # truthy (unified with Env + LoggingConfigurator)
-        ("true", True),
-        ("TRUE", True),
-        ("True", True),
-        ("1", True),
-        ("yes", True),
-        ("YES", True),
-        ("Yes", True),
-        # falsy
-        ("false", False),
-        ("0", False),
-        ("no", False),
-        ("off", False),
-        ("", False),
-        ("random", False),
-    ],
-)
-def test_E_toml_string_bool_unified_truthy_values(
-    monkeypatch, tmp_path, value: str, expected: bool
-):
-    """
-    TOML string values for BoolSetting use the same truthy set as
-    environment variables and LoggingConfigurator: TRUE / 1 / YES.
-    """
-    settings = _run_with_toml(monkeypatch, tmp_path, f'simulate = "{value}"\n')
-    sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
-    assert sim.is_set is True
-    assert sim.value is expected
+@pytest.mark.parametrize("value", ["true", "TRUE", "1", "yes", "false", "0", "no", "off", "", "random"])
+def test_E_toml_string_bool_unified_truthy_values(monkeypatch, tmp_path, value: str):
+    """Quoted TOML values are not parsed as booleans by the config file path."""
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, f'simulate = "{value}"\n')
 
 
 def test_E_toml_string_false_does_not_become_true(monkeypatch, tmp_path):
-    """Regression guard for the original bug where any truthy value became True."""
-    settings = _run_with_toml(monkeypatch, tmp_path, 'debug = "false"\n')
-    dbg = next(s for s in settings if isinstance(s, DebugBoolSetting))
-    assert dbg.value is False
+    """Quoted debug = \"false\" must not be accepted as a boolean True."""
+    with pytest.raises((ConfigurationLoaderError, TypeError)):
+        _run_with_toml(monkeypatch, tmp_path, 'debug = "false"\n')
 
 
 # ===========================================================================
@@ -328,10 +277,10 @@ def test_toml_multiple_typed_values_together(monkeypatch, tmp_path):
     """One config file with mixed types must apply all conversions correctly."""
     body = """
 simulate = false
-verbose = "true"
-api_key = 42
-max_context_tokens = "2048"
-temperature = "0.0"
+verbose = true
+api_key = "42"
+max_context_tokens = 2048
+temperature = 0.0
 model_name = "test-model"
 """
     settings = _run_with_toml(monkeypatch, tmp_path, body)

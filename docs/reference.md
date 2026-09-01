@@ -1,9 +1,9 @@
 # dragiter Technical Reference
 
-**Version:** derived from source (2026.8.x)  
+**Version:** derived from source (2026.8.31)  
 **Language:** British English  
 **Scope:** Configuration, file formats, CLI, defaults, output behaviour and activity log  
-**Sources:** Source code (`src/dragiter/`), in particular `PromptCreator`, and example TOML files under `examples/`
+**Sources:** Source code (`src/dragiter/`), in particular `PromptCreator`, `OpenAIServiceExt` and example TOML files under `examples/`
 
 This document is the technical reference. It describes what the program actually accepts and does. It does **not**
 replace the user manual or how-to guides.
@@ -49,6 +49,28 @@ When no `--config-file` / `-c` is given:
 1. Environment variable `DRAGITER_CONFIG_FILE`
 2. Default location `~/.config/dragiter/config.toml` (only if the file exists)
 
+When both `-b` / `--base-directory` and `-c` / `--config-file` are set, a **relative**
+`-c` path is rebased onto `-b` **before** the file is read. Absolute `-c` paths are
+left unchanged. `config_file` is not part of the later general path-rebase pass.
+
+---
+
+## 1a. LLM client and runtime requirements
+
+The CLI wires `OpenAIServiceExt` (`src/dragiter/infrastructure/llm/openai_service_ext.py`).
+
+- Live completions **always stream** (`stream=True`).
+- The HTTP stack is **httpx2** via `openai.DefaultHttpx2Client`.
+- Read timeout is unlimited; connect / write / pool timeouts stay bounded.
+- `--tcp-keep-alive` maps to `httpx2.HTTPTransport(socket_options=...)`.
+- Hard install floor: `openai>=3.0.0` and `httpx2>=2.7.0`. openai 1.x / 2.x do
+  **not** export `DefaultHttpx2Client` and do not install `httpx2`.
+- The non-streaming `OpenAIService` remains in the tree and still uses classic
+  `httpx`; it is not the CLI default.
+
+With `-v` / `--verbose` the adapter emits an INFO heartbeat while a streamed
+completion is still running. Payload dumps stay on DEBUG.
+
 ---
 
 ## 2. Configuration settings (complete list)
@@ -60,7 +82,8 @@ All settings that appear in the configuration loader are listed below.
 | `debug`                  | `-d`      | bool   | `false`                   | Enable debug logging                                           |
 | `simulate`               | `-s`      | bool   | `false`                   | Simulation mode (no API calls)                                 |
 | `verbose`                | `-v`      | bool   | `false`                   | Verbose output                                                 |
-| `sequential_processing`  | —         | bool   | `false`                   | Process chunks one by one                                      |
+| `sequential_processing`  | —         | bool   | `false`                   | `--sequential-processing`: one request per chunk               |
+| `tcp_keep_alive`         | —         | bool   | `false`                   | `--tcp-keep-alive` on the httpx2 transport                     |
 | `api_key`                | —         | string | (none)                    | API key for the LLM service                                    |
 | `base_url`               | —         | string | (none)                    | Base URL of the OpenAI-compatible endpoint                     |
 | `model_name`             | —         | string | (none)                    | Model identifier                                               |
@@ -74,13 +97,13 @@ All settings that appear in the configuration loader are listed below.
 | `temperature`            | —         | float  | (none)                    | Sampling temperature                                           |
 | `retry_delay`            | —         | int    | (none)                    | Seconds to wait between retries                                |
 | `max_retry`              | —         | int    | (none)                    | Maximum number of retry attempts                               |
-| `base_directory`         | `-b`      | path   | current working directory | Base directory for relative paths                              |
+| `base_directory`         | `-b`      | path   | (unset)                   | Base for relative paths. **Not** pre-filled with CWD           |
 | `activity_file`          | `-a`      | path   | (none)                    | Write activity log to this file                                |
 | `ca_bundle_file`         | —         | path   | (none)                    | Custom CA certificate bundle (PEM)                             |
 | `client_cert_file`       | —         | path   | (none)                    | Client certificate for mTLS                                    |
 | `client_key_file`        | —         | path   | (none)                    | Client private key for mTLS                                    |
 | `config_file`            | `-c`      | path   | (see discovery)           | Path to TOML configuration file                                |
-| `log_file`               | `-L`      | path   | (none)                    | Write log output to file (with rotation)                       |
+| `log_file`               | `-L`      | path   | (none)                    | Write log output to file (append, no rotation)                 |
 | `prompt_file`            | `-p`      | path   | (none)                    | Path to prompt template (`.toml`)                              |
 | `loop_file`              | `-l`      | path   | (none)                    | Path to loop file (`.txt` or `.jsonl`)                         |
 | `resource_file`          | `-r`      | path   | (none)                    | Path to resource definition (`.toml`)                          |
@@ -102,6 +125,8 @@ the setting is left unset.
 - `retry_delay` (when set) must be between 0 and 20 inclusive.
 - `chars_per_token` (when set) must be greater than 0.0.
 - Paths that are required must be readable (or writable for output paths).
+- `client_key_file` without `client_cert_file` is rejected.
+- `base_url` is optional in simulation mode.
 
 ### Hard limits (circuit breakers)
 
@@ -147,13 +172,25 @@ DRAGITER_OUTPUT_DIRECTORY
 DRAGITER_OUTPUT_MODE
 DRAGITER_ACTIVITY_FILE
 DRAGITER_LOG_FILE
+DRAGITER_TCP_KEEP_ALIVE
+DRAGITER_SEQUENTIAL_PROCESSING
+DRAGITER_OUTPUT_FILENAME_SCHEMA
+DRAGITER_OUTPUT_DELIMITER
 ...
 ```
 
-Boolean flags (`debug`, `simulate`, `verbose`, …) are also recognised when the corresponding environment variable is
-present.
+Boolean environment values are parsed by `BoolSetting.from_string` after strip and
+upper-case:
 
-Environment variables are applied **after** the configuration file and only fill values that are still unset.
+- truthy: `TRUE`, `1`, `YES`, `ON`, `Y`
+- falsy: `FALSE`, `0`, `NO`, `OFF`, `N`
+- anything else (including the empty string) raises
+
+The TOML config-file path does **not** run that parser. It assigns the native TOML
+type. Use `simulate = true` / `false`, not `"true"`. Quoted boolean strings in a
+config file are rejected.
+
+Environment variables are applied **after** the configuration file and only fill values that are still unset. Values that start with `$` are expanded via `os.path.expandvars` before type conversion.
 
 ---
 
@@ -165,6 +202,7 @@ Example taken from `examples/01_md_sample/config-ollama.toml`:
 api_key = "Ollama"
 base_url = "http://localhost:11434/v1"
 model_name = "qwen3:8b"
+tcp_keep_alive = true
 
 # Optional advanced settings
 # chars_per_token = 3.8
@@ -287,10 +325,18 @@ regex_pattern = '(^\d+\.\s+.*$)'
 Each table name becomes a **section name**.  
 Inside a section the following keys are used:
 
-- `glob_patterns` - list of glob patterns relative to the base directory
+- `glob_patterns` - list of glob patterns relative to the section search root
+- `base_directory` (optional, per section) - search root for those globs. If omitted,
+  the collector starts from `Path.cwd()`. When `-b` is set, that root is rebased onto
+  `-b` **only if the original value was relative**. An absolute section
+  `base_directory` is not moved by `-b`. The global `BaseDirectoryPathSetting` itself
+  is never pre-filled with CWD.
 - `regex_pattern` - regular expression used to split the matched files into chunks (default when omitted: a pattern that
   matches nothing)
 - Optional filters (supported by the `ResourceSection` model): `exclude_filters`, `include_filters`
+
+Resolved matches that escape the section root (including symlinks that point outside)
+are skipped.
 
 Multiple sections may be defined; they are processed independently.
 
@@ -348,6 +394,11 @@ dragiter [options]
   --ca-bundle-file PATH
   --client-cert-file PATH
   --client-key-file PATH
+  --tcp-keep-alive
+  --sequential-processing
+  --output-delimiter TEXT
+  --output-filename-schema TEXT
+  --info
   --version
 ```
 
@@ -637,9 +688,9 @@ Exact presence and cardinality depend on the pipeline path taken (simulation mod
 
 | Setting                                                                 | Applied default                                                |
 |-------------------------------------------------------------------------|----------------------------------------------------------------|
-| `base_directory`                                                        | Current working directory (`Path.cwd()`)                       |
-| `output_mode`                                                           | `"x"`                                                          |
-| Boolean flags (`debug`, `simulate`, `verbose`, `sequential_processing`) | `false`                                                        |
+| `base_directory`                                                        | Unset. Not pre-filled with `Path.cwd()`                        |
+| `output_mode`                                                           | `"x"` (factory default in `ConfigurationLoader`)               |
+| Boolean flags (`debug`, `simulate`, `verbose`, `sequential_processing`, `tcp_keep_alive`) | Unset until supplied; treated as false when read as `.value` on an unset flag |
 | All other settings                                                      | Remain unset until supplied by CLI, config file or environment |
 
 Token-related values (`chars_per_token`, `max_context_tokens`, `max_output_tokens`) have no hard-coded numeric default
@@ -668,6 +719,9 @@ and section 5.
 - Configuration loading: `src/dragiter/application/config/configuration_loader.py`
 - Validation & defaults: `src/dragiter/application/config/configuration_validator.py`
 - Settings classes: `src/dragiter/domain/models/settings.py`
+- Parameter groups: `src/dragiter/domain/models/parameters.py`
+- Streaming LLM adapter: `src/dragiter/infrastructure/llm/openai_service_ext.py`
+- Legacy non-streaming adapter: `src/dragiter/infrastructure/llm/openai_service.py`
 
 **File formats**
 

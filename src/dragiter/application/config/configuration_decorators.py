@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from typing import Generic, TypeVar
 
 from dragiter.domain.models.settings import (
+    APIStringSetting,
     BoolSetting,
     FloatSetting,
     IntegerSetting,
@@ -53,6 +54,8 @@ class ArgumentDecorator(Generic[T]):
 @dataclass
 class StringSettingArgumentDecorator(ArgumentDecorator[StringSetting]): ...
 
+@dataclass
+class APIStringSettingArgumentDecorator(ArgumentDecorator[APIStringSetting]): ...
 
 @dataclass
 class BoolSettingArgumentDecorator(ArgumentDecorator[BoolSetting]): ...

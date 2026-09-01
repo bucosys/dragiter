@@ -8,6 +8,32 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+## [2026.8.31] - 2026-08-31
+
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.8.31](https://gitlab.com/bucosys/dragiter/-/tags/2026.8.31)
+
+### Added
+- `--tcp-keep-alive` / `TCPKeepAliveBoolSetting` (CLI, config, `DRAGITER_TCP_KEEP_ALIVE`) and man-page / reference coverage
+- `tcp_keep_alive = true` in the Ollama example config
+- `OpenAIServiceExt`: always-on streaming via the OpenAI SDK (`httpx2` / `DefaultHttpx2Client`), unlimited read timeout for long-running local models, optional TCP keepalive socket options
+- Verbose streaming heartbeat (`logger.info`) while a completion is still running
+- Resolve a relative `--config-file` / `-c` path against `--base-directory` / `-b` before loading
+
+### Changed
+- CLI now wires `OpenAIServiceExt` instead of the non-streaming `OpenAIService`
+- Split application logging: worker start / progress at `INFO`, payload dumps at `DEBUG`
+- `BaseDirectoryPathSetting` is no longer pre-filled with the process CWD; it is set only when `-b`, the config file or `DRAGITER_BASE_DIRECTORY` supplies a value. Resource globs without an explicit section `base_directory` still start from CWD and are then rebased when `-b` is set *and* the original path was relative
+- Tests aligned to the current settings / parameter-object / `ApplicationManager.provide(worker, data)` API
+- Simulate-mode and CLI infrastructure tests run the worker chain in-process so they no longer require a live `openai` / `httpx2` install or a subprocess import of the streaming adapter
+- Shared test helpers in `tests/support.py`
+- Extract retry policy and HTTP transport factory into 
+- Disable OpenAI SDK retries (max_retries=0); the adapter owns the loop
+
+### Fixed
+- Config-file discovery when `-c` is relative and `-b` relocates the workspace root
+- Resource-collector tests now set section `base_directory` explicitly, matching the “no implicit CWD preset” behaviour
+- Do not retry HTTP 504, stream-timeout or an Ollama runner crash
+
 ## [2026.8.20] - 2026-08-20
 
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.8.20](https://gitlab.com/bucosys/dragiter/-/tags/2026.8.20)

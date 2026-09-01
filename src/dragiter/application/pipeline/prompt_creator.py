@@ -24,6 +24,12 @@ import logging
 from pathlib import Path
 
 from dragiter.application.core.xdi import Worker
+from dragiter.domain.models.parameters import (
+    AIServiceParameters,
+    ExcecutionParameters,
+    InputParameters,
+    OutputParameters,
+)
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.settings import (
     OutputDelimiterStringSetting,
@@ -42,30 +48,29 @@ class PromptCreator(Worker):
     def __init__(self) -> None:
         pass
 
-    def run(self, task_string_setting: TaskStringSetting,
-            prompt_file_path_setting: PromptFilePathSetting,
-            sequential_processing_bool_setting: SequentialProcessingBoolSetting,
-            output_delimiter_string_setting: OutputDelimiterStringSetting,
-            output_filename_schema_string_setting: OutputFilenameSchemaStringSetting,
-            temperature_float_setting: TemperatureFloatSetting
+    def run(self, 
+            ip: InputParameters,
+            ep: ExcecutionParameters,
+            op: OutputParameters,
+            aisp: AIServiceParameters,
             ) -> PromptTemplate:
 
 
         try:
             std_in = read_stdin_content()
 
-            if task_string_setting.is_set:
+            if ip.task_string_setting.is_set:
                 return PromptTemplate(instruction=None, first=std_in,
-                                      material=None, synthesis=task_string_setting.value,
-                                      temperature=(temperature_float_setting.value or 0.0),
-                                      sequential_processing=(sequential_processing_bool_setting.value or False),
+                                      material=None, synthesis=ip.task_string_setting.value,
+                                      temperature=(aisp.temperature_float_setting.value or 0.0),
+                                      sequential_processing=(ep.sequential_processing_bool_setting.value or False),
                                       output_filename_schema=(
-                                              output_filename_schema_string_setting.value or "dragiter-out.txt"),
-                                      output_delimiter=(output_delimiter_string_setting.value or "\n")
+                                              op.output_filename_schema_string_setting.value or "dragiter-out.txt"),
+                                      output_delimiter=(op.output_delimiter_string_setting.value or "\n")
                                       )
 
             else:
-                path: Path = prompt_file_path_setting.value
+                path: Path = ip.prompt_file_path_setting.value
                 logger.debug(f"Try loading prompt content from file: {path.name}")
                 toml_result_dict = read_from_toml(path)
                 system_sec = toml_result_dict["system"]
@@ -100,17 +105,17 @@ class PromptCreator(Worker):
                     **behaviour_sec["behaviour"], **outcome_sec["outcome"])
 
                 # if available replace with cli params
-                if sequential_processing_bool_setting.is_set:
-                    result_prompt_template.sequential_processing = sequential_processing_bool_setting.value
+                if ep.sequential_processing_bool_setting.is_set:
+                    result_prompt_template.sequential_processing = ep.sequential_processing_bool_setting.value
 
-                if output_delimiter_string_setting.is_set:
-                    result_prompt_template.output_delimiter = output_delimiter_string_setting.value
+                if op.output_delimiter_string_setting.is_set:
+                    result_prompt_template.output_delimiter = op.output_delimiter_string_setting.value
 
-                if output_filename_schema_string_setting.is_set:
-                    result_prompt_template.output_filename_schema = output_filename_schema_string_setting.value
+                if op.output_filename_schema_string_setting.is_set:
+                    result_prompt_template.output_filename_schema = op.output_filename_schema_string_setting.value
 
-                if temperature_float_setting.is_set:
-                    result_prompt_template.temperature = temperature_float_setting.value
+                if aisp.temperature_float_setting.is_set:
+                    result_prompt_template.temperature = aisp.temperature_float_setting.value
 
                 return result_prompt_template
 

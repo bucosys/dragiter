@@ -17,11 +17,12 @@ from dragiter.domain.models.prompt_template import PromptTemplate
 # ---------------------------------------------------------------------------
 
 class _VerboseOff:
-    """Stand-in for VerboseBoolSetting with value=False."""
+    """Stand-in for LoggingParameters with verbose disabled."""
 
-    @property
-    def value(self) -> bool:
-        return False
+    class _Setting:
+        value = False
+
+    verbose_bool_setting = _Setting()
 
 
 # ---------------------------------------------------------------------------

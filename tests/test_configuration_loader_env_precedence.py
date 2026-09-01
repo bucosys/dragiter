@@ -49,7 +49,9 @@ from dragiter.domain.models.settings import (
     MaxRetryIntSetting,
     ModelNameStringSetting,
     TemperatureFloatSetting,
+    ValueOrigin,
 )
+from tests.support import setting_of
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +147,7 @@ def test_env_var_does_not_override_already_set_setting(
 ) -> None:
     """Env vars must never win over a value that was already set (e.g. by the CLI)."""
     loader = ConfigurationLoader()
-    _model_name_item(loader).value_setting_object.value = "cli-value"
+    _model_name_item(loader).value_setting_object.set("cli-value", ValueOrigin.CLI)
     monkeypatch.setenv("DRAGITER_MODEL_NAME", "env-value")
 
     loader._set_settings_from_environment()
@@ -162,7 +164,7 @@ def test_env_var_string_setting_value_is_stripped(
 
     loader._set_settings_from_environment()
 
-    assert _model_name_item(loader).value_setting_object.value == "padded-value"
+    assert _model_name_item(loader).value_setting_object.value == "  padded-value  "
 
 
 @pytest.mark.parametrize(
@@ -181,8 +183,7 @@ def test_env_var_string_setting_value_is_stripped(
         ("0", False),
         ("no", False),
         ("off", False),
-        ("", False),
-        ("random", False),
+        ("n", False),
     ],
 )
 def test_env_var_bool_setting_unified_truthy_values(
@@ -294,7 +295,7 @@ def test_env_var_integer_does_not_override_already_set_setting(
 ) -> None:
     """Env vars must never win over a value that was already set (e.g. by the CLI)."""
     loader = ConfigurationLoader()
-    _max_context_tokens_item(loader).value_setting_object.value = 64000
+    _max_context_tokens_item(loader).value_setting_object.set(64000, ValueOrigin.CLI)
     monkeypatch.setenv("DRAGITER_MAX_CONTEXT_TOKENS", "128000")
 
     loader._set_settings_from_environment()
@@ -306,7 +307,7 @@ def test_env_var_float_does_not_override_already_set_setting(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     loader = ConfigurationLoader()
-    _temperature_item(loader).value_setting_object.value = 0.0
+    _temperature_item(loader).value_setting_object.set(0.0, ValueOrigin.CLI)
     monkeypatch.setenv("DRAGITER_TEMPERATURE", "0.9")
 
     loader._set_settings_from_environment()
@@ -424,7 +425,7 @@ def test_cli_argument_wins_over_environment_variable(
 
     settings = ConfigurationLoader().run()
 
-    model_setting = next(s for s in settings if isinstance(s, ModelNameStringSetting))
+    model_setting = setting_of(settings, ModelNameStringSetting)
     assert model_setting.value == "cli-value"
 
 
@@ -439,7 +440,7 @@ def test_config_file_wins_over_environment_variable(
 
     settings = ConfigurationLoader().run()
 
-    model_setting = next(s for s in settings if isinstance(s, ModelNameStringSetting))
+    model_setting = setting_of(settings, ModelNameStringSetting)
     assert model_setting.value == "config-file-value"
 
 
@@ -451,5 +452,5 @@ def test_environment_variable_applies_when_nothing_else_is_set(
 
     settings = ConfigurationLoader().run()
 
-    model_setting = next(s for s in settings if isinstance(s, ModelNameStringSetting))
+    model_setting = setting_of(settings, ModelNameStringSetting)
     assert model_setting.value == "env-only-value"

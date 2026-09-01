@@ -31,8 +31,9 @@ from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatS
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
+from dragiter.domain.models.parameters import LoggingParameters
 from dragiter.domain.models.prompt_template import PromptTemplate
-from dragiter.domain.models.settings import VerboseBoolSetting
+from dragiter.domain.models.settings import LogFilePathSetting, VerboseBoolSetting
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ class MessageBuilder(Worker):
         material: Material,
         prompt: PromptTemplate,
         loop: Loop,
-        verbose_setting: VerboseBoolSetting
+        lp: LoggingParameters,
     ) -> ChatSessions:
         """Build all chat sessions based on material, prompt, and loop configuration.
         Only chunks with ``valid=True`` are considered:
@@ -161,7 +162,7 @@ class MessageBuilder(Worker):
                 chat_sessions.session_list.append(cs)
 
         # Verbose debug logging
-        if verbose_setting.value:
+        if lp.verbose_bool_setting.value:
             flat_messages = self._create_chat_message_list(chat_sessions)
             for index, message in enumerate(flat_messages, start=1):
                 logger.debug(

@@ -53,11 +53,31 @@ from dragiter.application.pipeline.context_window_estimator import (
     ContextWindowValidatorError,
 )
 from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatSessions
+from dragiter.domain.models.parameters import (
+    AIServiceParameters,
+    ExcecutionParameters,
+    LoggingParameters,
+)
 from dragiter.domain.models.settings import (
+    ActivityFilePathSetting,
+    APIKeyStringSetting,
+    BaseURLStringSetting,
+    CaBundleFilePathSetting,
     CharsPerTokenFloatSetting,
+    ClientCertFilePathSetting,
+    ClientKeyFilePathSetting,
+    DebugBoolSetting,
+    LogFilePathSetting,
     MaxContextTokensIntSetting,
     MaxOutputTokensIntSetting,
+    MaxRetryIntSetting,
+    ModelNameStringSetting,
+    RetryDelayIntSetting,
+    SequentialProcessingBoolSetting,
     SimulateBoolSetting,
+    TCPKeepAliveBoolSetting,
+    TemperatureFloatSetting,
+    ValueOrigin,
     VerboseBoolSetting,
 )
 
@@ -101,13 +121,12 @@ def make_settings(
     verbose: bool = False,
     simulate: bool = False,
     prerequisites_unset: bool = False,
-) -> dict:
+) -> tuple[AIServiceParameters, LoggingParameters, ExcecutionParameters]:
     """
-    Build a fresh set of Setting objects for a single `run()` call.
+    Build parameter groups for a single `run()` call.
 
-    Each ValueSetting instance can only be assigned once (a second write
-    raises AttributeError), so every test must call this factory anew rather
-    than reusing settings across calls.
+    Each ValueSetting instance can only be assigned once, so every test
+    must call this factory anew rather than reusing settings across calls.
     """
     chars_per_token_setting = CharsPerTokenFloatSetting("chars_per_token")
     max_context_tokens_setting = MaxContextTokensIntSetting("max_context_tokens")
@@ -115,21 +134,40 @@ def make_settings(
     verbose_setting = VerboseBoolSetting("verbose")
     simulate_setting = SimulateBoolSetting("simulate")
 
-    verbose_setting.value = verbose
-    simulate_setting.value = simulate
+    verbose_setting.set(verbose, ValueOrigin.CLI)
+    simulate_setting.set(simulate, ValueOrigin.CLI)
 
     if not prerequisites_unset:
-        chars_per_token_setting.value = chars_per_token
-        max_context_tokens_setting.value = max_context_tokens
-        max_output_tokens_setting.value = max_output_tokens
+        chars_per_token_setting.set(chars_per_token, ValueOrigin.CLI)
+        max_context_tokens_setting.set(max_context_tokens, ValueOrigin.CLI)
+        max_output_tokens_setting.set(max_output_tokens, ValueOrigin.CLI)
 
-    return dict(
-        chars_per_token_float_setting=chars_per_token_setting,
-        max_context_tokens_int_setting=max_context_tokens_setting,
-        max_output_tokens_int_setting=max_output_tokens_setting,
-        verbose_boolean_setting=verbose_setting,
-        simulation_boolean_setting=simulate_setting,
+    aisp = AIServiceParameters(
+        APIKeyStringSetting("api_key"),
+        TCPKeepAliveBoolSetting("tcp_keep_alive"),
+        BaseURLStringSetting("base_url"),
+        ModelNameStringSetting("model_name"),
+        max_context_tokens_setting,
+        max_output_tokens_setting,
+        chars_per_token_setting,
+        TemperatureFloatSetting("temperature"),
+        RetryDelayIntSetting("retry_delay"),
+        MaxRetryIntSetting("max_retry"),
+        CaBundleFilePathSetting("ca_bundle_file"),
+        ClientCertFilePathSetting("client_cert_file"),
+        ClientKeyFilePathSetting("client_key_file"),
     )
+    lp = LoggingParameters(
+        DebugBoolSetting("debug"),
+        verbose_setting,
+        LogFilePathSetting("log_file"),
+        ActivityFilePathSetting("activity_file"),
+    )
+    ep = ExcecutionParameters(
+        simulate_setting,
+        SequentialProcessingBoolSetting("sequential_processing"),
+    )
+    return aisp, lp, ep
 
 
 def make_chat_sessions(num_sessions: int = 1) -> ChatSessions:
@@ -156,9 +194,11 @@ def test_run_returns_none_when_required_settings_missing():
     """
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(prerequisites_unset=True)
+    aisp, lp, ep = make_settings(prerequisites_unset=True)
 
-    result = estimator.run(chat_sessions=make_chat_sessions(1), **settings)
+    result = estimator.run(
+        chat_sessions=make_chat_sessions(1), aisp=aisp, lp=lp, ep=ep
+    )
 
     assert result is None
     assert stub.calls == []
@@ -168,9 +208,11 @@ def test_run_returns_valid_report_within_limit():
     """Total tokens comfortably under the limit -> valid report, no warnings."""
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(max_context_tokens=1000, max_output_tokens=200)
+    aisp, lp, ep = make_settings(max_context_tokens=1000, max_output_tokens=200)
 
-    report = estimator.run(chat_sessions=make_chat_sessions(2), **settings)
+    report = estimator.run(
+        chat_sessions=make_chat_sessions(2), aisp=aisp, lp=lp, ep=ep
+    )
 
     assert report.is_valid is True
     assert report.max_tokens_limit == 1000
@@ -189,11 +231,13 @@ def test_run_does_not_raise_in_verbose_mode():
     """
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(
+    aisp, lp, ep = make_settings(
         max_context_tokens=1000, max_output_tokens=200, verbose=True
     )
 
-    report = estimator.run(chat_sessions=make_chat_sessions(1), **settings)
+    report = estimator.run(
+        chat_sessions=make_chat_sessions(1), aisp=aisp, lp=lp, ep=ep
+    )
 
     assert report.is_valid is True
 
@@ -210,12 +254,12 @@ def test_run_raises_when_limit_exceeded_and_not_simulating():
         tokens=900
     )  # 900 input + 200 output = 1100 > 1000 limit
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(
+    aisp, lp, ep = make_settings(
         max_context_tokens=1000, max_output_tokens=200, simulate=False
     )
 
     with pytest.raises(ContextWindowValidatorError) as exc_info:
-        estimator.run(chat_sessions=make_chat_sessions(1), **settings)
+        estimator.run(chat_sessions=make_chat_sessions(1), aisp=aisp, lp=lp, ep=ep)
 
     message = str(exc_info.value)
     assert "not defined" not in message
@@ -230,11 +274,13 @@ def test_run_collects_warning_instead_of_raising_when_simulating():
     """
     stub = StubPayloadEstimator(tokens=900)
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(
+    aisp, lp, ep = make_settings(
         max_context_tokens=1000, max_output_tokens=200, simulate=True
     )
 
-    report = estimator.run(chat_sessions=make_chat_sessions(1), **settings)
+    report = estimator.run(
+        chat_sessions=make_chat_sessions(1), aisp=aisp, lp=lp, ep=ep
+    )
 
     assert report.is_valid is False
     assert len(report.simulation_warnings) == 1
@@ -250,11 +296,13 @@ def test_run_tracks_high_water_mark_across_multiple_sessions():
     """
     stub = StubPayloadEstimator(tokens=[50, 300, 120])
     estimator = ContextWindowEstimator(stub)
-    settings = make_settings(
+    aisp, lp, ep = make_settings(
         max_context_tokens=10_000, max_output_tokens=100, simulate=True
     )
 
-    report = estimator.run(chat_sessions=make_chat_sessions(3), **settings)
+    report = estimator.run(
+        chat_sessions=make_chat_sessions(3), aisp=aisp, lp=lp, ep=ep
+    )
 
     # Per-session totals (input + 100 reserved output tokens each): 150, 400, 220
     assert report.session_token_counts == {0: 150, 1: 400, 2: 220}
@@ -276,7 +324,7 @@ def test_run_wraps_unexpected_estimator_error():
             raise RuntimeError("boom")
 
     estimator = ContextWindowEstimator(ExplodingPayloadEstimator())
-    settings = make_settings()
+    aisp, lp, ep = make_settings()
 
     with pytest.raises(ContextWindowValidatorError, match="boom"):
-        estimator.run(chat_sessions=make_chat_sessions(1), **settings)
+        estimator.run(chat_sessions=make_chat_sessions(1), aisp=aisp, lp=lp, ep=ep)

@@ -30,6 +30,7 @@ from dragiter.domain.models.application_result import ApplicationResult
 from dragiter.domain.models.chat_results import ChatResults
 from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.chunk import Chunk
+from dragiter.domain.models.parameters import OutputParameters
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.settings import (
     OutputDirectoryPathSetting,
@@ -138,14 +139,12 @@ class OutputWriter:
         self,
         chat_sessions: ChatSessions,
         chat_results: ChatResults,
-        output_file_path_setting: OutputFilePathSetting,
-        output_directory_path_setting: OutputDirectoryPathSetting,
-        output_mode_string_setting: OutputModeStringSetting,
+        op: OutputParameters,
         prompt: PromptTemplate,
     ) -> ApplicationResult:
 
         try:
-            open_mode: str = output_mode_string_setting.value or "x"
+            open_mode: str = op.output_mode_string_setting.value or "x"
             application_result = ApplicationResult(0)
 
             # create simple list
@@ -161,13 +160,13 @@ class OutputWriter:
             # printable_value = "\n\n\n\n".join(content_list)
             printable_value = prompt.output_delimiter.join(content_list)
             # write result to one file
-            if output_file_path_setting.is_set:
+            if op.output_file_path_setting.is_set:
                 write_or_append_lines_to_unique_file(
-                    output_file_path_setting.value, open_mode, [printable_value]
+                    op.output_file_path_setting.value, open_mode, [printable_value]
                 )
 
             # write to many files (all loops, use numbered prompt file name as output filename
-            if output_directory_path_setting.is_set:
+            if op.output_directory_path_setting.is_set:
                 # reworking that case
 
                 # generate unique filename
@@ -188,11 +187,11 @@ class OutputWriter:
                     )
 
                     target_path = (
-                        output_directory_path_setting.value / formatted_file_name
+                        op.output_directory_path_setting.value / formatted_file_name
                     )
                     # Guarantee the resolved path never leaves the intended output directory
                     safe_path = ensure_path_within_directory(
-                        target_path, output_directory_path_setting.value
+                        target_path, op.output_directory_path_setting.value
                     )
 
                     write_or_append_lines_to_unique_file(

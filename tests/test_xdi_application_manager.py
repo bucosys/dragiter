@@ -259,7 +259,7 @@ def test_worker_receives_deep_copy_not_the_stored_instance():
 
     manager = make_manager()
     original = Basket(items=["original"])
-    manager.provide(original)
+    manager.provide(MutatingWorker(), original)
     manager.register_worker(MutatingWorker())
 
     manager.run()
@@ -273,7 +273,7 @@ def test_provide_with_none_is_a_no_op():
     must silently ignore that instead of storing a NoneType entry."""
     manager = make_manager()
 
-    manager.provide(None)
+    manager.provide(object(), None)
 
     assert manager.store == {}
 
@@ -298,7 +298,7 @@ def test_provide_runs_registered_validator_and_stores_on_success():
     manager = make_manager()
     manager.register_validators(PayloadValidator())
 
-    manager.provide(Payload(amount=5))
+    manager.provide(object(), Payload(amount=5))
 
     assert manager.store[Payload].amount == 5
 
@@ -308,7 +308,7 @@ def test_provide_raises_when_registered_validator_rejects_object():
     manager.register_validators(PayloadValidator())
 
     with pytest.raises(ValueError, match="amount must not be negative"):
-        manager.provide(Payload(amount=-1))
+        manager.provide(object(), Payload(amount=-1))
 
     assert Payload not in manager.store
 

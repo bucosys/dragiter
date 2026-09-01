@@ -47,7 +47,7 @@ from dragiter.application.pipeline.material_tokenizer import (
     MaterialTokenizerError,
 )
 from dragiter.domain.models.resources import Resources, ResourceSection
-from dragiter.domain.models.settings import LoopFilePathSetting
+from dragiter.domain.models.settings import ValueOrigin
 from dragiter.domain.models.text_file import TextFile
 from dragiter.domain.ports.text_file_reader import TextFileReaderError
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
@@ -282,10 +282,24 @@ class TestMaterialTokenizerChunkSizeWarnings:
 class TestLoopBuilderItemLimit:
     """50 loop-item hard limit."""
 
-    def _loop_setting(self, path: Path) -> LoopFilePathSetting:
-        setting = LoopFilePathSetting(_key="loop_file")
-        setting.value = path
-        return setting
+    def _loop_params(self, path: Path) -> InputParameters:
+        from dragiter.domain.models.parameters import InputParameters
+        from dragiter.domain.models.settings import (
+            LoopFilePathSetting,
+            PromptFilePathSetting,
+            ResourceFilePathSetting,
+            TaskStringSetting,
+            ValueOrigin,
+        )
+
+        loop_setting = LoopFilePathSetting("loop_file")
+        loop_setting.set(path, ValueOrigin.CLI)
+        return InputParameters(
+            TaskStringSetting("task"),
+            PromptFilePathSetting("prompt_file"),
+            loop_setting,
+            ResourceFilePathSetting("resource_file"),
+        )
 
     def test_under_limit_succeeds(self, tmp_path: Path) -> None:
         path = tmp_path / "loop.txt"
@@ -295,7 +309,7 @@ class TestLoopBuilderItemLimit:
         )
         builder = LoopBuilder()
 
-        loop = builder.run(self._loop_setting(path))
+        loop = builder.run(self._loop_params(path))
 
         assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
 
@@ -308,7 +322,7 @@ class TestLoopBuilderItemLimit:
         builder = LoopBuilder()
 
         with pytest.raises(LoopBuilderError) as exc_info:
-            builder.run(self._loop_setting(path))
+            builder.run(self._loop_params(path))
 
         msg = _error_text(exc_info.value)
         assert str(LoopBuilder.MAX_LOOP_ITEMS) in msg
@@ -322,7 +336,7 @@ class TestLoopBuilderItemLimit:
         )
         builder = LoopBuilder()
 
-        loop = builder.run(self._loop_setting(path))
+        loop = builder.run(self._loop_params(path))
         assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
 
     def test_empty_lines_do_not_count_toward_limit(self, tmp_path: Path) -> None:
@@ -338,7 +352,7 @@ class TestLoopBuilderItemLimit:
         path.write_text("\n".join(padded), encoding="utf-8")
 
         builder = LoopBuilder()
-        loop = builder.run(self._loop_setting(path))
+        loop = builder.run(self._loop_params(path))
         assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
 
     def test_jsonl_items_are_subject_to_the_same_limit(self, tmp_path: Path) -> None:
@@ -350,6 +364,6 @@ class TestLoopBuilderItemLimit:
         builder = LoopBuilder()
 
         with pytest.raises(LoopBuilderError) as exc_info:
-            builder.run(self._loop_setting(path))
+            builder.run(self._loop_params(path))
 
         assert str(LoopBuilder.MAX_LOOP_ITEMS) in _error_text(exc_info.value)

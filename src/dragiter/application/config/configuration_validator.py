@@ -25,42 +25,13 @@ import logging
 import os
 from pathlib import Path
 
-from dragiter.domain.models.ai_service_parameters import AIServiceParameters
-from dragiter.domain.models.input_path_parameters import InputPathParameters
-from dragiter.domain.models.output_parameters import OutputParameters
-from dragiter.domain.models.processing_parameters import ProcessingParameters
-from dragiter.domain.models.settings import (
-    ActivityFilePathSetting,
-    ApiKeyStringSetting,
-    BaseDirectoryPathSetting,
-    BaseURLStringSetting,
-    CaBundleFilePathSetting,
-    CharsPerTokenFloatSetting,
-    ClientCertFilePathSetting,
-    ClientKeyFilePathSetting,
-    ConfigFilePathSetting,
-    DebugBoolSetting,
-    LogFilePathSetting,
-    LoopFilePathSetting,
-    MaxContextTokensIntSetting,
-    MaxOutputTokensIntSetting,
-    MaxRetryIntSetting,
-    ModelNameStringSetting,
-    OutputDelimiterStringSetting,
-    OutputDirectoryPathSetting,
-    OutputFilenameSchemaStringSetting,
-    OutputFilePathSetting,
-    OutputModeStringSetting,
-    PathSetting,
-    PromptFilePathSetting,
-    ResourceFilePathSetting,
-    RetryDelayIntSetting,
-    SequentialProcessingBoolSetting,
-    SimulateBoolSetting,
-    TaskStringSetting,
-    TemperatureFloatSetting,
-    ValueSetting,
-    VerboseBoolSetting,
+from dragiter.domain.models.parameters import (
+    AIServiceParameters,
+    ExcecutionParameters,
+    InputParameters,
+    LoggingParameters,
+    OutputParameters,
+    WorkspaceParameters,
 )
 
 logger = logging.getLogger(__name__)
@@ -80,127 +51,76 @@ class ConfigurationValidator:
 
     def run(
         self,
-        api_key_string_setting: ApiKeyStringSetting,
-        base_url_string_setting: BaseURLStringSetting,
-        model_name_string_setting: ModelNameStringSetting,
-        output_mode_string_setting: OutputModeStringSetting,
-        task_string_setting: TaskStringSetting,
-        chars_per_token_float_setting: CharsPerTokenFloatSetting,
-        max_output_token_int_setting: MaxOutputTokensIntSetting,
-        max_context_token_int_setting: MaxContextTokensIntSetting,
-        temperature_float_setting: TemperatureFloatSetting,
-        retry_delay_int_setting: RetryDelayIntSetting,
-        max_retries_int_setting: MaxRetryIntSetting,
-        activity_file_path_setting: ActivityFilePathSetting,
-        base_directory_path_setting: BaseDirectoryPathSetting,
-        config_file_path_setting: ConfigFilePathSetting,
-        ca_bundle_file_path_setting: CaBundleFilePathSetting,
-        client_cert_file_path_setting: ClientCertFilePathSetting,
-        client_key_file_path_setting: ClientKeyFilePathSetting,
-        logfile_path_setting: LogFilePathSetting,
-        prompt_file_path_setting: PromptFilePathSetting,
-        loop_file_path_setting: LoopFilePathSetting,
-        resource_file_path_setting: ResourceFilePathSetting,
-        output_file_path_setting: OutputFilePathSetting,
-        output_directory_path_setting: OutputDirectoryPathSetting,
-        debug_bool_setting: DebugBoolSetting,
-        simulate_bool_setting: SimulateBoolSetting,
-        verbose_bool_setting: VerboseBoolSetting,
-        sequential_processing_bool_setting: SequentialProcessingBoolSetting,
-        output_delimiter_string_setting: OutputDelimiterStringSetting,
-        output_filename_schema_string_setting: OutputFilenameSchemaStringSetting,
-    ) -> list[ValueSetting]:
+        aisp: AIServiceParameters,
+        lp: LoggingParameters,
+        ep: ExcecutionParameters,
+        ip: InputParameters,
+        op: OutputParameters,
+        wp: WorkspaceParameters,
+    ) -> None:
+
 
         try:
             CVF = ConfigurationValidatorFinding  # shorthand
             cvfs: list[CVF] = []
-
-            # check I: must-have-settings
-            if not base_directory_path_setting.is_set:
-                base_directory_path_setting.value = Path.cwd()
-
-            # rebase all if nessessary
-            if base_directory_path_setting.value != Path.cwd():
-                # stage 1 check for reading a file or director
-                settings_to_rebase: list[PathSetting] = [
-                    activity_file_path_setting,
-                    ca_bundle_file_path_setting,
-                    client_cert_file_path_setting,
-                    client_key_file_path_setting,
-                    prompt_file_path_setting,
-                    loop_file_path_setting,
-                    resource_file_path_setting,
-                    output_file_path_setting,
-                    output_directory_path_setting,
-                ]
-
-                logger.debug(
-                    f"<Rebase path settings to: {base_directory_path_setting.value}>"
-                )
-                for setting in settings_to_rebase:
-                    if setting.is_set:
-                        setting.rebase(base_directory_path_setting.value)
-                        logger.debug(f"[{setting.key}: {setting.value}]")
-
-            if task_string_setting.is_set:  # so if user choose that param
-                if task_string_setting.value.strip() == "":
+            
+            if ip.task_string_setting.is_set:  # so if user choose that param
+                if ip.task_string_setting.value.strip() == "":
                     cvfs.append(
                         CVF(
-                            task_string_setting.key,
+                            ip.task_string_setting.key,
                             "value not set",
                             "No task recognizable",
                         )
                     )
+
             else:  # there will no prompt file read in...
-                if not prompt_file_path_setting.is_set:
+                if not ip.prompt_file_path_setting.is_set:
                     cvfs.append(
                         CVF(
-                            prompt_file_path_setting.key,
+                            ip.prompt_file_path_setting.key,
                             "value not set",
                             "Path to prompt file is mandatory.",
                         )
                     )
                 else:
-                    pfps_value = prompt_file_path_setting.value
+                    pfps_value = ip.prompt_file_path_setting.value
                     if not os.access(pfps_value, os.R_OK):
                         cvfs.append(
                             CVF(
-                                prompt_file_path_setting.key,
+                                ip.prompt_file_path_setting.key,
                                 f"File not readable: {pfps_value}",
                                 "Path to prompt file is mandatory. The given file is not readable.",
                             )
                         )
 
-            if not simulate_bool_setting.value and not base_url_string_setting.is_set:
+            if not ep.simulate_bool_setting.value and not aisp.base_url_string_setting.is_set:
                 cvfs.append(
                     CVF(
-                        base_url_string_setting.key,
+                        aisp.base_url_string_setting.key,
                         "value not set",
                         "Path to LLM is mandatory.",
                     )
                 )
 
-            # check II get file access modifier
-            # set default to 'x'
-            if not output_mode_string_setting.is_set:
-                output_mode_string_setting.value = "x"
-            if output_mode_string_setting.value not in {"a", "x", "w"}:
+            
+            if op.output_mode_string_setting.value not in {"a", "x", "w"}:
                 cvfs.append(
                     CVF(
-                        output_mode_string_setting.key,
+                        op.output_mode_string_setting.key,
                         "If file open mode is set, use one of a (append), w (overwrite) or x (exclusive)",
                     )
                 )
 
             # stage 1 check for reading a file or director
             input_path_settings_to_check = [
-                base_directory_path_setting,
-                ca_bundle_file_path_setting,
-                client_cert_file_path_setting,
-                client_key_file_path_setting,
-                loop_file_path_setting,
-                resource_file_path_setting,
-                output_directory_path_setting,
+                wp.base_directory_path_setting,
+                aisp.ca_bundle_file_path_setting,
+                aisp.client_cert_file_path_setting,
+                aisp.client_key_file_path_setting,
+                ip.loop_file_path_setting,
+                ip.resource_file_path_setting,
+                op.output_directory_path_setting,
             ]
 
             cvfs.extend(
@@ -213,9 +133,9 @@ class ConfigurationValidator:
 
             # stage II check for wrinting a sinle file, check directory
             output_path_settings_to_check = [
-                activity_file_path_setting,
-                logfile_path_setting,
-                output_file_path_setting,
+                lp.activity_file_path_setting,
+                lp.log_file_path_setting,
+                op.output_file_path_setting,
             ]
 
             cvfs.extend(
@@ -226,129 +146,97 @@ class ConfigurationValidator:
                 ]
             )
 
+            # stage IIb: -o / -a existence against -m (output_mode)
+            # x = exclusive create (file must not exist)
+            # w = overwrite (existing file must be writable)
+            # a = append     (existing file must be writable)
+            output_mode = (
+                op.output_mode_string_setting.value
+                if op.output_mode_string_setting.is_set
+                else "x"
+            )
+            mode_targets = [
+                op.output_file_path_setting,
+            ]
+            if output_mode in {"a", "x", "w"}:
+                for setting in mode_targets:
+                    if not setting.is_set:
+                        continue
+                    target = setting.value
+                    if output_mode == "x" and target.exists():
+                        cvfs.append(
+                            CVF(
+                                setting.key,
+                                f"File already exists: {target}",
+                                "output_mode=x (exclusive) forbids an existing "
+                                f"{setting.key}. Use -m w to overwrite or -m a to append.",
+                            )
+                        )
+                    elif (
+                        output_mode in {"a", "w"}
+                        and target.exists()
+                        and not os.access(target, os.W_OK)
+                    ):
+                        cvfs.append(
+                            CVF(
+                                setting.key,
+                                f"File not writable: {target}",
+                                f"output_mode={output_mode} requires write access to "
+                                f"an existing {setting.key}.",
+                            )
+                        )
+
             # stage III: LLM settings
-            if max_retries_int_setting.is_set and (
-                    max_retries_int_setting.value < 0
-                    or max_retries_int_setting.value > 9
+            if aisp.max_retries_int_setting.is_set and (
+                    aisp.max_retries_int_setting.value < 0
+                    or aisp.max_retries_int_setting.value > 9
                 ):
                     cvfs.append(
                         CVF(
-                            max_retries_int_setting.key,
-                            f"value should be between 0 and 9 inclusive, not {max_retries_int_setting.value}",
+                            aisp.max_retries_int_setting.key,
+                            f"value should be between 0 and 9 inclusive, not {aisp.max_retries_int_setting.value}",
                         )
                     )
 
-            if retry_delay_int_setting.is_set and (
-                    retry_delay_int_setting.value < 0
-                    or retry_delay_int_setting.value > 20
+            if aisp.retry_delay_int_setting.is_set and (
+                    aisp.retry_delay_int_setting.value < 0
+                    or aisp.retry_delay_int_setting.value > 20
                 ):
                     cvfs.append(
                         CVF(
-                            retry_delay_int_setting.key,
-                            f"value should be between 0 and 20 inclusive, not {retry_delay_int_setting.value}",
+                            aisp.retry_delay_int_setting.key,
+                            f"value should be between 0 and 20 inclusive, not {aisp.retry_delay_int_setting.value}",
                         )
                     )
 
-            if chars_per_token_float_setting.is_set and chars_per_token_float_setting.value <= 0.0:
+            if aisp.chars_per_token_float_setting.is_set and aisp.chars_per_token_float_setting.value <= 0.0:
                     cvfs.append(
                         CVF(
-                            chars_per_token_float_setting.key,
-                            f"value should not be less than 0.0: {chars_per_token_float_setting.value}",
+                            aisp.chars_per_token_float_setting.key,
+                            f"value should not be less than 0.0: {aisp.chars_per_token_float_setting.value}",
                         )
                     )
 
             # Stage IV Cert
             if (
-                client_key_file_path_setting.is_set
-                and not client_cert_file_path_setting.is_set
+                aisp.client_key_file_path_setting.is_set
+                and not aisp.client_cert_file_path_setting.is_set
             ):
                 cvfs.append(
                     CVF(
-                        client_key_file_path_setting.key,
+                        aisp.client_key_file_path_setting.key,
                         "client_key given without client_cert",
                         "A client private key requires a client certificate (--client-cert).",
                     )
                 )
 
-            # stage V: Create AIServiceParameters:
-            ai_service_parameters: AIServiceParameters = AIServiceParameters(
-                api_key_string_setting,
-                base_url_string_setting,
-                model_name_string_setting,
-                max_context_token_int_setting,
-                max_output_token_int_setting,
-                chars_per_token_float_setting,
-                temperature_float_setting,
-                retry_delay_int_setting,
-                max_retries_int_setting,
-                ca_bundle_file_path_setting,
-                client_cert_file_path_setting,
-                client_key_file_path_setting,
-            )
-
-            # stage VI: Create ProcessingParameters
-            processing_parameters: ProcessingParameters = ProcessingParameters(
-                debug_bool_setting,
-                verbose_bool_setting,
-                simulate_bool_setting,
-                sequential_processing_bool_setting,
-            )
-
-            # stage VII: InputFile Parameters
-            input_file_parameters: InputPathParameters = InputPathParameters(
-                base_directory_path_setting,
-                config_file_path_setting,
-                prompt_file_path_setting,
-                loop_file_path_setting,
-                resource_file_path_setting,
-            )
-
-            # stage VIII: Output Parameters (files and options
-            output_parameters: OutputParameters = OutputParameters(
-                output_delimiter_string_setting,
-                output_filename_schema_string_setting,
-                output_mode_string_setting,
-                activity_file_path_setting,
-                logfile_path_setting,
-                output_directory_path_setting,
-                output_file_path_setting,
-            )
 
             if len(cvfs) > 0:
                 raise ConfigurationValidatorError(cvfs)
 
-            all_checked_elements = [
-                base_url_string_setting,
-                model_name_string_setting,
-                output_mode_string_setting,
-                task_string_setting,
-                max_retries_int_setting,
-                retry_delay_int_setting,
-                activity_file_path_setting,
-                base_directory_path_setting,
-                ca_bundle_file_path_setting,
-                client_cert_file_path_setting,
-                client_key_file_path_setting,
-                config_file_path_setting,
-                prompt_file_path_setting,
-                loop_file_path_setting,
-                resource_file_path_setting,
-                output_file_path_setting,
-                output_directory_path_setting,
-                simulate_bool_setting,
-            ]
 
-            if verbose_bool_setting.value:
-                for element in all_checked_elements:
-                    logger.debug(f"QC PASSED: [{element.key}: {element.value}]")
 
-            # trick append ai_service_parameter at this time, useful for activity logging as well:
-            all_checked_elements.append(processing_parameters)
-            all_checked_elements.append(input_file_parameters)
-            all_checked_elements.append(output_parameters)
-            all_checked_elements.append(ai_service_parameters)
-
-            return all_checked_elements
+            return None
 
         except ConfigurationValidatorError:
             raise  #

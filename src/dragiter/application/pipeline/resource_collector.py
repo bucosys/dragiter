@@ -24,11 +24,13 @@ import logging
 from pathlib import Path
 
 from dragiter.application.core.xdi import Worker
+from dragiter.domain.models.parameters import InputParameters, WorkspaceParameters
 from dragiter.domain.models.resources import Resources, ResourceSection
 from dragiter.domain.models.settings import (
     BaseDirectoryPathSetting,
     PathSetting,
     ResourceFilePathSetting,
+    ValueOrigin,
 )
 from dragiter.domain.models.text_file import TextFile
 from dragiter.domain.ports.file_checker import FileChecker
@@ -43,17 +45,17 @@ class ResourceCollector(Worker):
 
     def run(
         self,
-        resource_file_path_setting: ResourceFilePathSetting,
-        base_directory_file_path: BaseDirectoryPathSetting,
+        ip: InputParameters,
+        wp: WorkspaceParameters,
     ) -> Resources:
 
         res: Resources = Resources()
         try:
-            if resource_file_path_setting.is_set:
-                path: Path = resource_file_path_setting.value
+            if ip.resource_file_path_setting.is_set:
+                path: Path = ip.resource_file_path_setting.value
                 logger.debug(f"Try loading content from file: {path}")
                 resource_file_toml_dict = read_from_toml(
-                    resource_file_path_setting.value
+                    ip.resource_file_path_setting.value
                 )
 
                 for s_name, settings in resource_file_toml_dict.items():
@@ -61,13 +63,16 @@ class ResourceCollector(Worker):
                     glob_patterns: list[str] = settings.get("glob_patterns") or []
                     base_dir = settings.get("base_directory") or None
 
+                    resource_base_dir = PathSetting()
                     if base_dir:
-                        resource_base_dir = PathSetting()
-                        resource_base_dir.value = Path(base_dir)
-                        resource_base_dir.rebase(base_directory_file_path.value)
-
+                        resource_base_dir.set(base_dir, ValueOrigin.CONFIG)
                     else:
-                        resource_base_dir = base_directory_file_path
+                        resource_base_dir.set(Path.cwd().resolve(), ValueOrigin.DEFAULT)
+
+                    if wp.base_directory_path_setting.is_set:
+                        resource_base_dir.rebase(wp.base_directory_path_setting.value)
+
+
 
                     if glob_patterns:
                         self._find_valid_textfiles(
@@ -98,6 +103,7 @@ class ResourceCollector(Worker):
     ) -> None:
 
         root_path = base_directory_file_path.value  # Path.cwd().resolve()
+        
         logger.debug(f"Use root path: {root_path}")
 
         for pattern in glob_patterns:

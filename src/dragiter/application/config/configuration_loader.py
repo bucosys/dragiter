@@ -29,6 +29,7 @@ from typing import Any
 
 from dragiter import __version__
 from dragiter.application.config.configuration_decorators import (
+    APIStringSettingArgumentDecorator,
     ArgumentDecorator,
     BoolSettingArgumentDecorator,
     FloatSettingArgumentDecorator,
@@ -37,9 +38,18 @@ from dragiter.application.config.configuration_decorators import (
     StringSettingArgumentDecorator,
 )
 from dragiter.application.core.xdi import Worker
+from dragiter.domain.models.parameters import (
+    AIServiceParameters,
+    ExcecutionParameters,
+    InputParameters,
+    LoggingParameters,
+    OutputParameters,
+    WorkspaceParameters,
+)
 from dragiter.domain.models.settings import (
     ActivityFilePathSetting,
-    ApiKeyStringSetting,
+    APIKeyStringSetting,
+    APIStringSetting,
     BaseDirectoryPathSetting,
     BaseURLStringSetting,
     BoolSetting,
@@ -70,7 +80,9 @@ from dragiter.domain.models.settings import (
     SimulateBoolSetting,
     StringSetting,
     TaskStringSetting,
+    TCPKeepAliveBoolSetting,
     TemperatureFloatSetting,
+    ValueOrigin,
     ValueSetting,
     VerboseBoolSetting,
 )
@@ -82,128 +94,179 @@ logger = logging.getLogger(__name__)
 class ConfigurationLoader(Worker):
     def __init__(self) -> None:
         """Initialise the configuration object and load settings."""
+        self._aisp: AIServiceParameters = AIServiceParameters(
+           APIKeyStringSetting("api_key"),
+           TCPKeepAliveBoolSetting("tcp_keep_alive"),
+           BaseURLStringSetting("base_url"),
+           ModelNameStringSetting("model_name"),
+           MaxContextTokensIntSetting("max_context_tokens"),
+           MaxOutputTokensIntSetting("max_output_tokens"),
+           CharsPerTokenFloatSetting("chars_per_token"),
+           TemperatureFloatSetting("temperature"),
+           RetryDelayIntSetting("retry_delay"),
+           MaxRetryIntSetting("max_retry"),
+           CaBundleFilePathSetting("ca_bundle_file"),
+           ClientCertFilePathSetting("client_cert_file"),
+           ClientKeyFilePathSetting("client_key_file"),
+    )
+
+        self._lp: LoggingParameters = LoggingParameters(
+            DebugBoolSetting("debug"),
+            VerboseBoolSetting("verbose"),
+            LogFilePathSetting("log_file"),
+            ActivityFilePathSetting("activity_file"),
+        )
+
+        self._ep: ExcecutionParameters = ExcecutionParameters(
+            SimulateBoolSetting("simulate"),
+            SequentialProcessingBoolSetting("sequential_processing"),
+        )
+        
+        self._ip: InputParameters = InputParameters(
+            TaskStringSetting("task"),
+            PromptFilePathSetting("prompt_file"),
+            LoopFilePathSetting("loop_file"),
+            ResourceFilePathSetting("resource_file"),
+        )
+
+        self._op: OutputParameters = OutputParameters(
+            OutputFilePathSetting("output_file"),
+            OutputDirectoryPathSetting("output_directory"),
+            OutputDelimiterStringSetting("output_delimiter"),
+            OutputModeStringSetting("output_mode"),
+            OutputFilenameSchemaStringSetting("output_filename_schema"),
+        )
+
+        self._wp: WorkspaceParameters = WorkspaceParameters(
+            BaseDirectoryPathSetting("base_directory"),
+            ConfigFilePathSetting("config_file"),
+        )
+
         self.config_values: list[ArgumentDecorator] = [
             BoolSettingArgumentDecorator(
-                DebugBoolSetting("debug"), short_key="d", help="Enable debug logging"
+                self._lp.debug_bool_setting, short_key="d", help="Enable debug logging"
             ),
             BoolSettingArgumentDecorator(
-                SimulateBoolSetting("simulate"),
+                self._aisp.tcp_keep_alive_bool_setting, help="Enable TCP keep alive"
+            ),
+            BoolSettingArgumentDecorator(
+                self._ep.simulate_bool_setting,
                 short_key="s",
                 help="Simulation mode (no API calls)",
             ),
             BoolSettingArgumentDecorator(
-                VerboseBoolSetting("verbose"), short_key="v", help="Verbose output"
+                self._lp.verbose_bool_setting, short_key="v", help="Verbose output"
             ),
             BoolSettingArgumentDecorator(
-                SequentialProcessingBoolSetting("sequential_processing"),
+                self._ep.sequential_processing_bool_setting,
                 help="Process chunks sequentially (one by one)",
             ),
-            StringSettingArgumentDecorator(
-                ApiKeyStringSetting("api_key"), help="API key for the LLM service"
+            APIStringSettingArgumentDecorator(
+                self._aisp.api_key_string_setting, help="API key for the LLM service"
             ),
             StringSettingArgumentDecorator(
-                BaseURLStringSetting("base_url"),
+                self._aisp.base_url_string_setting,
                 help="Base URL of the AI API endpoint (e.g. for Ollama or Grok)",
             ),
             StringSettingArgumentDecorator(
-                ModelNameStringSetting("model_name"),
+                self._aisp.model_name_string_setting,
                 help="Model name (e.g. gpt-4o, llama3, grok-beta)",
             ),
             StringSettingArgumentDecorator(
-                OutputDelimiterStringSetting("output_delimiter"),
+                self._op.output_delimiter_string_setting,
                 help="Delimiter between multiple results",
             ),
             StringSettingArgumentDecorator(
-                OutputFilenameSchemaStringSetting("output_filename_schema"),
+                self._op.output_filename_schema_string_setting,
                 help="Filename schema for output files",
             ),
             StringSettingArgumentDecorator(
-                OutputModeStringSetting("output_mode"),
+                self._op.output_mode_string_setting,
                 short_key="m",
                 help="Output mode: w=overwrite, a=append, x=exclusive (default: x)",
             ),
             StringSettingArgumentDecorator(
-                TaskStringSetting("task"),
+                self._ip.task_string_setting,
                 short_key="t",
                 help="Direct task text (alternative to -p)",
             ),
             IntegerSettingArgumentDecorator(
-                MaxContextTokensIntSetting("max_context_tokens"),
+                self._aisp.max_context_token_int_setting,
                 help="Maximum total tokens the model can handle (input + output)",
             ),
             IntegerSettingArgumentDecorator(
-                MaxOutputTokensIntSetting("max_output_tokens"),
+                self._aisp.max_output_tokens_int_setting,
                 help="Maximum tokens the model may generate in the response",
             ),
             FloatSettingArgumentDecorator(
-                CharsPerTokenFloatSetting("chars_per_token"),
+                self._aisp.chars_per_token_float_setting,
                 help="Average characters per token (usually 3.5-4.0)",
             ),
             FloatSettingArgumentDecorator(
-                TemperatureFloatSetting("temperature"),
+                self._aisp.temperature_float_setting,
                 help="Temperature (0.0 = deterministic, higher = more creative)",
             ),
             IntegerSettingArgumentDecorator(
-                RetryDelayIntSetting("retry_delay"),
+                self._aisp.retry_delay_int_setting,
                 help="Seconds to wait between retries on rate limits",
             ),
             IntegerSettingArgumentDecorator(
-                MaxRetryIntSetting("max_retry"), help="Maximum number of retry attempts"
+                self._aisp.max_retries_int_setting, help="Maximum number of retry attempts"
             ),
             PathSettingArgumentDecorator(
-                BaseDirectoryPathSetting("base_directory"),
+                self._wp.base_directory_path_setting,
                 short_key="b",
                 help="Base directory for all relative paths",
             ),
             PathSettingArgumentDecorator(
-                ActivityFilePathSetting("activity_file"),
+                self._lp.activity_file_path_setting,
                 short_key="a",
                 help="Write activity to file",
             ),
             PathSettingArgumentDecorator(
-                CaBundleFilePathSetting("ca_bundle_file"),
+                self._aisp.ca_bundle_file_path_setting,
                 help="Path to custom CA certificate bundle (PEM) for TLS verification",
             ),
             PathSettingArgumentDecorator(
-                ClientCertFilePathSetting("client_cert_file"),
+                self._aisp.client_cert_file_path_setting,
                 help="Path to client certificate (PEM) for mutual TLS (mTLS)",
             ),
             PathSettingArgumentDecorator(
-                ClientKeyFilePathSetting("client_key_file"),
+                self._aisp.client_key_file_path_setting,
                 help="Path to client private key (optional if key is embedded in cert file)",
             ),
             PathSettingArgumentDecorator(
-                ConfigFilePathSetting("config_file"),
+                self._wp.config_file_path_setting,
                 short_key="c",
-                help="Read configuration from file",
+                help="Read configuration from file (relative paths are resolved against -b)",
             ),
             PathSettingArgumentDecorator(
-                LogFilePathSetting("log_file"),
+                self._lp.log_file_path_setting,
                 short_key="L",
                 help="Write log output to file (with rotation)",
             ),
             PathSettingArgumentDecorator(
-                PromptFilePathSetting("prompt_file"),
+                self._ip.prompt_file_path_setting,
                 short_key="p",
                 help="Read instruction and task template file",
             ),
             PathSettingArgumentDecorator(
-                LoopFilePathSetting("loop_file"),
+                self._ip.loop_file_path_setting,
                 short_key="l",
                 help="Path to loop file (txt or .jsonl)",
             ),
             PathSettingArgumentDecorator(
-                ResourceFilePathSetting("resource_file"),
+                self._ip.resource_file_path_setting,
                 short_key="r",
                 help="Path to resource definition (.toml)",
             ),
             PathSettingArgumentDecorator(
-                OutputFilePathSetting("output_file"),
+                self._op.output_file_path_setting,
                 short_key="o",
                 help="Write all output to a single file",
             ),
             PathSettingArgumentDecorator(
-                OutputDirectoryPathSetting("output_directory"),
+                self._op.output_directory_path_setting,
                 short_key="O",
                 help="Write outputs to directory (recommended for loops)",
             ),
@@ -216,7 +279,17 @@ class ConfigurationLoader(Worker):
             self._get_args()  # first of all - read args, get all params
 
             # This looks for the decorator where the inner object is an instance of ConfigFilePathSetting
-            target_decorator = next(
+            basedir_decorator = next(
+                (
+                    item
+                    for item in self.config_values
+                    if isinstance(item.value_setting_object, BaseDirectoryPathSetting)
+                ),
+                None,
+            )
+
+            # This looks for the decorator where the inner object is an instance of ConfigFilePathSetting
+            config_decorator = next(
                 (
                     item
                     for item in self.config_values
@@ -226,11 +299,14 @@ class ConfigurationLoader(Worker):
             )
 
             # Must have been found so now we extract the inner object
+            basedir_setting: BaseDirectoryPathSetting = basedir_decorator.value_setting_object
+            config_setting: ConfigFilePathSetting = config_decorator.value_setting_object
 
-            config_setting = target_decorator.value_setting_object.value
+            if(basedir_setting.is_set and config_setting.is_set):
+                config_setting.rebase(basedir_setting.value)
 
             # check config value
-            real_config_path = self._calculate_config_path(config_setting)
+            real_config_path = self._calculate_config_path(config_setting.value)
             if real_config_path and real_config_path.exists():
                 logger.debug(f"<Reading configuration from {real_config_path}>")
                 self._set_settings_from_config(read_from_toml(real_config_path))
@@ -242,12 +318,53 @@ class ConfigurationLoader(Worker):
 
             # 3. read environment dragiter_*
             self._set_settings_from_environment()
+            
+            # 4 rebase filepaths
+            self._rebase_filepath()
+
+            # 5 finally set factory defaults
+            self._set_factory_defaults()
+            
 
             # builds an array of inner objects
-            return [item.value_setting_object for item in self.config_values]
+            #return [item.value_setting_object for item in self.config_values]
+
+            return [self._aisp, self._lp, self._ep, self._ip, self._op, self._wp,]
 
         except Exception as e:
             raise ConfigurationLoaderError(f"Failed to read configuration: {e}") from e
+
+
+    def _set_factory_defaults(self) -> None:
+        # check II get file access modifier
+        # set default to 'x'
+        if not self._op.output_mode_string_setting.is_set:
+            self._op.output_mode_string_setting.set("x", ValueOrigin.DEFAULT)
+
+
+
+    def _rebase_filepath(self) -> None:
+
+        # check I: must-have-settings
+        if self._wp.base_directory_path_setting.is_set:
+            path_to_rebase = self._wp.base_directory_path_setting.value
+            settings_to_rebase: list[PathSetting] = [
+                self._lp.activity_file_path_setting,
+                self._aisp.ca_bundle_file_path_setting,
+                self._aisp.client_cert_file_path_setting,
+                self._aisp.client_key_file_path_setting,
+                self._ip.prompt_file_path_setting,
+                self._ip.loop_file_path_setting,
+                self._ip.resource_file_path_setting,
+                self._op.output_file_path_setting,
+                self._op.output_directory_path_setting,
+            ]
+
+            for setting in settings_to_rebase:
+                if setting.is_set:
+                    setting.rebase(path_to_rebase)
+
+
 
     def _set_settings_from_config(self, config_dict: dict) -> None:
         """set a particular value"""
@@ -260,45 +377,29 @@ class ConfigurationLoader(Worker):
                 continue  # --> operate on next item in list
 
             # 3 check is config file value could be found:
-            key = item.long_key
-            config_file_value = config_dict.get(key)
+            config_file_value = config_dict.get(item.long_key)
 
             if config_file_value is None:
                 continue  # --> operate on next item in list
 
-            # 4 if found, then convert + assign
-            if isinstance(value_setting_object, BoolSetting):
-                if isinstance(config_file_value, bool):
-                    # natives TOML true / false
-                    value_setting_object.value = config_file_value
-                elif isinstance(config_file_value, str):
-                    # String analog zum Env-Verhalten: nur "true" (case-insensitive) zählt
-                    value_setting_object.value = (
-                        config_file_value.strip().upper() in ("TRUE", "1", "YES")
+            # 4 Evaluate environment pointer
+            env_value: str = str(config_file_value).strip()
+            if env_value.startswith("$"):
+                expanded = os.path.expandvars(env_value)
+                if expanded == env_value:  # not expanded
+                    logger.warning(
+                        f"Configuration File Loader: Environment variable reference could not be resolved: {env_value}"
                     )
-                else:
-                    raise ConfigurationLoaderError(
-                        f"Invalid value for '{item.long_key}' in config file: "
-                        f"expected bool or string, got {type(config_file_value).__name__}"
-                    )
-                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif isinstance(value_setting_object, StringSetting):
-                value_setting_object.value = str(config_file_value).strip()
-                display_value = (
-                    "********" if "key" in item.long_key else value_setting_object.value
-                )
-                logger.debug(f"[{item.long_key}: {display_value}]")
-            elif isinstance(value_setting_object, IntegerSetting):
-                value_setting_object.value = int(config_file_value)
-                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif isinstance(value_setting_object, FloatSetting):
-                value_setting_object.value = float(config_file_value)
-                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif isinstance(value_setting_object, PathSetting):
-                value_setting_object.value = Path(str(config_file_value).strip())
-                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            else:
-                pass
+                    continue  # --> operate on next item in list
+
+                vo = ValueOrigin.CONFIG_RESOLVED
+                value_setting_object.from_string(expanded, vo)
+                continue  # --> operate on next item in list
+
+            # 5 if found, then convert + assign
+            value_setting_object.set(config_file_value, ValueOrigin.CONFIG)
+            logger.debug(f"[{item.long_key}: {value_setting_object}]")
+
 
     def _set_settings_from_environment(self) -> None:
         block_name = "PARSE ENVIRONMENT"
@@ -321,6 +422,8 @@ class ConfigurationLoader(Worker):
                 continue  # --> operate on next item in list
 
             # Only expand if the value starts with $ (i.e. contains a variable reference)
+            vo: ValueOrigin = ValueOrigin.ENV
+
             if env_value.startswith("$"):
                 expanded = os.path.expandvars(env_value)
                 if expanded == env_value:  # not expanded
@@ -328,35 +431,20 @@ class ConfigurationLoader(Worker):
                         f"Environment variable reference could not be resolved: {env_value}"
                     )
                 env_value = expanded
+                vo = ValueOrigin.ENV_RESOLVED
 
             # 4 if found, then ...
-            if isinstance(value_setting_object, BoolSetting):
-                value_setting_object.value = env_value.strip().upper() in ("TRUE", "1", "YES")
-                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif isinstance(value_setting_object, StringSetting):
-                value_setting_object.value = env_value.strip()
-                display_value = (
-                    "********" if "key" in item.long_key else value_setting_object.value
-                )
-                logger.debug(f"[{item.long_key}: {display_value}]")
-            elif isinstance(value_setting_object, IntegerSetting):
-                value_setting_object.value = int(env_value.strip())
-                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif isinstance(value_setting_object, FloatSetting):
-                value_setting_object.value = float(env_value.strip())
-                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            elif isinstance(value_setting_object, PathSetting):
-                value_setting_object.value = Path(env_value.strip())
-                logger.debug(f"[{item.long_key}: {value_setting_object.value}]")
-            else:
-                pass
+
+            value_setting_object.from_string(env_value, vo)
+
 
         logger.debug(f"--- FINISH BLOCK: {block_name} ---")
+
 
     def _calculate_config_path(self, config_path: Path) -> Path | None:
         """
         Determines the config path based on precedence:
-        1. CLI Argument
+        1. CLI Argument (-c), resolved against -b when relative
         2. Environment Variable
         3. Default User Config (~/.config/dragiter/config.toml)
         """
@@ -461,11 +549,11 @@ class ConfigurationLoader(Worker):
             if cmd_parsed_value is None:
                 continue
             # very important: Use .value to prevent overwrinting class var !!
-            item.value_setting_object.value = cmd_parsed_value
+            item.value_setting_object.set(cmd_parsed_value, ValueOrigin.CLI)
 
             # Masking sensitive data like API keys is a "pro" move
-            display_value = "********" if "key" in item.long_key else cmd_parsed_value
-            logger.debug(f"[{item.long_key}: {display_value}]")
+            ### display_value = "********" if "key" in item.long_key else cmd_parsed_value
+            logger.debug(f"[{item.long_key}: {item.value_setting_object.value!r}]")
 
     def __repr__(self):
         # will be printed in logger

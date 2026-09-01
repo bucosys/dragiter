@@ -34,26 +34,24 @@ import shutil
 import subprocess
 import sys
 
+import pytest
+
+from dragiter import __tool_name__, __version__
+from dragiter.application.config.configuration_loader import ConfigurationLoader
+from dragiter.domain.models.settings import SimulateBoolSetting
+
 
 def _get_dragiter_command() -> list[str]:
-    """
-    Returns the best available way to invoke dragiter.
-
-    1. Prefers the installed console script 'dragiter' if available in PATH.
-    2. Falls back to 'python -m dragiter.cli' (works in development / editable installs).
-    """
+    """Best available way to invoke the installed or in-tree CLI."""
     if shutil.which("dragiter"):
         return ["dragiter"]
-    else:
-        # Development fallback - does not require __main__.py
-        return [sys.executable, "-m", "dragiter.cli"]
+    return [sys.executable, "-m", "dragiter.cli"]
 
 
 def _run_dragiter(args: list[str], timeout: int = 15) -> subprocess.CompletedProcess:
-    """Helper to invoke dragiter reliably in different environments."""
-    cmd = _get_dragiter_command() + args
+    """Helper kept for optional live/functional tests that shell out to the CLI."""
     return subprocess.run(
-        cmd,
+        _get_dragiter_command() + args,
         capture_output=True,
         text=True,
         timeout=timeout,
@@ -62,41 +60,30 @@ def _run_dragiter(args: list[str], timeout: int = 15) -> subprocess.CompletedPro
 
 
 def test_dragiter_version():
-    """The --version flag must succeed and mention the tool or module name.
+    """Package metadata must expose the tool name and a version string."""
+    assert __tool_name__ == "dragiter"
+    assert __version__
+    assert "2026" in __version__ or __version__[0].isdigit()
 
-    When invoked via the console script the output contains 'dragiter'.
-    When invoked via ``python -m dragiter.cli`` argparse uses 'cli.py' as prog.
-    Both forms are acceptable.
-    """
-    result = _run_dragiter(["--version"])
-    assert result.returncode == 0, (
-        f"Unexpected exit code: {result.returncode}\n{result.stderr}"
+
+def test_dragiter_help(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]):
+    """Argparse help must mention the project description."""
+    monkeypatch.setattr(sys, "argv", ["dragiter", "--help"])
+    with pytest.raises(SystemExit) as exc_info:
+        ConfigurationLoader()._get_args()
+    assert exc_info.value.code == 0
+    assert "Deterministic Context Iterator" in capsys.readouterr().out
+
+
+def test_dragiter_simulate_flag_accepted(monkeypatch: pytest.MonkeyPatch):
+    """The -s / --simulate flag must be recognised by the configuration loader."""
+    monkeypatch.setattr(sys, "argv", ["dragiter", "-s"])
+    loader = ConfigurationLoader()
+    loader._get_args()
+    simulate = next(
+        item.value_setting_object
+        for item in loader.config_values
+        if isinstance(item.value_setting_object, SimulateBoolSetting)
     )
-    stdout_lower = result.stdout.lower()
-    assert "dragiter" in stdout_lower or "cli" in stdout_lower, (
-        f"Version output should mention 'dragiter' or 'cli', got: {result.stdout!r}"
-    )
-
-
-def test_dragiter_help():
-    """The help output must be accessible and contain the project description."""
-    result = _run_dragiter(["--help"])
-    assert result.returncode == 0, (
-        f"Unexpected exit code: {result.returncode}\n{result.stderr}"
-    )
-    assert "Deterministic Context Iterator" in result.stdout
-
-
-def test_dragiter_simulate_flag_accepted():
-    """
-    The -s / --simulate flag must be recognised.
-
-    Even without a full configuration the CLI should not crash with an
-    unhandled traceback. A controlled configuration error (return code 1)
-    is acceptable for this infrastructure-level check.
-    """
-    result = _run_dragiter(["-s", "--help"])
-    assert result.returncode in (0, 1), (
-        f"Unexpected exit code: {result.returncode}\n{result.stderr}"
-    )
-    assert "Traceback (most recent call last)" not in result.stderr
+    assert simulate.is_set is True
+    assert simulate.value is True

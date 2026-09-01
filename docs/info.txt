@@ -12,7 +12,10 @@ SYNOPSIS
 
 DESCRIPTION
        dragiter is a focused command-line tool that performs controlled,
-       reproducible calls to OpenAI-compatible LLM services. It combines:
+       reproducible calls to OpenAI-compatible LLM services. Live calls
+       always stream (OpenAIServiceExt / httpx2). The streaming path
+       requires openai >= 3.0.0 and httpx2 >= 2.7.0; openai 1.x / 2.x
+       do not provide DefaultHttpx2Client. It combines:
 
        * input material (documents, chunks, JSONL, …)
        * prompt templates
@@ -39,10 +42,17 @@ OPTIONS
            -s, --simulate             Simulation mode (no real API calls)
            -v, --verbose              Verbose progress output
            -c, --config-file PATH     Path to a specific TOML configuration
-                                      file
-           -b, --base-directory PATH  Base directory for all relative file
-                                      paths (default: current working
-                                      directory)
+                                      file. A relative path is resolved
+                                      against -b when -b is set
+           -b, --base-directory PATH  Base directory for relative file
+                                      paths. Not pre-filled with the
+                                      process CWD; unset until -b, the
+                                      config file or DRAGITER_BASE_DIRECTORY
+                                      supplies a value. Resource globs
+                                      without a section base_directory
+                                      still start from CWD and are rebased
+                                      onto -b only when the original path
+                                      was relative
            -L, --log-file PATH        Write application log to the given
                                       file (simple append, no rotation)
            --sequential-processing    Process each material chunk in its
@@ -66,6 +76,8 @@ OPTIONS
            --ca-bundle-file PATH      Custom CA certificate bundle (PEM)
            --client-cert-file PATH    Client certificate for mTLS (PEM)
            --client-key-file PATH     Client private key for mTLS
+           --tcp-keep-alive           Enable TCP keep-alive on the HTTP
+                                      transport (httpx2 HTTPTransport)
 
        Task & Prompt Control
            -p, --prompt-file PATH     Path to prompt template (TOML)
@@ -103,12 +115,17 @@ EXIT STATUS
        130    Process interrupted by user (KeyboardInterrupt)
 
 ENVIRONMENT
-       Boolean flags accept any non-empty value (commonly TRUE / FALSE):
+       Boolean flags (env / TOML strings for the env path) accept, after
+       strip + upper-case: TRUE / 1 / YES / ON / Y (true) and FALSE / 0 /
+       NO / OFF / N (false). Other values raise. Native TOML booleans
+       (simulate = true) are required in the config file; quoted strings
+       are not coerced there:
 
            DRAGITER_DEBUG
            DRAGITER_SIMULATE
            DRAGITER_VERBOSE
            DRAGITER_SEQUENTIAL_PROCESSING
+           DRAGITER_TCP_KEEP_ALIVE
 
        String / numeric settings:
 
