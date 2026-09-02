@@ -1,6 +1,6 @@
 # dragiter Technical Reference
 
-**Version:** derived from source (2026.8.31)  
+**Version:** derived from source (2026.9.1)  
 **Language:** British English  
 **Scope:** Configuration, file formats, CLI, defaults, output behaviour and activity log  
 **Sources:** Source code (`src/dragiter/`), in particular `PromptCreator`, `OpenAIServiceExt` and example TOML files under `examples/`
@@ -68,8 +68,47 @@ The CLI wires `OpenAIServiceExt` (`src/dragiter/infrastructure/llm/openai_servic
 - The non-streaming `OpenAIService` remains in the tree and still uses classic
   `httpx`; it is not the CLI default.
 
-With `-v` / `--verbose` the adapter emits an INFO heartbeat while a streamed
-completion is still running. Payload dumps stay on DEBUG.
+With `-v` / `--verbose` the adapter emits an INFO heartbeat on the logger
+every ten seconds while a streamed completion is still running. It does
+**not** write a spinner to stdout (that would corrupt result files).
+Payload dumps stay on DEBUG.
+
+The OpenAI SDK’s own retries are disabled (`max_retries=0`). The adapter
+owns the retry loop via `CompletionRetryPolicy`
+(`src/dragiter/infrastructure/llm/openai_runtime.py`).
+
+### Retries
+
+`max_retry` is the **number of completion attempts**, not the number of
+extra tries after a failure.
+
+| Setting        | When unset                         | When set                         |
+|----------------|------------------------------------|----------------------------------|
+| `max_retry`    | one attempt                        | `max(1, value)` attempts         |
+| `retry_delay`  | 3 seconds between later attempts   | that many seconds as the base    |
+
+Backoff before attempt *n* (1-based): no wait on attempt 1; then
+`retry_delay`, `2 × retry_delay`, `4 × retry_delay`, …
+
+**Retried** (until `max_retry` is exhausted):
+
+- HTTP 429 (`RateLimitError`)
+- transport / connection failures (`APIConnectionError`)
+- transient HTTP 5xx from a proxy or backend (500, 502, 503, and any
+  other 5xx that is not a gateway timeout)
+
+**Not retried** (the attempt fails immediately):
+
+- HTTP 504, and responses whose message contains `gateway timeout` or
+  `stream timeout`
+- `APITimeoutError`
+- an Ollama runner crash (`model runner has unexpectedly stopped`)
+- client 4xx other than 429
+
+Transport and SDK construction failures are reported as
+“Failed to initialise OpenAI client …”. Failures after the client exists
+are reported as “Attempt *n*/*m* failed: …”. They are **not** labelled as
+certificate or CA-bundle problems.
 
 ---
 
@@ -95,8 +134,8 @@ All settings that appear in the configuration loader are listed below.
 | `max_output_tokens`      | —         | int    | (none)                    | Maximum tokens the model may generate                          |
 | `chars_per_token`        | —         | float  | (none)*                   | Average characters per token used for estimation               |
 | `temperature`            | —         | float  | (none)                    | Sampling temperature                                           |
-| `retry_delay`            | —         | int    | (none)                    | Seconds to wait between retries                                |
-| `max_retry`              | —         | int    | (none)                    | Maximum number of retry attempts                               |
+| `retry_delay`            | —         | int    | 3 s at runtime if unset   | Base wait between attempts 2…*n*; doubles each time            |
+| `max_retry`              | —         | int    | 1 attempt if unset        | Maximum number of completion attempts (not extra retries)      |
 | `base_directory`         | `-b`      | path   | (unset)                   | Base for relative paths. **Not** pre-filled with CWD           |
 | `activity_file`          | `-a`      | path   | (none)                    | Write activity log to this file                                |
 | `ca_bundle_file`         | —         | path   | (none)                    | Custom CA certificate bundle (PEM)                             |
@@ -123,6 +162,9 @@ the setting is left unset.
 
 - `output_mode` must be one of `a`, `w`, `x`.
 - `retry_delay` (when set) must be between 0 and 20 inclusive.
+- `max_retry` (when set) must be between 0 and 9 inclusive. The adapter
+  still performs at least one attempt (`max(1, value)`), so `0` and
+  “unset” both mean a single try.
 - `chars_per_token` (when set) must be greater than 0.0.
 - Paths that are required must be readable (or writable for output paths).
 - `client_key_file` without `client_cert_file` is rejected.
@@ -179,12 +221,19 @@ DRAGITER_OUTPUT_DELIMITER
 ...
 ```
 
-Boolean environment values are parsed by `BoolSetting.from_string` after strip and
-upper-case:
+Boolean environment values consumed by `ConfigurationLoader` are parsed by
+`BoolSetting.from_string` after strip and case-fold:
 
 - truthy: `TRUE`, `1`, `YES`, `ON`, `Y`
 - falsy: `FALSE`, `0`, `NO`, `OFF`, `N`
 - anything else (including the empty string) raises
+
+Early logging (`LoggingConfigurator`, before the loader runs) only treats
+`TRUE`, `1` and `YES` as truthy for `--debug` / `--verbose` equivalents.
+It also builds those environment names from raw `sys.argv[0]`, so
+`DRAGITER_DEBUG` / `DRAGITER_VERBOSE` / `DRAGITER_LOG_FILE` are reliable
+when the process name is exactly `dragiter`. Prefer the CLI flags
+`-d`, `-v` and `-L` if the executable path is absolute.
 
 The TOML config-file path does **not** run that parser. It assigns the native TOML
 type. Use `simulate = true` / `false`, not `"true"`. Quoted boolean strings in a
@@ -721,7 +770,8 @@ and section 5.
 - Settings classes: `src/dragiter/domain/models/settings.py`
 - Parameter groups: `src/dragiter/domain/models/parameters.py`
 - Streaming LLM adapter: `src/dragiter/infrastructure/llm/openai_service_ext.py`
-- Legacy non-streaming adapter: `src/dragiter/infrastructure/llm/openai_service.py`
+- Retry policy and HTTP transport factory: `src/dragiter/infrastructure/llm/openai_runtime.py`
+- Legacy non-streaming adapter: `src/dragiter/infrastructure/llm/openai_service.py` (not wired by the CLI; its retry rules differ)
 
 **File formats**
 

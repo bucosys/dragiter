@@ -1,25 +1,5 @@
-# =============================================================================
-# dragiter - Deterministic Context Iterator
-# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
-#
-# This file is part of dragiter.
-#
-# dragiter is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# dragiter is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
-#
-# For commercial licensing (closed-source use, SaaS, etc.), please contact:
-# Michael Buchold <michael.buchold@dragiter.app>
-# =============================================================================
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Michael Buchold
 
 """
 Tests for ConfigurationLoader TOML type handling and related edge cases.
@@ -43,13 +23,13 @@ from __future__ import annotations
 import sys
 
 import pytest
+from support import flatten_settings
 
 from dragiter.application.config.configuration_loader import (
     ConfigurationLoader,
     ConfigurationLoaderError,
 )
 from dragiter.domain.models.settings import (
-    APIKeyStringSetting,
     ApiKeyStringSetting,
     CharsPerTokenFloatSetting,
     DebugBoolSetting,
@@ -60,7 +40,6 @@ from dragiter.domain.models.settings import (
     TemperatureFloatSetting,
     VerboseBoolSetting,
 )
-from tests.support import flatten_settings, setting_of
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -94,7 +73,7 @@ def _run_env_only(monkeypatch, env: dict) -> ConfigurationLoader:
 
 
 # ===========================================================================
-# Finding #A – StringSetting must accept / convert non-string TOML values
+# Finding #A - StringSetting must accept / convert non-string TOML values
 # ===========================================================================
 
 def test_A_toml_int_for_string_setting_is_rejected(monkeypatch, tmp_path):
@@ -116,7 +95,7 @@ def test_A_toml_normal_string_still_works(monkeypatch, tmp_path):
 
 
 # ===========================================================================
-# Finding #B – Integer/Float settings given as strings in TOML
+# Finding #B - Integer/Float settings given as strings in TOML
 # ===========================================================================
 
 def test_B_toml_integer_as_string_is_rejected(monkeypatch, tmp_path):
@@ -157,7 +136,7 @@ def test_B_toml_invalid_float_string_raises(monkeypatch, tmp_path):
 
 
 # ===========================================================================
-# Finding #C – Invalid Env integer/float values
+# Finding #C - Invalid Env integer/float values
 # ===========================================================================
 
 def test_C_env_invalid_integer_raises(monkeypatch):
@@ -201,7 +180,7 @@ def test_C_env_integer_with_whitespace_is_stripped(monkeypatch):
 
 
 # ===========================================================================
-# Finding #D – TOML simulate = false must set False (not leave unset)
+# Finding #D - TOML simulate = false must set False (not leave unset)
 # ===========================================================================
 
 def test_D_toml_bool_false_is_set_to_false(monkeypatch, tmp_path):
@@ -237,7 +216,7 @@ def test_D_toml_verbose_false_is_set_to_false(monkeypatch, tmp_path):
 
 
 # ===========================================================================
-# Finding #E – TOML string values for BoolSetting (unified semantics)
+# Finding #E - TOML string values for BoolSetting (unified semantics)
 # ===========================================================================
 
 def test_E_toml_string_bool_is_rejected(monkeypatch, tmp_path):

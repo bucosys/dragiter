@@ -102,7 +102,7 @@ def message_builder() -> MessageBuilder:
 
 
 # ---------------------------------------------------------------------------
-# MessageBuilder – sequential mode
+# MessageBuilder - sequential mode
 # ---------------------------------------------------------------------------
 
 def test_sequential_skips_invalid_chunks(
@@ -149,7 +149,7 @@ def test_sequential_all_valid_keeps_all(
 
 
 # ---------------------------------------------------------------------------
-# MessageBuilder – batched mode
+# MessageBuilder - batched mode
 # ---------------------------------------------------------------------------
 
 def test_batched_injects_only_valid_chunks(
@@ -205,7 +205,7 @@ def test_batched_all_invalid_yields_no_material(
         if m.content and "CONTENT:" in m.content
     ]
 
-    # At most the raw template may appear – never an expanded chunk
+    # At most the raw template may appear - never an expanded chunk
     for msg in material_msgs:
         content = msg.content or ""
         # Placeholders must still be present (i.e. not expanded)
@@ -223,7 +223,7 @@ def test_batched_all_invalid_yields_no_material(
 
 
 # ---------------------------------------------------------------------------
-# Material.to_activity_dict_list – selection reporting
+# Material.to_activity_dict_list - selection reporting
 # ---------------------------------------------------------------------------
 
 def test_activity_shows_selection_counts(material_mixed: Material) -> None:

@@ -97,7 +97,7 @@ A value set by a higher-priority source cannot be overridden by a lower one.
 - JSONL loops that expose every object key as a template placeholder
 - Standard input support (`{STDIN}` placeholder or automatic use with `-t`)
 - Activity tracing to JSONL for auditing
-- Retry logic with configurable delay and maximum attempts
+- Retry logic with configurable delay and maximum attempts (transient 5xx and connection drops; 504 / gateway timeout / runner crash are terminal)
 - Optional mutual TLS (client certificate + key)
 - Output modes: exclusive create (`x`), overwrite (`w`), append (`a`)
 

@@ -1,25 +1,5 @@
-# =============================================================================
-# dragiter - Deterministic Context Iterator
-# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
-#
-# This file is part of dragiter.
-#
-# dragiter is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# dragiter is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
-#
-# For commercial licensing (closed-source use, SaaS, etc.), please contact:
-# Michael Buchold <michael.buchold@dragiter.app>
-# =============================================================================
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Michael Buchold
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -155,7 +135,7 @@ class BoolSetting(ValueSetting[bool]):
     def from_string(self, raw_value: str, origin: ValueOrigin) -> None:
         if not isinstance(origin, ValueOrigin):
             raise TypeError(f"origin must be ValueOrigin, got {type(origin).__name__}")
-        
+
         val = str(raw_value).strip().lower()
         if val in ("true", "1", "yes", "on", "y"):
             self.set(True, origin)
@@ -189,7 +169,7 @@ class PathSetting(ValueSetting[Path]):
 
     def set(self, new_value: str | Path, origin: ValueOrigin) -> None:
         """Set the path. First assignment only (immutable after that)."""
-        
+
         if self.is_set:
             raise AttributeError(
                 f"PathSetting '{self.key}' has already been set and cannot be changed!"
@@ -273,7 +253,7 @@ class IntegerSetting(ValueSetting[int]):
 
     def from_string(self, raw_value: str, origin: ValueOrigin) -> None:
         self.set(int(raw_value), origin)
-        
+
 
 # bool first ####
 class DebugBoolSetting(BoolSetting): ...

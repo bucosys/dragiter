@@ -1,26 +1,5 @@
-# =============================================================================
-# dragiter - Deterministic Context Iterator
-# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
-#
-# This file is part of dragiter.
-#
-# dragiter is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# dragiter is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
-#
-# For commercial licensing (closed-source use, SaaS, etc.), please contact:
-# Michael Buchold <michael.buchold@dragiter.app>
-# =============================================================================
-#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Michael Buchold#
 # Runtime collaborators for the OpenAI-compatible streaming adapter:
 # transport construction and completion retry policy.
 # =============================================================================
@@ -62,13 +41,26 @@ class CompletionRetryPolicy:
         return retry_delay * (2 ** (attempt - 2))
 
     def is_retryable(self, exc: BaseException) -> bool:
+        """Return True when another attempt can reasonably succeed.
+
+        Rate limits and connection drops are retried. Transient HTTP 5xx
+        responses from a proxy or backend (500/502/503, and any other
+        5xx that is not a gateway timeout) are retried as well.
+
+        HTTP 504, stream/gateway timeouts, ``APITimeoutError`` and an
+        Ollama runner crash stay terminal: repeating the same heavy
+        prompt will not recover them.
+        """
         if self.is_gateway_timeout(exc) or self.is_runner_crash(exc):
             return False
         if isinstance(exc, openai.RateLimitError):
             return True
         if isinstance(exc, openai.APITimeoutError):
             return False
-        return isinstance(exc, openai.APIConnectionError)
+        if isinstance(exc, openai.APIConnectionError):
+            return True
+        status = self.http_status(exc)
+        return status is not None and 500 <= status <= 599
 
     def describe(self, exc: BaseException) -> str:
         status = self.http_status(exc)

@@ -1,25 +1,5 @@
-# =============================================================================
-# dragiter - Deterministic Context Iterator
-# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
-#
-# This file is part of dragiter.
-#
-# dragiter is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# dragiter is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
-#
-# For commercial licensing (closed-source use, SaaS, etc.), please contact:
-# Michael Buchold <michael.buchold@dragiter.app>
-# =============================================================================
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Michael Buchold
 
 from dataclasses import dataclass
 import logging
@@ -41,11 +21,11 @@ class LoggingConfigurator:
     @staticmethod
     def parse_and_configure() -> LoggingConfiguration:
 
-        app_name = sys.argv[0]
-        env_debug_variable = app_name.upper() + "_DEBUG"
-        env_verbose_variable = app_name.upper() + "_VERBOSE"
-        env_log_file_variable = app_name.upper() + "_LOG_FILE"
-        env_base_dir_variable = app_name.upper() + "_BASE_DIRECTORY"
+        app_name = ""
+        env_debug_variable = "DRAGITER_DEBUG"
+        env_verbose_variable = "DRAGITER_VERBOSE"
+        env_log_file_variable = "DRAGITER_LOG_FILE"
+        env_base_dir_variable = "DRAGITER_BASE_DIRECTORY"
 
         argv_lower = [a.lower() for a in sys.argv]
 

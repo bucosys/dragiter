@@ -53,7 +53,9 @@ dragiter -v -c config-ollama.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l
 ```
 
 The `-v` (verbose) flag is recommended for local models. They can take considerably longer to respond than cloud
-services; without it the terminal appears frozen.
+services; without it the terminal appears frozen. Verbose mode logs an INFO
+heartbeat every ten seconds while a completion is still streaming; it does
+not print a spinner onto stdout.
 
 ### 4. Optional: make the configuration permanent
 
@@ -434,7 +436,15 @@ This design yields three practical benefits:
 3. **Provider independence** - any OpenAI-compatible endpoint can be used simply by changing three configuration values.
 
 Live completions always stream. That keeps the HTTP read side open for long-thinking local models; combine it with
-`-v` (clock heartbeat) and `--tcp-keep-alive` when a run lasts more than a few seconds.
+`-v` (logger heartbeat every ten seconds) and `--tcp-keep-alive` when a run lasts more than a few seconds.
+
+Transient HTTP 500/502/503 responses and connection drops are retried when
+`max_retry` is set. HTTP 504, gateway/stream timeouts and an Ollama runner
+crash are not: repeating the same heavy prompt will not recover them.
+`max_retry` counts **attempts** (unset means one try). `retry_delay` is the
+base wait before a later attempt and doubles each time; unset means 3 seconds.
+The OpenAI SDK does not retry on its own. Exact classification lives in the
+Technical Reference.
 
 ### Configuration precedence
 

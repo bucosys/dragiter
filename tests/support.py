@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import fields
-from typing import Any, Iterable
+from typing import Any
 
 from dragiter.domain.models.parameters import (
     AIServiceParameters,

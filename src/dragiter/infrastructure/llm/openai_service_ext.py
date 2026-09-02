@@ -1,35 +1,15 @@
-# =============================================================================
-# dragiter - Deterministic Context Iterator
-# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
-#
-# This file is part of dragiter.
-#
-# dragiter is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# dragiter is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
-#
-# For commercial licensing (closed-source use, SaaS, etc.), please contact:
-# Michael Buchold <michael.buchold@dragiter.app>
-# =============================================================================
-#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Michael Buchold#
 # openai_service_ext.py
 # Extended version of OpenAIService with:
 #   1. Always-on streaming
-#   2. Progress spinner on stderr (when verbose is active)
+#   2. Progress heartbeat via the logger (when verbose is active)
 #   3. Optional TCP Keepalive (new parameter)
 #
 # Drop-in replacement for the original openai_service.py
 # =============================================================================
 
+from collections.abc import Iterator
 from datetime import datetime
 import logging
 import time
@@ -77,7 +57,7 @@ class OpenAIServiceExt(LLMService):
         self._transport_factory = transport_factory or OpenAITransportFactory()
         self._retry_policy = retry_policy or CompletionRetryPolicy()
 
-    def _log_progress(self):
+    def _log_progress(self) -> Iterator[str]:
         """Yield a heartbeat glyph; log at most once every ten seconds."""
         index = 0
         current = _PROGRESS_WATCHES[0]
@@ -95,22 +75,24 @@ class OpenAIServiceExt(LLMService):
             index = (index + 1) % len(_PROGRESS_WATCHES)
             yield current
 
-    def _print_watch(self):
-        watches: str = "🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛"
-        i: int = 0
-        last: float = 0.0
-        now: float = 0.0
-        while True:
-            now = time.monotonic()
-            if last and now - last < 1.0:
-                yield watches[(i - 1) % len(watches)]
-                continue
-
-            print(f"\r{watches[i]}", end="", flush=True)
-            last = now
-            current = watches[i]
-            i = (i + 1) % len(watches)
-            yield current
+    def _create_client(
+        self, aisp: AIServiceParameters
+    ) -> tuple[DefaultHttpx2Client, OpenAI]:
+        """Build transport and SDK client. Failures here are initialisation errors."""
+        try:
+            http_client = self._transport_factory.create(aisp)
+            client = OpenAI(
+                api_key=aisp.api_key_string_setting.value,
+                base_url=aisp.base_url_string_setting.value,
+                http_client=http_client,
+                max_retries=0,
+            )
+        except Exception as exc:
+            raise OpenAIServiceError(
+                "Failed to initialise OpenAI client "
+                f"(check CA-bundle / client cert / key). Details: {exc}"
+            ) from exc
+        return http_client, client
 
     def process_query(
         self, aisp: AIServiceParameters, lp: LoggingParameters, chat_session: ChatSession
@@ -122,21 +104,14 @@ class OpenAIServiceExt(LLMService):
         chat_result = ChatResult()
         chat_result.started_at = datetime.now()
 
-        logger.debug(f"(OpenAI SDK) Model: {aisp.model_name_string_setting.value}")
+        logger.debug("(OpenAI SDK) Model: %s", aisp.model_name_string_setting.value)
 
         api_kwargs = self._build_payload(aisp, chat_session)
-        http_client: DefaultHttpx2Client | None = None
+        http_client, client = self._create_client(aisp)
+        progress = self._log_progress()
 
         try:
-            http_client = self._transport_factory.create(aisp)
-            pw = self._log_progress()
-
-            with OpenAI(
-                api_key=aisp.api_key_string_setting.value,
-                base_url=aisp.base_url_string_setting.value,
-                http_client=http_client,
-                max_retries=0,
-            ) as client:
+            with client:
                 for attempt in range(1, max_attempts + 1):
                     wait_time = self._retry_policy.wait_seconds(attempt, retry_delay)
                     if wait_time:
@@ -150,41 +125,34 @@ class OpenAIServiceExt(LLMService):
 
                     try:
                         return self._consume_stream(
-                            client, api_kwargs, lp, pw, chat_result
+                            client, api_kwargs, lp, progress, chat_result
                         )
                     except (
-                        openai.RateLimitError,
                         openai.APIConnectionError,
-                        openai.APITimeoutError,
                         openai.APIStatusError,
-                        openai.InternalServerError,
-                    ) as e:
-                        last_exception = e
-                        detail = self._retry_policy.describe(e)
-                        if not self._retry_policy.is_retryable(e) or attempt >= max_attempts:
+                    ) as exc:
+                        last_exception = exc
+                        detail = self._retry_policy.describe(exc)
+                        if not self._retry_policy.is_retryable(exc) or attempt >= max_attempts:
                             raise OpenAIServiceError(
                                 f"Attempt {attempt}/{max_attempts} failed: {detail}"
-                            ) from e
+                            ) from exc
                         logger.warning(
                             "Attempt %s/%s failed: %s",
                             attempt,
                             max_attempts,
                             detail,
                         )
+                    except Exception as exc:
+                        raise OpenAIServiceError(
+                            f"Attempt {attempt}/{max_attempts} failed: {exc}"
+                        ) from exc
 
             raise OpenAIServiceError(
                 f"Attempt {max_attempts}/{max_attempts} failed: {last_exception}"
             )
-
-        except OpenAIServiceError:
-            raise
-        except Exception as e:
-            raise OpenAIServiceError(
-                f"Failed to initialize OpenAI client (check CA-bundle / client cert / key). Details: {e}"
-            ) from e
         finally:
-            if http_client is not None:
-                http_client.close()
+            http_client.close()
 
     def _build_payload(
         self, aisp: AIServiceParameters, chat_session: ChatSession
@@ -208,7 +176,7 @@ class OpenAIServiceExt(LLMService):
         client: OpenAI,
         api_kwargs: OpenAIPayload,
         lp: LoggingParameters,
-        progress,
+        progress: Iterator[str],
         chat_result: ChatResult,
     ) -> ChatResult:
         stream = client.chat.completions.create(**api_kwargs)

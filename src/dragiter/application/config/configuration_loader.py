@@ -1,25 +1,5 @@
-# =============================================================================
-# dragiter - Deterministic Context Iterator
-# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
-#
-# This file is part of dragiter.
-#
-# dragiter is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# dragiter is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
-#
-# For commercial licensing (closed-source use, SaaS, etc.), please contact:
-# Michael Buchold <michael.buchold@dragiter.app>
-# =============================================================================
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Michael Buchold
 
 import argparse
 import logging
@@ -49,7 +29,6 @@ from dragiter.domain.models.parameters import (
 from dragiter.domain.models.settings import (
     ActivityFilePathSetting,
     APIKeyStringSetting,
-    APIStringSetting,
     BaseDirectoryPathSetting,
     BaseURLStringSetting,
     BoolSetting,
@@ -121,7 +100,7 @@ class ConfigurationLoader(Worker):
             SimulateBoolSetting("simulate"),
             SequentialProcessingBoolSetting("sequential_processing"),
         )
-        
+
         self._ip: InputParameters = InputParameters(
             TaskStringSetting("task"),
             PromptFilePathSetting("prompt_file"),
@@ -318,13 +297,13 @@ class ConfigurationLoader(Worker):
 
             # 3. read environment dragiter_*
             self._set_settings_from_environment()
-            
+
             # 4 rebase filepaths
             self._rebase_filepath()
 
             # 5 finally set factory defaults
             self._set_factory_defaults()
-            
+
 
             # builds an array of inner objects
             #return [item.value_setting_object for item in self.config_values]

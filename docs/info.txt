@@ -1,4 +1,4 @@
-dragiter(1)                     August 2026                         dragiter(1)
+dragiter(1)                     September 2026                         dragiter(1)
 
 NAME
        dragiter - Deterministic Context Iterator - command-line tool for
@@ -40,7 +40,10 @@ OPTIONS
        General Flags
            -d, --debug                Enable debug logging
            -s, --simulate             Simulation mode (no real API calls)
-           -v, --verbose              Verbose progress output
+           -v, --verbose              Verbose progress: logger INFO
+                                      heartbeat every 10 s while a
+                                      completion is streaming (no stdout
+                                      spinner)
            -c, --config-file PATH     Path to a specific TOML configuration
                                       file. A relative path is resolved
                                       against -b when -b is set
@@ -71,8 +74,12 @@ OPTIONS
            --max-context-tokens INT   Total context window of the model
                                       (input + output)
            --max-output-tokens INT    Maximum tokens the model may generate
-           --retry-delay INT          Seconds to wait between retries
-           --max-retry INT            Maximum number of retry attempts
+           --retry-delay INT          Base wait in seconds before attempt
+                                      2 and later; doubles each time.
+                                      Unset uses 3 s at runtime (0-20)
+           --max-retry INT            Number of completion attempts, not
+                                      extra retries. Unset or 0 means one
+                                      try (allowed range 0-9)
            --ca-bundle-file PATH      Custom CA certificate bundle (PEM)
            --client-cert-file PATH    Client certificate for mTLS (PEM)
            --client-key-file PATH     Client private key for mTLS
@@ -179,4 +186,4 @@ REPORTING BUGS
 AUTHOR
        Michael Buchold <michael.buchold@dragiter.app>
 
-dragiter(1)                     August 2026                         dragiter(1)
+dragiter(1)                     September 2026                         dragiter(1)

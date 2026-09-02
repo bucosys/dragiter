@@ -8,6 +8,31 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+## [2026.9.1] - 2026-09-01
+
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.9.1](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.1)
+
+### Fixed
+- Retry transient HTTP 500/502/503; `is_retryable()` previously returned
+  False for every `APIStatusError` / `InternalServerError` except 429
+- Do not label post-connect stream failures as OpenAI client
+  initialisation / CA-bundle errors
+- Document retry semantics (`max_retry` as attempt count, `retry_delay`
+  default 3 s, SDK `max_retries=0`, logger heartbeat) in reference,
+  manual, man page and README
+
+### Changed
+- `OpenAIServiceExt` retries only `APIConnectionError` and
+  `APIStatusError`; other exceptions fail the attempt immediately
+- Remove unused `_print_watch()` stdout spinner
+
+### Added
+- Unit tests for `CompletionRetryPolicy` and the streaming retry loop
+- SPDX license identifiers (`SPDX-License-Identifier`, `SPDX-FileCopyrightText`) added 
+  to all source files, replacing the absence of per-file licensing metadata and enabling 
+  automated REUSE compliance checks.
+
+
 ## [2026.8.31] - 2026-08-31
 
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.8.31](https://gitlab.com/bucosys/dragiter/-/tags/2026.8.31)
@@ -34,6 +59,7 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 - Resource-collector tests now set section `base_directory` explicitly, matching the “no implicit CWD preset” behaviour
 - Do not retry HTTP 504, stream-timeout or an Ollama runner crash
 
+
 ## [2026.8.20] - 2026-08-20
 
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.8.20](https://gitlab.com/bucosys/dragiter/-/tags/2026.8.20)
@@ -51,7 +77,7 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   accept the truthy set `TRUE` / `1` / `YES` (case-insensitive)
   instead of only `"true"`. Aligns ConfigurationLoader with
   LoggingConfigurator.
-- Expand Python classifiers to 3.11–3.13 and add `ruff>=0.16.3`
+- Expand Python classifiers to 3.11-3.13 and add `ruff>=0.16.3`
   plus a full `[tool.ruff]` configuration to `pyproject.toml`.
 - Point Documentation URL to https://www.dragiter.app/.
 - Apply ruff lint and format across the codebase for consistent style.

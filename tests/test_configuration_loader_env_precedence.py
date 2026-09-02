@@ -1,25 +1,5 @@
-# =============================================================================
-# dragiter - Deterministic Context Iterator
-# Copyright (c) 2026 Michael Buchold <michael.buchold@dragiter.app>
-#
-# This file is part of dragiter.
-#
-# dragiter is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# dragiter is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with dragiter. If not, see <https://www.gnu.org/licenses/>.
-#
-# For commercial licensing (closed-source use, SaaS, etc.), please contact:
-# Michael Buchold <michael.buchold@dragiter.app>
-# =============================================================================
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Michael Buchold
 
 """
 Tests for ConfigurationLoader's environment-variable handling and its
@@ -34,10 +14,11 @@ one of ``TRUE``, ``1`` or ``YES``.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
+import sys
 
 import pytest
+from support import setting_of
 
 from dragiter.application.config.configuration_loader import ConfigurationLoader
 from dragiter.domain.models.settings import (
@@ -51,8 +32,6 @@ from dragiter.domain.models.settings import (
     TemperatureFloatSetting,
     ValueOrigin,
 )
-from tests.support import setting_of
-
 
 # ---------------------------------------------------------------------------
 # Helpers
