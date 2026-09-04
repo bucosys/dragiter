@@ -8,7 +8,7 @@ from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.parameters import (
     AIServiceParameters,
-    ExcecutionParameters,
+    ExecutionParameters,
     LoggingParameters,
 )
 from dragiter.domain.ports.payload_estimator import PayloadEstimator
@@ -26,7 +26,7 @@ class ContextWindowEstimator(Worker):
         chat_sessions: ChatSessions,
         aisp: AIServiceParameters,
         lp: LoggingParameters,
-        ep: ExcecutionParameters,
+        ep: ExecutionParameters,
     ) -> ContextValidationReport | None:
 
         if not (
@@ -41,7 +41,7 @@ class ContextWindowEstimator(Worker):
             return None
 
         if lp.verbose_bool_setting.value:
-            logger.debug(
+            logger.info(
                 "Payload estimation: "
                 f"chars-per-token: {aisp.chars_per_token_float_setting.value}, "
                 f"max-context-tokens: {aisp.max_context_token_int_setting.value}, "
@@ -54,7 +54,9 @@ class ContextWindowEstimator(Worker):
         report = ContextValidationReport(
             is_valid=True,
             total_tokens=0,
-            max_tokens_limit=limit
+            max_tokens_limit=limit,
+            chars_per_token=aisp.chars_per_token_float_setting.value,
+            max_output_tokens=out_tokens,
         )
 
         try:
@@ -70,6 +72,7 @@ class ContextWindowEstimator(Worker):
 
                 report.total_tokens += tot_tokens
                 report.session_token_counts[index] = tot_tokens
+                report.session_input_token_counts[index] = calc_input_tokens
 
                 # Track the maximal value (High-Water Mark)
                 if tot_tokens > report.max_session_tokens:
@@ -77,10 +80,15 @@ class ContextWindowEstimator(Worker):
                     report.max_session_index = index
 
                 if lp.verbose_bool_setting.value:
-                    logger.debug(f"Calculated input token amount: {calc_input_tokens}")
+                    logger.info(
+                        f"Calculated input token amount: {calc_input_tokens} | "
+                        f"Output reservation: {out_tokens} | "
+                        f"Calculated total: {tot_tokens} | "
+                        f"Limit: {limit}"
+                    )
 
                 if (calc_input_tokens + out_tokens) > aisp.max_context_token_int_setting.value:
-                    logger.debug(
+                    logger.warning(
                         f"Context window exceeded. "
                         f"Input: {calc_input_tokens} | Output reservation: {out_tokens} | "
                         f"Calculated total: {calc_input_tokens + out_tokens} | "
@@ -98,6 +106,15 @@ class ContextWindowEstimator(Worker):
                         raise ContextWindowValidatorError(
                             f"Validation failed at messages block index {index}: {failed_message}"
                         )
+
+            if lp.verbose_bool_setting.value:
+                logger.info(
+                    f"Context estimation summary: "
+                    f"total_tokens={report.total_tokens}, "
+                    f"max_session_tokens={report.max_session_tokens} "
+                    f"(session {report.max_session_index}), "
+                    f"is_valid={report.is_valid}"
+                )
 
             return report
 

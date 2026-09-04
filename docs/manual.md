@@ -252,6 +252,11 @@ regex_pattern = '(^#+\s+.*$)'
 The regex splits Markdown files at heading boundaries. Additional filters (`include_filters`, `exclude_filters`) and a
 section-local `base_directory` are available; see the Technical Reference for the complete schema.
 
+Optional packing: after the regex split, consecutive chunks **from the same file** can be joined until a character
+budget is reached. Set `pack_limit_chars` on the section, or globally via `--pack-limit-chars` / `pack_limit_chars` /
+`DRAGITER_PACK_LIMIT_CHARS`. Unset or `0` disables packing. A globally set value, including `0`, overrides the section
+key. Chunks are never cut; a single piece larger than the budget stays intact. Valid and invalid chunks are not mixed.
+
 When you later run dragiter with `-r your_resource.toml`, the matched files are read, split according to the regex, and
 become the material that can be injected into prompts via the `[MATERIAL]` placeholder and the `{CHUNK_*}` variables.
 
@@ -464,8 +469,9 @@ Full lists of recognised keys and their types appear in the Technical Reference.
 ### Material, chunks and the context window
 
 Large documents are rarely useful when sent as a single undifferentiated block. dragiter therefore encourages (and helps
-you enforce) a deliberate chunking strategy. The resource file’s regular expression determines the logical units; the
-prompt template decides how those units are presented to the model.
+you enforce) a deliberate chunking strategy. The resource file’s regular expression determines the logical units;
+`pack_limit_chars` can then pack several of those units from one file into a larger piece. The prompt template decides
+how those units are presented to the model.
 
 Token estimation is deliberately simple and conservative: character count divided by `chars_per_token`. The resulting
 estimate is compared against the remaining context budget (`max_context_tokens` − `max_output_tokens`). Requests that

@@ -7,7 +7,7 @@ import os
 
 from dragiter.domain.models.parameters import (
     AIServiceParameters,
-    ExcecutionParameters,
+    ExecutionParameters,
     InputParameters,
     LoggingParameters,
     OutputParameters,
@@ -33,7 +33,7 @@ class ConfigurationValidator:
         self,
         aisp: AIServiceParameters,
         lp: LoggingParameters,
-        ep: ExcecutionParameters,
+        ep: ExecutionParameters,
         ip: InputParameters,
         op: OutputParameters,
         wp: WorkspaceParameters,
@@ -194,6 +194,14 @@ class ConfigurationValidator:
                         CVF(
                             aisp.chars_per_token_float_setting.key,
                             f"value should not be less than 0.0: {aisp.chars_per_token_float_setting.value}",
+                        )
+                    )
+
+            if ep.pack_limit_chars_int_setting.is_set and ep.pack_limit_chars_int_setting.value < 0:
+                    cvfs.append(
+                        CVF(
+                            ep.pack_limit_chars_int_setting.key,
+                            f"value should not be less than 0: {ep.pack_limit_chars_int_setting.value}",
                         )
                     )
 

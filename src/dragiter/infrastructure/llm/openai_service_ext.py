@@ -33,6 +33,16 @@ _PROGRESS_INTERVAL_SECONDS = 10.0
 _PROGRESS_WATCHES = "🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛"
 
 
+def _tokens_from_usage(usage: Any) -> tuple[int, int]:
+    prompt = getattr(usage, "prompt_tokens", None)
+    if prompt is None:
+        prompt = getattr(usage, "input_tokens", None)
+    completion = getattr(usage, "completion_tokens", None)
+    if completion is None:
+        completion = getattr(usage, "output_tokens", None)
+    return (prompt or 0, completion or 0)
+
+
 class OpenAIPayload(TypedDict, total=False):
     model: str
     messages: list[dict[str, Any]]
@@ -40,6 +50,7 @@ class OpenAIPayload(TypedDict, total=False):
     max_tokens: int
     response_format: dict[str, str]
     stream: bool
+    stream_options: dict[str, bool]
 
 
 class OpenAIServiceError(LLMServiceError):
@@ -164,6 +175,7 @@ class OpenAIServiceExt(LLMService):
                 for msg in chat_session.input_chat_message_list
             ],
             "stream": True,
+            "stream_options": {"include_usage": True},
         }
         if aisp.temperature_float_setting.is_set:
             payload["temperature"] = aisp.temperature_float_setting.value
@@ -192,8 +204,7 @@ class OpenAIServiceExt(LLMService):
 
             if not chunk.choices:
                 if hasattr(chunk, "usage") and chunk.usage is not None:
-                    input_tokens = getattr(chunk.usage, "prompt_tokens", 0) or 0
-                    output_tokens = getattr(chunk.usage, "completion_tokens", 0) or 0
+                    input_tokens, output_tokens = _tokens_from_usage(chunk.usage)
                 continue
 
             delta = chunk.choices[0].delta
@@ -204,8 +215,7 @@ class OpenAIServiceExt(LLMService):
                 finish_reason = chunk.choices[0].finish_reason
 
             if hasattr(chunk, "usage") and chunk.usage is not None:
-                input_tokens = getattr(chunk.usage, "prompt_tokens", 0) or 0
-                output_tokens = getattr(chunk.usage, "completion_tokens", 0) or 0
+                input_tokens, output_tokens = _tokens_from_usage(chunk.usage)
 
         chat_result.output_chat_message.content = "".join(content_parts).strip()
         chat_result.finish_reason = finish_reason or "stop"

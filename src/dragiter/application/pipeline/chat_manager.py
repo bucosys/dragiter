@@ -8,7 +8,7 @@ from dragiter.domain.models.chat_results import ChatResult, ChatResults
 from dragiter.domain.models.chat_sessions import ChatSessions
 from dragiter.domain.models.parameters import (
     AIServiceParameters,
-    ExcecutionParameters,
+    ExecutionParameters,
     LoggingParameters,
 )
 from dragiter.domain.ports.llm_service import LLMService
@@ -25,7 +25,7 @@ class ChatManager(Worker):
     def run(self,
             aisp: AIServiceParameters,
             lp: LoggingParameters,
-            ep: ExcecutionParameters,
+            ep: ExecutionParameters,
             chat_sessions: ChatSessions,
             ) -> ChatResults:
 

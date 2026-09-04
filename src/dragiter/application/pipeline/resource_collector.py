@@ -66,6 +66,7 @@ class ResourceCollector(Worker):
                             regex_pattern=settings.get("regex_pattern"),
                             exclude_filters=settings.get("exclude_filters"),
                             include_filters=settings.get("include_filters"),
+                            pack_limit_chars=settings.get("pack_limit_chars"),
                         )
                         res.append_resource_section(rs)
 

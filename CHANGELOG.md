@@ -8,6 +8,35 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+### Added
+- `ContextValidationReport` now implements `ActivityProvider`: per-run
+  summary and per-session token estimates (`estimated_input_tokens`,
+  reserved output, calculated total, limit) are written to the activity
+  file when `chars_per_token`, `max_context_tokens` and
+  `max_output_tokens` are all set
+- `--pack-limit-chars` / `pack_limit_chars` / `DRAGITER_PACK_LIMIT_CHARS`
+  and per-section `pack_limit_chars` in the resource TOML: pack consecutive
+  regex chunks of the same file up to N characters (`0` or unset = off).
+  A globally set value, including `0`, overrides the section key
+- Unit tests for chunk packing, resource-TOML `pack_limit_chars`, and
+  validator range `merge_max_chars >= 0`
+
+### Changed
+- Context-window estimation logs the three parameters, per-session
+  totals and a summary at `INFO` when verbose is on (previously
+  `DEBUG`, which verbose never showed)
+- Man page, manual and technical reference document `pack_limit_chars`
+  (CLI, environment, resource schema, activity field)
+
+### Fixed
+- Streaming completions requested `stream_options.include_usage` so
+  `ChatResults.input_tokens` / `output_tokens` are filled from the
+  provider instead of staying `0`
+- Usage reader accepts both `prompt_tokens`/`completion_tokens` and
+  `input_tokens`/`output_tokens`
+- Context-window overflow is logged at `WARNING` instead of being
+  dropped at `DEBUG`
+
 ## [2026.9.1] - 2026-09-01
 
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.9.1](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.1)

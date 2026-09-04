@@ -7,7 +7,7 @@ from pathlib import Path
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.parameters import (
     AIServiceParameters,
-    ExcecutionParameters,
+    ExecutionParameters,
     InputParameters,
     OutputParameters,
 )
@@ -23,7 +23,7 @@ class PromptCreator(Worker):
 
     def run(self,
             ip: InputParameters,
-            ep: ExcecutionParameters,
+            ep: ExecutionParameters,
             op: OutputParameters,
             aisp: AIServiceParameters,
             ) -> PromptTemplate:

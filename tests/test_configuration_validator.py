@@ -155,3 +155,21 @@ class TestConfigurationValidator:
 
         msg = _findings(exc_info.value)
         assert "client_key" in msg.lower() or "client_cert" in msg.lower()
+
+    def test_pack_limit_chars_negative_raises(self, tmp_path: Path) -> None:
+        s = _minimal_valid(tmp_path)
+        s["ep"].pack_limit_chars_int_setting.set(-1, ValueOrigin.CLI)
+
+        with pytest.raises(ConfigurationValidatorError) as exc_info:
+            ConfigurationValidator().run(**s)
+
+        msg = _findings(exc_info.value)
+        assert "pack_limit_chars" in msg.lower()
+
+    def test_pack_limit_chars_zero_is_accepted(self, tmp_path: Path) -> None:
+        s = _minimal_valid(tmp_path)
+        s["ep"].pack_limit_chars_int_setting.set(0, ValueOrigin.CLI)
+
+        result = ConfigurationValidator().run(**s)
+
+        assert result is None

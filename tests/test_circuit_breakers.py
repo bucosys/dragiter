@@ -26,8 +26,14 @@ from dragiter.application.pipeline.material_tokenizer import (
     MaterialTokenizer,
     MaterialTokenizerError,
 )
+from dragiter.domain.models.parameters import ExecutionParameters
 from dragiter.domain.models.resources import Resources, ResourceSection
-from dragiter.domain.models.settings import ValueOrigin
+from dragiter.domain.models.settings import (
+    PackLimitCharsIntSetting,
+    SequentialProcessingBoolSetting,
+    SimulateBoolSetting,
+    ValueOrigin,
+)
 from dragiter.domain.models.text_file import TextFile
 from dragiter.domain.ports.text_file_reader import TextFileReaderError
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
@@ -73,6 +79,14 @@ def _make_resources_with_content(
     resources = Resources()
     resources.append_resource_section(section)
     return resources
+
+
+def _blank_ep() -> ExecutionParameters:
+    return ExecutionParameters(
+        SimulateBoolSetting("simulate"),
+        SequentialProcessingBoolSetting("sequential_processing"),
+        PackLimitCharsIntSetting("pack_limit_chars"),
+    )
 
 
 def _heading_document(
@@ -159,7 +173,7 @@ class TestMaterialTokenizerChunkLimit:
         resources = _make_resources_with_content(tmp_path, content)
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
 
-        material = tokenizer.run(resources)
+        material = tokenizer.run(resources, _blank_ep())
 
         assert len(material.chunks) == MaterialTokenizer.MAX_TOTAL_CHUNKS
 
@@ -170,7 +184,7 @@ class TestMaterialTokenizerChunkLimit:
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
 
         with pytest.raises(MaterialTokenizerError) as exc_info:
-            tokenizer.run(resources)
+            tokenizer.run(resources, _blank_ep())
 
         msg = _error_text(exc_info.value)
         assert str(MaterialTokenizer.MAX_TOTAL_CHUNKS) in msg
@@ -200,7 +214,7 @@ class TestMaterialTokenizerChunkLimit:
 
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
         with pytest.raises(MaterialTokenizerError) as exc_info:
-            tokenizer.run(resources)
+            tokenizer.run(resources, _blank_ep())
 
         assert str(MaterialTokenizer.MAX_TOTAL_CHUNKS) in _error_text(exc_info.value)
 
@@ -217,7 +231,7 @@ class TestMaterialTokenizerChunkSizeWarnings:
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
 
         with caplog.at_level("WARNING"):
-            tokenizer.run(resources)
+            tokenizer.run(resources, _blank_ep())
 
         assert any("too small" in r.message.lower() for r in caplog.records)
 
@@ -230,7 +244,7 @@ class TestMaterialTokenizerChunkSizeWarnings:
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
 
         with caplog.at_level("WARNING"):
-            tokenizer.run(resources)
+            tokenizer.run(resources, _blank_ep())
 
         assert any("extremely large" in r.message.lower() for r in caplog.records)
 
@@ -243,7 +257,7 @@ class TestMaterialTokenizerChunkSizeWarnings:
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
 
         with caplog.at_level("WARNING"):
-            tokenizer.run(resources)
+            tokenizer.run(resources, _blank_ep())
 
         size_warnings = [
             r

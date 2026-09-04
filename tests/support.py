@@ -8,7 +8,7 @@ from typing import Any
 
 from dragiter.domain.models.parameters import (
     AIServiceParameters,
-    ExcecutionParameters,
+    ExecutionParameters,
     InputParameters,
     LoggingParameters,
     OutputParameters,
@@ -30,6 +30,7 @@ from dragiter.domain.models.settings import (
     MaxContextTokensIntSetting,
     MaxOutputTokensIntSetting,
     MaxRetryIntSetting,
+    PackLimitCharsIntSetting,
     ModelNameStringSetting,
     OutputDelimiterStringSetting,
     OutputDirectoryPathSetting,
@@ -100,9 +101,10 @@ def blank_parameter_groups() -> dict[str, Any]:
         LogFilePathSetting("log_file"),
         ActivityFilePathSetting("activity_file"),
     )
-    ep = ExcecutionParameters(
+    ep = ExecutionParameters(
         SimulateBoolSetting("simulate"),
         SequentialProcessingBoolSetting("sequential_processing"),
+        PackLimitCharsIntSetting("pack_limit_chars"),
     )
     ip = InputParameters(
         TaskStringSetting("task"),

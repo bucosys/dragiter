@@ -35,7 +35,7 @@ from dragiter.application.pipeline.context_window_estimator import (
 from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatSessions
 from dragiter.domain.models.parameters import (
     AIServiceParameters,
-    ExcecutionParameters,
+    ExecutionParameters,
     LoggingParameters,
 )
 from dragiter.domain.models.settings import (
@@ -51,6 +51,7 @@ from dragiter.domain.models.settings import (
     MaxContextTokensIntSetting,
     MaxOutputTokensIntSetting,
     MaxRetryIntSetting,
+    PackLimitCharsIntSetting,
     ModelNameStringSetting,
     RetryDelayIntSetting,
     SequentialProcessingBoolSetting,
@@ -101,7 +102,7 @@ def make_settings(
     verbose: bool = False,
     simulate: bool = False,
     prerequisites_unset: bool = False,
-) -> tuple[AIServiceParameters, LoggingParameters, ExcecutionParameters]:
+) -> tuple[AIServiceParameters, LoggingParameters, ExecutionParameters]:
     """
     Build parameter groups for a single `run()` call.
 
@@ -143,9 +144,10 @@ def make_settings(
         LogFilePathSetting("log_file"),
         ActivityFilePathSetting("activity_file"),
     )
-    ep = ExcecutionParameters(
+    ep = ExecutionParameters(
         simulate_setting,
         SequentialProcessingBoolSetting("sequential_processing"),
+        PackLimitCharsIntSetting("pack_limit_chars"),
     )
     return aisp, lp, ep
 

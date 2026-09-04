@@ -20,7 +20,7 @@ from dragiter.application.config.configuration_decorators import (
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.parameters import (
     AIServiceParameters,
-    ExcecutionParameters,
+    ExecutionParameters,
     InputParameters,
     LoggingParameters,
     OutputParameters,
@@ -45,6 +45,7 @@ from dragiter.domain.models.settings import (
     MaxContextTokensIntSetting,
     MaxOutputTokensIntSetting,
     MaxRetryIntSetting,
+    PackLimitCharsIntSetting,
     ModelNameStringSetting,
     OutputDelimiterStringSetting,
     OutputDirectoryPathSetting,
@@ -96,9 +97,10 @@ class ConfigurationLoader(Worker):
             ActivityFilePathSetting("activity_file"),
         )
 
-        self._ep: ExcecutionParameters = ExcecutionParameters(
+        self._ep: ExecutionParameters = ExecutionParameters(
             SimulateBoolSetting("simulate"),
             SequentialProcessingBoolSetting("sequential_processing"),
+            PackLimitCharsIntSetting("pack_limit_chars"),
         )
 
         self._ip: InputParameters = InputParameters(
@@ -191,6 +193,10 @@ class ConfigurationLoader(Worker):
             ),
             IntegerSettingArgumentDecorator(
                 self._aisp.max_retries_int_setting, help="Maximum number of retry attempts"
+            ),
+            IntegerSettingArgumentDecorator(
+                self._ep.pack_limit_chars_int_setting,
+                help="Merge consecutive chunks per file up to this many characters (0=off)",
             ),
             PathSettingArgumentDecorator(
                 self._wp.base_directory_path_setting,

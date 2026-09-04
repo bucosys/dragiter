@@ -136,6 +136,7 @@ All settings that appear in the configuration loader are listed below.
 | `temperature`            | —         | float  | (none)                    | Sampling temperature                                           |
 | `retry_delay`            | —         | int    | 3 s at runtime if unset   | Base wait between attempts 2…*n*; doubles each time            |
 | `max_retry`              | —         | int    | 1 attempt if unset        | Maximum number of completion attempts (not extra retries)      |
+| `pack_limit_chars`        | —         | int    | (none) / off              | Pack consecutive regex chunks per file up to N characters      |
 | `base_directory`         | `-b`      | path   | (unset)                   | Base for relative paths. **Not** pre-filled with CWD           |
 | `activity_file`          | `-a`      | path   | (none)                    | Write activity log to this file                                |
 | `ca_bundle_file`         | —         | path   | (none)                    | Custom CA certificate bundle (PEM)                             |
@@ -166,6 +167,7 @@ the setting is left unset.
   still performs at least one attempt (`max(1, value)`), so `0` and
   “unset” both mean a single try.
 - `chars_per_token` (when set) must be greater than 0.0.
+- `pack_limit_chars` (when set) must be ≥ 0. `0` disables packing.
 - Paths that are required must be readable (or writable for output paths).
 - `client_key_file` without `client_cert_file` is rejected.
 - `base_url` is optional in simulation mode.
@@ -204,6 +206,7 @@ DRAGITER_CHARS_PER_TOKEN
 DRAGITER_TEMPERATURE
 DRAGITER_RETRY_DELAY
 DRAGITER_MAX_RETRY
+DRAGITER_PACK_LIMIT_CHARS
 DRAGITER_BASE_DIRECTORY
 DRAGITER_CONFIG_FILE
 DRAGITER_PROMPT_FILE
@@ -259,6 +262,7 @@ tcp_keep_alive = true
 # max_output_tokens = 4000
 # retry_delay = 5
 # max_retry = 3
+# pack_limit_chars = 4000
 ```
 
 The same keys appear in `config-google.toml` and `config-grok.toml` with different endpoint values.
@@ -383,6 +387,11 @@ Inside a section the following keys are used:
 - `regex_pattern` - regular expression used to split the matched files into chunks (default when omitted: a pattern that
   matches nothing)
 - Optional filters (supported by the `ResourceSection` model): `exclude_filters`, `include_filters`
+- `pack_limit_chars` (optional, per section) - after the regex split, join consecutive chunks of the **same file**
+  until this many characters would be exceeded. Measured in characters. `0` or omitted means no packing. A globally set
+  `pack_limit_chars` (CLI `--pack-limit-chars`, config file or `DRAGITER_PACK_LIMIT_CHARS`) overrides the section value,
+  including when the global value is `0`. Packing never splits a chunk and never crosses a file or section boundary.
+  Only runs of chunks that share the same `valid` flag are joined.
 
 Resolved matches that escape the section root (including symlinks that point outside)
 are skipped.
@@ -593,7 +602,8 @@ Example:
       "regex_pattern": "(^#+\\s+.*$)",
       "exclude_filters": [],
       "include_filters": [],
-      "files": 2
+      "pack_limit_chars": 4000,
+      "files": 2}
     }
   ]
 }

@@ -25,6 +25,7 @@ from dragiter.domain.models.settings import (
     OutputFilenameSchemaStringSetting,
     OutputFilePathSetting,
     OutputModeStringSetting,
+    PackLimitCharsIntSetting,
     PromptFilePathSetting,
     ResourceFilePathSetting,
     RetryDelayIntSetting,
@@ -67,10 +68,11 @@ class LoggingParameters(ValueSettingsActivityProvider):
 
 
 @dataclass(frozen=True)
-class ExcecutionParameters(ValueSettingsActivityProvider):
+class ExecutionParameters(ValueSettingsActivityProvider):
     """Runtime behaviour of the context iterator."""
     simulate_bool_setting: SimulateBoolSetting
     sequential_processing_bool_setting: SequentialProcessingBoolSetting
+    pack_limit_chars_int_setting: PackLimitCharsIntSetting
 
 
 @dataclass(frozen=True)

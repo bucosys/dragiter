@@ -60,6 +60,12 @@ OPTIONS
                                       file (simple append, no rotation)
            --sequential-processing    Process each material chunk in its
                                       own request instead of batching
+           --pack-limit-chars INT     Pack consecutive regex chunks of the
+                                      same file until this many characters
+                                      is reached. 0 or unset leaves chunks
+                                      as the regex produced them. A value
+                                      set here overrides pack_limit_chars
+                                      in the resource TOML
 
        API & Connection
            --api-key KEY              API key for the LLM service
@@ -143,6 +149,7 @@ ENVIRONMENT
            DRAGITER_CHARS_PER_TOKEN
            DRAGITER_MAX_CONTEXT_TOKENS
            DRAGITER_MAX_OUTPUT_TOKENS
+           DRAGITER_PACK_LIMIT_CHARS
            DRAGITER_RETRY_DELAY
            DRAGITER_MAX_RETRY
            DRAGITER_OUTPUT_MODE          (x | w | a)

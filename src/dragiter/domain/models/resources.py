@@ -18,6 +18,7 @@ class ResourceSection:
         regex_pattern: str,
         exclude_filters: list[str],
         include_filters: list[str],
+        pack_limit_chars: int | None = None,
     ) -> None:
         """Initialise the configuration object and load settings."""
 
@@ -36,6 +37,7 @@ class ResourceSection:
         self._regex_pattern: str = regex_pattern or "(?!)"
         self._exclude_filters: list[str] = exclude_filters or []
         self._include_filters: list[str] = include_filters or []
+        self._pack_limit_chars: int | None = pack_limit_chars if isinstance(pack_limit_chars, int) else None
 
     @property
     def file_paths(self) -> list[TextFile]:
@@ -56,6 +58,10 @@ class ResourceSection:
     @property
     def include_filters(self) -> list[str]:
         return self._include_filters
+
+    @property
+    def pack_limit_chars(self) -> int | None:
+        return self._pack_limit_chars
 
     def __repr__(self):
         # Displayed in the logger output
@@ -113,6 +119,7 @@ class Resources(ActivityProvider):
                 "regex_pattern": section.regex_pattern,
                 "exclude_filters": section.exclude_filters,
                 "include_filters": section.include_filters,
+                "pack_limit_chars": section.pack_limit_chars,
             }
             sections_details.append(section_info)
 
