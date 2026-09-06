@@ -25,6 +25,11 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   transactional file commits using hidden temporary directories (e.g. `.tmp_staging_<PID>`).
 
 ### Changed
+- `MaterialTokenizer` splits at regex match starts instead of pairing
+  captured headers with bodies; capturing groups are no longer required
+- Resource sections accept `regex_patterns` (list). Pattern 0 always
+  runs; later patterns refine only pieces above `pack_limit_chars`.
+  Singular `regex_pattern` remains as a one-element alias
 - Context-window estimation logs the three parameters, per-session
   totals and a summary at `INFO` when verbose is on (previously
   `DEBUG`, which verbose never showed)

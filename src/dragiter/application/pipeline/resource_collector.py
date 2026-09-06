@@ -63,6 +63,7 @@ class ResourceCollector(Worker):
                         rs = ResourceSection(
                             section_name=s_name,
                             text_files=text_files,
+                            regex_patterns=settings.get("regex_patterns"),
                             regex_pattern=settings.get("regex_pattern"),
                             exclude_filters=settings.get("exclude_filters"),
                             include_filters=settings.get("include_filters"),

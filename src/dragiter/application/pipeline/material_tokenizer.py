@@ -35,7 +35,7 @@ class MaterialTokenizer(Worker):
                 if len(all_chunks) > self.MAX_TOTAL_CHUNKS:
                     raise MaterialTokenizerError(
                         f"Generated {len(all_chunks)} chunks, which exceeds the hard limit of {self.MAX_TOTAL_CHUNKS}. "
-                        f"Please refine your regex pattern or process fewer files at once."
+                        f"Please refine your regex patterns or process fewer files at once."
                     )
 
             return Material(chunks=all_chunks)
@@ -50,49 +50,27 @@ class MaterialTokenizer(Worker):
         section_chunks: list[Chunk] = []
         global_id: int = 1
         limit = self._effective_limit(ep, rs)
+        compiled_patterns = self._compile_patterns(rs)
 
         for path_obj in rs.file_paths:
-            content = self.text_file_reader.read(path_obj)  # INHERITANCE TEXT_FILE SAVE READ FILE CONTENT ###
+            content = self.text_file_reader.read(path_obj)
+            pieces = self._split_staged(content, compiled_patterns, limit)
             file_chunks: list[Chunk] = []
 
-            # Split content using the regex.
-            # Capturing groups in regex ensure headers are kept in the 'parts' list.
-            parts = re.split(rs.regex_pattern, content, flags=re.MULTILINE)
-
-            # 1. HANDLE PREAMBLE OR FULL TEXT IF NO MATCH
-            # parts[0] contains everything before the first match.
-            # If no matches are found, parts[0] contains the entire file content.
-            preamble = parts[0].strip()
-            if preamble:
-                self._warn_if_chunk_size_suboptimal(preamble, path_obj.path.name, "preamble")
-                file_chunks.append(Chunk(
-                    num_id=0,
-                    filename=path_obj.path.as_posix(),
-                    section_name=rs.section_name,
-                    section_num_id=0,
-                    valid=self._is_content_valid(preamble, rs.exclude_filters, rs.include_filters),
-                    content=preamble
-                ))
-
-            # 2. HANDLE MATCHED CHAPTERS
-            # If regex matched, parts will have odd indices (1, 3, 5...) as headers
-            # and even indices (2, 4, 6...) as the corresponding body text.
-            for i in range(1, len(parts), 2):
-                header = parts[i]
-                body = parts[i + 1] if (i + 1) < len(parts) else ""
-                full_content = (header + body).strip()
-
-                if full_content:
-                    self._warn_if_chunk_size_suboptimal(full_content, path_obj.path.name,
-                                                        f"chunk {len(file_chunks) + 1}")
-                    file_chunks.append(Chunk(
+            for piece in pieces:
+                self._warn_if_chunk_size_suboptimal(
+                    piece, path_obj.path.name, f"chunk {len(file_chunks) + 1}"
+                )
+                file_chunks.append(
+                    Chunk(
                         num_id=0,
                         filename=path_obj.path.as_posix(),
                         section_name=rs.section_name,
                         section_num_id=0,
-                        valid=self._is_content_valid(full_content, rs.exclude_filters, rs.include_filters),
-                        content=full_content
-                    ))
+                        valid=self._is_content_valid(piece, rs.exclude_filters, rs.include_filters),
+                        content=piece,
+                    )
+                )
 
             if limit is not None:
                 file_chunks = self._pack_file_chunks(file_chunks, limit)
@@ -106,6 +84,97 @@ class MaterialTokenizer(Worker):
                 section_internal_id += 1
 
         return section_chunks
+
+    def _compile_patterns(self, rs: ResourceSection) -> list[re.Pattern[str]]:
+        compiled: list[re.Pattern[str]] = []
+        for index, pattern in enumerate(rs.regex_patterns):
+            try:
+                compiled.append(re.compile(pattern, flags=re.MULTILINE))
+            except re.error as exc:
+                raise MaterialTokenizerError(
+                    f"Invalid regex_patterns[{index}] in section '{rs.section_name}': {exc}"
+                ) from exc
+        return compiled
+
+    def _split_staged(
+        self,
+        text: str,
+        patterns: list[re.Pattern[str]],
+        limit: int | None,
+    ) -> list[str]:
+        """Split *text* with pattern 0, then refine oversized pieces with the rest.
+
+        Later patterns run only when a character budget is set and a piece still
+        exceeds it. Capturing groups are ignored; cuts are match-start positions.
+        """
+        if not patterns:
+            stripped = text.strip()
+            return [stripped] if stripped else []
+
+        pieces = self._split_on_regex(text, patterns[0])
+        if limit is None or len(patterns) == 1:
+            return pieces
+
+        refined: list[str] = []
+        for piece in pieces:
+            refined.extend(self._refine_overflow(piece, patterns[1:], limit))
+        return refined
+
+    def _refine_overflow(
+        self,
+        text: str,
+        patterns: list[re.Pattern[str]],
+        limit: int,
+    ) -> list[str]:
+        if len(text) <= limit or not patterns:
+            return [text]
+
+        split_parts = self._split_on_regex(text, patterns[0])
+        rest = patterns[1:]
+        if split_parts == [text]:
+            return self._refine_overflow(text, rest, limit)
+
+        refined: list[str] = []
+        for part in split_parts:
+            if len(part) > limit and rest:
+                refined.extend(self._refine_overflow(part, rest, limit))
+            else:
+                refined.append(part)
+        return refined
+
+    @staticmethod
+    def _split_on_regex(text: str, compiled: re.Pattern[str]) -> list[str]:
+        """Cut *text* at each match start. The match text stays in the following piece."""
+        if not text:
+            return []
+
+        starts: list[int] = []
+        last_start = -1
+        for match in compiled.finditer(text):
+            start = match.start()
+            if start == last_start:
+                continue
+            starts.append(start)
+            last_start = start
+
+        if not starts:
+            stripped = text.strip()
+            return [stripped] if stripped else []
+
+        bounds: list[int] = []
+        if starts[0] != 0:
+            bounds.append(0)
+        bounds.extend(starts)
+        bounds.append(len(text))
+
+        pieces: list[str] = []
+        for index in range(len(bounds) - 1):
+            if bounds[index] == bounds[index + 1]:
+                continue
+            piece = text[bounds[index]:bounds[index + 1]].strip()
+            if piece:
+                pieces.append(piece)
+        return pieces
 
     def _effective_limit(self, ep: ExecutionParameters, rs: ResourceSection) -> int | None:
         if ep.pack_limit_chars_int_setting.is_set:
@@ -188,12 +257,12 @@ class MaterialTokenizer(Worker):
         if size < self.WARN_MIN_CHARS:
             logger.warning(
                 f"Chunk too small ({size} chars) in {filename} ({chunk_identifier}). "
-                f"Check if your regex pattern splits too aggressively."
+                f"Check if your regex patterns split too aggressively."
             )
         elif size > self.WARN_MAX_CHARS:
             logger.warning(
                 f"Chunk extremely large ({size} chars) in {filename} ({chunk_identifier}). "
-                f"The LLM might suffer from attention dilution. Consider refining your regex."
+                f"The LLM might suffer from attention dilution. Consider adding a finer overflow pattern."
             )
 
     @staticmethod

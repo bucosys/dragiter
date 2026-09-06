@@ -240,22 +240,25 @@ set DRAGITER_API_KEY=%CLAUDE_API_KEY% && dragiter -v -c config-claude.toml -p pr
 
 A resource file tells dragiter which documents to load and how to split them into manageable chunks.
 
-Create a TOML file containing one or more named sections. Each section lists glob patterns and an optional regular
-expression used for chunking:
+Create a TOML file containing one or more named sections. Each section lists glob patterns and optional regular
+expressions used for chunking:
 
 ```toml
 [config01]
 glob_patterns = ["docs/**/*.md"]
-regex_pattern = '(^#+\s+.*$)'
+regex_patterns = ['^#+\s+.*$', '\n\n']
 ```
 
-The regex splits Markdown files at heading boundaries. Additional filters (`include_filters`, `exclude_filters`) and a
-section-local `base_directory` are available; see the Technical Reference for the complete schema.
+The first pattern always splits at match starts; the match text stays on the following piece. Capturing groups are
+optional and ignored. Further patterns run only on pieces that still exceed `pack_limit_chars`. The singular
+`regex_pattern` key remains accepted as a one-element list. Additional filters (`include_filters`, `exclude_filters`)
+and a section-local `base_directory` are available; see the Technical Reference for the complete schema.
 
-Optional packing: after the regex split, consecutive chunks **from the same file** can be joined until a character
-budget is reached. Set `pack_limit_chars` on the section, or globally via `--pack-limit-chars` / `pack_limit_chars` /
-`DRAGITER_PACK_LIMIT_CHARS`. Unset or `0` disables packing. A globally set value, including `0`, overrides the section
-key. Chunks are never cut; a single piece larger than the budget stays intact. Valid and invalid chunks are not mixed.
+Optional packing: after the staged regex split, consecutive chunks **from the same file** can be joined until a
+character budget is reached. Set `pack_limit_chars` on the section, or globally via `--pack-limit-chars` /
+`pack_limit_chars` / `DRAGITER_PACK_LIMIT_CHARS`. Unset or `0` disables packing and also disables overflow patterns
+after the first. A globally set value, including `0`, overrides the section key. A single piece that no remaining
+pattern can reduce stays intact. Valid and invalid chunks are not mixed.
 
 When you later run dragiter with `-r your_resource.toml`, the matched files are read, split according to the regex, and
 become the material that can be injected into prompts via the `[MATERIAL]` placeholder and the `{CHUNK_*}` variables.
@@ -469,7 +472,7 @@ Full lists of recognised keys and their types appear in the Technical Reference.
 ### Material, chunks and the context window
 
 Large documents are rarely useful when sent as a single undifferentiated block. dragiter therefore encourages (and helps
-you enforce) a deliberate chunking strategy. The resource file’s regular expression determines the logical units;
+you enforce) a deliberate chunking strategy. The resource file’s regular expressions determine the logical units;
 `pack_limit_chars` can then pack several of those units from one file into a larger piece. The prompt template decides
 how those units are presented to the model.
 

@@ -368,11 +368,11 @@ Observed structure from `examples/01_md_sample/01_resource_md.toml`:
 ```toml
 [config01]
 glob_patterns = ["**/*_engine.md", "**/*_thought.md"]
-regex_pattern = '(^#+\s+.*$)'
+regex_patterns = ['^#+\s+.*$']
 
 [config02]
 glob_patterns = ["**/*_automata.txt"]
-regex_pattern = '(^\d+\.\s+.*$)'
+regex_patterns = ['^\d+\.\s+.*$']
 ```
 
 Each table name becomes a **section name**.  
@@ -384,14 +384,18 @@ Inside a section the following keys are used:
   `-b` **only if the original value was relative**. An absolute section
   `base_directory` is not moved by `-b`. The global `BaseDirectoryPathSetting` itself
   is never pre-filled with CWD.
-- `regex_pattern` - regular expression used to split the matched files into chunks (default when omitted: a pattern that
-  matches nothing)
+- `regex_patterns` - list of regular expressions used to split the matched files into chunks. The first pattern always
+  cuts at match starts (the match text stays on the following piece; capturing groups are ignored). Later patterns are
+  applied only to pieces that still exceed `pack_limit_chars`. Default when omitted: a pattern that matches nothing.
+- `regex_pattern` - legacy singular form; treated as a one-element `regex_patterns` list when the list key is absent.
 - Optional filters (supported by the `ResourceSection` model): `exclude_filters`, `include_filters`
-- `pack_limit_chars` (optional, per section) - after the regex split, join consecutive chunks of the **same file**
-  until this many characters would be exceeded. Measured in characters. `0` or omitted means no packing. A globally set
+- `pack_limit_chars` (optional, per section) - after the staged regex split, join consecutive chunks of the **same file**
+  until this many characters would be exceeded. Measured in characters. `0` or omitted means no packing and no overflow
+  patterns after the first. A globally set
   `pack_limit_chars` (CLI `--pack-limit-chars`, config file or `DRAGITER_PACK_LIMIT_CHARS`) overrides the section value,
-  including when the global value is `0`. Packing never splits a chunk and never crosses a file or section boundary.
-  Only runs of chunks that share the same `valid` flag are joined.
+  including when the global value is `0`. Packing never crosses a file or section boundary.
+  Only runs of chunks that share the same `valid` flag are joined. A piece that remains larger than the budget after
+  every overflow pattern is left intact.
 
 Resolved matches that escape the section root (including symlinks that point outside)
 are skipped.
@@ -607,7 +611,8 @@ Example:
     {
       "section_name": "config01",
       "file_count": 2,
-      "regex_pattern": "(^#+\\s+.*$)",
+      "regex_patterns": ["^#+\\s+.*$"],
+      "regex_pattern": "^#+\\s+.*$",
       "exclude_filters": [],
       "include_filters": [],
       "pack_limit_chars": 4000,

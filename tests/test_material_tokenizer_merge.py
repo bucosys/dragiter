@@ -18,7 +18,7 @@ from dragiter.domain.models.text_file import TextFile
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
 
 
-LINE_REGEX = r"(^[^\n]*\n?)"
+LINE_REGEX = r"^[^\n]*\n?"
 
 
 def _ep(pack_limit_chars: int | None = None) -> ExecutionParameters:
@@ -36,7 +36,7 @@ def _resources(
     tmp_path: Path,
     files: dict[str, str],
     *,
-    regex: str = LINE_REGEX,
+    regex: str | list[str] = LINE_REGEX,
     pack_limit_chars: int | None = None,
     exclude_filters: list[str] | None = None,
     include_filters: list[str] | None = None,
@@ -51,7 +51,7 @@ def _resources(
         ResourceSection(
             section_name="sec01",
             text_files=text_files,
-            regex_pattern=regex,
+            regex_patterns=[regex] if isinstance(regex, str) else regex,
             exclude_filters=exclude_filters or [],
             include_filters=include_filters or [],
             pack_limit_chars=pack_limit_chars,
@@ -143,3 +143,53 @@ def test_renumbers_after_pack(tmp_path: Path) -> None:
     material = _run(tmp_path, {"a.txt": "aaaa\nbbbb\n"}, _ep(20))
     assert material.chunks[0].num_id == 1
     assert material.chunks[0].section_num_id == 1
+
+
+def test_split_keeps_delimiter_without_capturing_group(tmp_path: Path) -> None:
+    material = _run(
+        tmp_path,
+        {"a.md": "# one\nbody-one\n# two\nbody-two\n"},
+        _ep(),
+        regex=r"^#+\s+.*$",
+    )
+    assert [chunk.content for chunk in material.chunks] == [
+        "# one\nbody-one",
+        "# two\nbody-two",
+    ]
+
+
+def test_overflow_patterns_apply_only_when_over_limit(tmp_path: Path) -> None:
+    body = "# title\n\npara-one\n\npara-two"
+    material = _run(
+        tmp_path,
+        {"a.md": body},
+        _ep(12),
+        regex=[r"^#+\s+.*$", r"\n\n"],
+    )
+    assert [chunk.content for chunk in material.chunks] == [
+        "# title",
+        "para-one",
+        "para-two",
+    ]
+
+
+def test_overflow_patterns_are_skipped_without_limit(tmp_path: Path) -> None:
+    body = "# title\n\npara-one\n\npara-two"
+    material = _run(
+        tmp_path,
+        {"a.md": body},
+        _ep(),
+        regex=[r"^#+\s+.*$", r"\n\n"],
+    )
+    assert [chunk.content for chunk in material.chunks] == [body]
+
+
+def test_overflow_patterns_are_skipped_when_under_limit(tmp_path: Path) -> None:
+    body = "# title\n\npara-one\n\npara-two"
+    material = _run(
+        tmp_path,
+        {"a.md": body},
+        _ep(200),
+        regex=[r"^#+\s+.*$", r"\n\n"],
+    )
+    assert [chunk.content for chunk in material.chunks] == [body]
