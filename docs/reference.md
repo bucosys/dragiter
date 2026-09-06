@@ -494,6 +494,14 @@ Controlled by `output_mode`:
 
 When multiple results are written to the same file, the value of `output_delimiter` is inserted between them.
 
+### Directory output staging
+
+When writing to multiple files using `--output-directory` (`-O`), dragiter employs a secure 
+staging mechanism. All results are initially written to a hidden temporary staging 
+directory (`.tmp_staging_<PID>`) within the target path. Only after all completions
+have been successfully processed are the files atomically committed to their final 
+destination. If a write conflict occurs (such as an existing file under exclusive mode `-m x`), the process aborts to prevent data corruption, whilst leaving all generated results safely preserved inside the staging directory for easy recovery.
+
 ---
 
 ## 10. Activity log format
