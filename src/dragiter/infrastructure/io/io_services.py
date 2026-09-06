@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import shutil
 import sys
 import tomllib
 
@@ -171,6 +172,71 @@ def write_or_append_lines_to_unique_file(
 
     except Exception as e:
         raise IOServiceError(f"Failed to write file content: {file_path}.") from e
+
+
+
+def write_directory_with_staging(
+    file_mappings: list[tuple[Path, str]], target_dir: Path, output_mode: str
+) -> None:
+    """
+    Safeguards LLM results by writing them to a temporary staging directory first,
+    before committing them to their final destination. If the final commit fails
+    (e.g., due to an exclusive write conflict), the staging directory is preserved
+    to prevent data loss.
+
+    Args:
+        file_mappings: A list of tuples containing the final target Path and the string content.
+        target_dir: The base directory where the staging folder will be created.
+        output_mode: The file mode to use for the final destination ('x', 'w', 'a').
+    """
+    if not file_mappings:
+        return
+
+    # 1. Generate a hidden staging directory using the established PID convention
+    staging_dir = target_dir / f".tmp_staging_{os.getpid()}"
+
+    try:
+        staging_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        raise IOServiceError(f"Failed to initialise staging directory: {staging_dir}") from e
+
+    # 2. Securely write all data to the staging directory (The Safeguard)
+    try:
+        for target_path, content in file_mappings:
+            staged_path = staging_dir / target_path.name
+
+            # We use 'xt' (exclusive text) as the staging directory is guaranteed to be empty
+            with staged_path.open(mode="xt", encoding="utf-8") as f:
+                # Match the newline stripping behaviour of the existing functions
+                f.write(f"{content.strip()}\n")
+                f.flush()
+                os.fsync(f.fileno())
+    except Exception as e:
+        raise IOServiceError(f"Failed to secure data in staging directory: {staging_dir}") from e
+
+    # 3. Commit files to their final destinations
+    try:
+        for target_path, content in file_mappings:
+            # Reuse the existing robust file writer for the actual transfer
+            write_or_append_lines_to_unique_file(target_path, output_mode, [content])
+    except Exception as e:
+        # Deliberately catch the error to provide a clear recovery message
+        # whilst leaving the staging directory completely intact.
+        raise IOServiceError(
+            f"Write conflict or I/O error whilst committing file '{target_path.name}'. "
+            f"Process aborted to prevent corruption. "
+            f"All generated results have been safely preserved in: {staging_dir}"
+        ) from e
+
+    # 4. Cleanup upon full success
+    try:
+        shutil.rmtree(staging_dir, ignore_errors=True)
+        logger.debug(
+            f"Successfully committed {len(file_mappings)} files and removed staging directory."
+        )
+    except Exception as e:
+        # A cleanup failure should not crash the programme if the data is already safe
+        logger.warning(f"Failed to clean up staging directory {staging_dir}: {e}")
 
 
 class StdinReadError(Exception):

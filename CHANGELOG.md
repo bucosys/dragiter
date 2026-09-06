@@ -20,6 +20,9 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   A globally set value, including `0`, overrides the section key
 - Unit tests for chunk packing, resource-TOML `pack_limit_chars`, and
   validator range `merge_max_chars >= 0`
+- Secure staging mechanism for directory outputs (`-O` option) to safeguard expensive LLM API results against unexpected file write conflicts.
+- New infrastructure adapter `write_directory_with_staging` in `io_services` to handle 
+  transactional file commits using hidden temporary directories (e.g. `.tmp_staging_<PID>`).
 
 ### Changed
 - Context-window estimation logs the three parameters, per-session
@@ -27,6 +30,8 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   `DEBUG`, which verbose never showed)
 - Man page, manual and technical reference document `pack_limit_chars`
   (CLI, environment, resource schema, activity field)
+- Refactored `OutputWriter` to delegate all low-level file system operations and staging 
+  logic to the infrastructure layer, maintaining strict Clean Architecture boundaries.
 
 ### Fixed
 - Streaming completions requested `stream_options.include_usage` so
@@ -36,6 +41,10 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   `input_tokens`/`output_tokens`
 - Context-window overflow is logged at `WARNING` instead of being
   dropped at `DEBUG`
+- Prevented catastrophic data loss during application aborts caused by `IOServiceError` 
+  (e.g. when a target file already exists whilst using exclusive mode `-m x`). 
+  Failed final transfers now safely preserve all generated data within the 
+  staging directory for easy recovery.
 
 ## [2026.9.1] - 2026-09-01
 

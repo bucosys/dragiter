@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # SPDX-FileCopyrightText: 2026 Michael Buchold
-
 from datetime import UTC, datetime
 import logging
+import os
+from pathlib import Path
+import shutil
+import tempfile
 import time
 from typing import Any
 
@@ -16,7 +19,10 @@ from dragiter.infrastructure.io.filename_utils import (
     ensure_path_within_directory,
     sanitize_filename,
 )
-from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
+from dragiter.infrastructure.io.io_services import (
+    write_directory_with_staging,
+    write_or_append_lines_to_unique_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +116,75 @@ class OutputWriter:
 
         return sanitize_filename(formatted)
 
+    def _write_to_directory_with_staging(
+        self,
+        chat_sessions: ChatSessions,
+        chat_results: ChatResults,
+        final_dir: Path,
+        prompt: PromptTemplate,
+        open_mode: str,
+    ) -> None:
+        """Writes results to a temporary staging directory first and transfers them upon completion."""
+
+        # 1. Generate staging directory (in the OS temp directory)
+        #staging_dir = Path(tempfile.mkdtemp(prefix="dragiter_staging_"))
+        staging_dir = final_dir / f".tmp_staging_{os.getpid()}"
+        staging_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # List for the subsequent commit phase
+            file_mappings = []
+            index: int = 0
+
+            # 2. Write LLM results to the staging directory
+            for chat_session, chat_result in zip(
+                chat_sessions.session_list,
+                chat_results.chat_result_list,
+                strict=True,
+            ):
+                index += 1
+                formatted_file_name: str = self._format_filename(
+                    chat_session.chunk,
+                    chat_session.loop_item,
+                    index,
+                    prompt.output_filename_schema,
+                )
+
+                content = chat_result.output_chat_message.content
+                staged_path = staging_dir / formatted_file_name
+
+                # Write to the staging directory without conflicts (always mode "x")
+                write_or_append_lines_to_unique_file(staged_path, "x", [content])
+
+                # Prepare target data for the commit phase
+                target_path = final_dir / formatted_file_name
+                safe_path = ensure_path_within_directory(target_path, final_dir)
+                file_mappings.append((safe_path, content))
+
+            # 3. Commit phase: Transfer to the actual target directory
+            for safe_path, content in file_mappings:
+                try:
+                    write_or_append_lines_to_unique_file(safe_path, open_mode, [content])
+                except Exception as e:
+                    # If writing to the final target fails (e.g., due to mode "x"):
+                    raise OutputWriterError(
+                        f"Write conflict for file {safe_path.name}. "
+                        f"Aborting! All generated results are safely stored in: {staging_dir}\n"
+                        f"Original error: {e}"
+                    ) from e
+
+            # 4. Cleanup: Remove the staging directory if successful
+            shutil.rmtree(staging_dir, ignore_errors=True)
+
+        except Exception as e:
+            # Pass through if it is our own OutputWriterError
+            if isinstance(e, OutputWriterError):
+                raise
+            # Otherwise catch and point to the staging directory
+            raise OutputWriterError(
+                f"Unexpected error. The temporary data is stored in: {staging_dir} | {e}"
+            ) from e
+
     def run(
         self,
         chat_sessions: ChatSessions,
@@ -140,45 +215,47 @@ class OutputWriter:
                     op.output_file_path_setting.value, open_mode, [printable_value]
                 )
 
-            # write to many files (all loops, use numbered prompt file name as output filename
+            # write to many files (-O) -> Utilises the new staging method
             if op.output_directory_path_setting.is_set:
-                # reworking that case
-
-                # generate unique filename
-
+                file_mappings = []
                 index: int = 0
+
                 for chat_session, chat_result in zip(
-                    chat_sessions.session_list,
-                    chat_results.chat_result_list,
-                    strict=True,
+                        chat_sessions.session_list,
+                        chat_results.chat_result_list,
+                        strict=True,
                 ):
                     index += 1
-
                     formatted_file_name: str = self._format_filename(
                         chat_session.chunk,
                         chat_session.loop_item,
                         index,
                         prompt.output_filename_schema,
                     )
-
-                    target_path = (
-                        op.output_directory_path_setting.value / formatted_file_name
-                    )
-                    # Guarantee the resolved path never leaves the intended output directory
+                    target_path = op.output_directory_path_setting.value / formatted_file_name
                     safe_path = ensure_path_within_directory(
                         target_path, op.output_directory_path_setting.value
                     )
+                    file_mappings.append((safe_path, chat_result.output_chat_message.content))
 
-                    write_or_append_lines_to_unique_file(
-                        safe_path, open_mode, [chat_result.output_chat_message.content]
-                    )
+                # Delegate the complete transfer to the infrastructure layer
+                write_directory_with_staging(
+                    file_mappings=file_mappings,
+                    target_dir=op.output_directory_path_setting.value,
+                    output_mode=open_mode
+                )
 
+            # last step - print to stdout
             print(printable_value)  # to std_out
-
             return ApplicationResult(0)
+
         except Exception as e:
+            # Translate I/O error into a domain-specific error
             raise OutputWriterError(f"Output dispatcher failure: {e}") from e
 
 
 class OutputWriterError(Exception):
     pass
+
+
+
