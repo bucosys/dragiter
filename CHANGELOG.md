@@ -25,6 +25,10 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   transactional file commits using hidden temporary directories (e.g. `.tmp_staging_<PID>`).
 
 ### Changed
+- Simulate mode writes a run board to stdout. `-O` files start with a
+  session board (index, file, chunk, section, loop line, tokens) and
+  the role/content transcript. `-o` prints the run board once, then
+  one session board plus transcript per session
 - `MaterialTokenizer` splits at regex match starts instead of pairing
   captured headers with bodies; capturing groups are no longer required
 - Resource sections accept `regex_patterns` (list). Pattern 0 always

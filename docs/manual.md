@@ -41,8 +41,10 @@ Before spending API credits or waiting for a local model, verify that file routi
 dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
-The `-s` flag prevents any network or model calls. You see exactly which files would be read, how they would be chunked,
-and which prompts would be constructed.
+The `-s` flag prevents any network or model calls. Stdout prints the run board (sessions, mode batched or sequential,
+chunks, loops, window). Each file under `-O` starts with a session board (session index, file, chunk, section, loop
+line, tokens), then a blank line, then the role/content transcript of that query. A single `-o` file prints the run
+board once, then one session board plus transcript per session.
 
 ### 3. Run against a local Ollama instance
 

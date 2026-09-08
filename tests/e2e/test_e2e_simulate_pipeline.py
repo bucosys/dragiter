@@ -123,7 +123,7 @@ def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:
     Expectations:
       * exit code 0
       * at least one output file under -O
-      * every output file contains a MockAI payload ("mock": true)
+      * every output file is a role/content Markdown transcript
     """
     output_dir = tiny_example_dir / "outputs" / "simulate_e2e"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -153,9 +153,12 @@ def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:
 
     for path in created:
         text = path.read_text(encoding="utf-8")
-        assert '"mock"' in text or "'mock'" in text, (
-            f"Output {path.name} does not look like a MockAI payload:\n{text[:400]}"
+        assert text.lstrip().startswith("***"), (
+            f"Output {path.name} does not start with a ruled Markdown board:\n{text[:400]}"
         )
+        assert "| session" in text
+        assert "\n\n| R" in text
+        assert "| A " not in text and "| A|" not in text
 
 
 def test_simulate_pipeline_with_activity_log(tiny_example_dir: Path) -> None:

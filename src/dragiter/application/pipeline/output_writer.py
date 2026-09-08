@@ -11,10 +11,25 @@ from typing import Any
 
 from dragiter.domain.models.application_result import ApplicationResult
 from dragiter.domain.models.chat_results import ChatResults
-from dragiter.domain.models.chat_sessions import ChatSessions
+from dragiter.domain.models.chat_sessions import ChatSession, ChatSessions
 from dragiter.domain.models.chunk import Chunk
-from dragiter.domain.models.parameters import OutputParameters
+from dragiter.domain.models.context_validation_report import ContextValidationReport
+from dragiter.domain.models.loop import Loop
+from dragiter.domain.models.material import Material
+from dragiter.domain.models.parameters import (
+    AIServiceParameters,
+    ExecutionParameters,
+    OutputParameters,
+)
 from dragiter.domain.models.prompt_template import PromptTemplate
+from dragiter.infrastructure.cli.simulation_brief import (
+    SimulationBrief,
+    SimulationSessionBrief,
+    format_payload_table,
+    format_simulation_brief,
+    format_simulation_session_brief,
+    join_ruled_sections,
+)
 from dragiter.infrastructure.io.filename_utils import (
     ensure_path_within_directory,
     sanitize_filename,
@@ -191,6 +206,11 @@ class OutputWriter:
         chat_results: ChatResults,
         op: OutputParameters,
         prompt: PromptTemplate,
+        ep: ExecutionParameters,
+        aisp: AIServiceParameters,
+        material: Material,
+        loop: Loop,
+        context_report: ContextValidationReport = None,
     ) -> ApplicationResult:
 
         try:
@@ -209,10 +229,73 @@ class OutputWriter:
 
             # printable_value = "\n\n\n\n".join(content_list)
             printable_value = prompt.output_delimiter.join(content_list)
-            # write result to one file
+            simulate = self._is_simulation(ep, chat_results)
+            run_board_tty = (
+                self._format_simulation_brief(
+                    chat_sessions,
+                    chat_results,
+                    op,
+                    ep,
+                    aisp,
+                    material,
+                    loop,
+                    context_report,
+                    prompt,
+                    frame=True,
+                )
+                if simulate
+                else None
+            )
+            run_board_file = (
+                self._format_simulation_brief(
+                    chat_sessions,
+                    chat_results,
+                    op,
+                    ep,
+                    aisp,
+                    material,
+                    loop,
+                    context_report,
+                    prompt,
+                    frame=False,
+                )
+                if simulate
+                else None
+            )
+            session_count = len(chat_sessions.session_list)
+            valid_chunks = sum(1 for chunk in material.chunks if chunk.valid)
+            loop_count = len(loop.lines)
+
+            def _session_header(index: int, chat_session: ChatSession) -> str:
+                return self._format_session_brief(
+                    chat_session,
+                    index,
+                    session_count,
+                    prompt.sequential_processing,
+                    valid_chunks,
+                    loop_count,
+                    context_report,
+                )
+
+            # write result to one file (-o)
             if op.output_file_path_setting.is_set:
+                if simulate and run_board_file is not None:
+                    sections = [run_board_file]
+                    for index, (session, result) in enumerate(
+                        zip(
+                            chat_sessions.session_list,
+                            chat_results.chat_result_list,
+                            strict=True,
+                        ),
+                        start=1,
+                    ):
+                        sections.append(_session_header(index, session))
+                        sections.append(self._payload_table(session))
+                    file_body = join_ruled_sections(*sections)
+                else:
+                    file_body = printable_value
                 write_or_append_lines_to_unique_file(
-                    op.output_file_path_setting.value, open_mode, [printable_value]
+                    op.output_file_path_setting.value, open_mode, [file_body]
                 )
 
             # write to many files (-O) -> Utilises the new staging method
@@ -236,7 +319,14 @@ class OutputWriter:
                     safe_path = ensure_path_within_directory(
                         target_path, op.output_directory_path_setting.value
                     )
-                    file_mappings.append((safe_path, chat_result.output_chat_message.content))
+                    if simulate:
+                        body = join_ruled_sections(
+                            _session_header(index, chat_session),
+                            self._payload_table(chat_session),
+                        )
+                    else:
+                        body = chat_result.output_chat_message.content or ""
+                    file_mappings.append((safe_path, body))
 
                 # Delegate the complete transfer to the infrastructure layer
                 write_directory_with_staging(
@@ -246,12 +336,132 @@ class OutputWriter:
                 )
 
             # last step - print to stdout
-            print(printable_value)  # to std_out
+            if run_board_tty is not None:
+                print(run_board_tty)
+            else:
+                print(printable_value)
             return ApplicationResult(0)
 
         except Exception as e:
             # Translate I/O error into a domain-specific error
             raise OutputWriterError(f"Output dispatcher failure: {e}") from e
+
+    @staticmethod
+    def _is_simulation(ep: ExecutionParameters, chat_results: ChatResults) -> bool:
+        if bool(ep.simulate_bool_setting.value):
+            return True
+        return any(result.finish_reason == "mock" for result in chat_results.chat_result_list)
+
+    @staticmethod
+    def _payload_table(chat_session: ChatSession) -> str:
+        messages = [
+            (message.role, message.content)
+            for message in chat_session.input_chat_message_list
+        ]
+        return format_payload_table(messages)
+
+    @staticmethod
+    def _format_session_brief(
+        chat_session: ChatSession,
+        session_index: int,
+        session_count: int,
+        sequential: bool,
+        valid_chunks: int,
+        loop_count: int,
+        context_report: ContextValidationReport | None,
+    ) -> str:
+        chunk = chat_session.chunk
+        loop_item = chat_session.loop_item or {}
+        if sequential and chunk is not None:
+            filename = chunk.filename or "none"
+            chunk_label = f"{chunk.num_id} / {max(valid_chunks, 1)}"
+            section = chunk.section_name or "none"
+        elif sequential:
+            filename = "none"
+            chunk_label = "none"
+            section = "none"
+        else:
+            filename = "all files" if valid_chunks else "none"
+            chunk_label = "all"
+            section = "all"
+        if loop_count <= 0:
+            loop_label = "none"
+            loop_line = "none"
+        else:
+            loop_num = loop_item.get("LOOP_NUM_ID", session_index)
+            loop_label = f"{loop_num} / {loop_count}"
+            raw_line = loop_item.get("LOOP_ID") or loop_item.get("LOOP_CONTENT") or ""
+            loop_line = " ".join(str(raw_line).split()) or "none"
+        tokens = None
+        if context_report is not None:
+            tokens = context_report.session_token_counts.get(session_index - 1)
+            if tokens is None:
+                tokens = context_report.session_input_token_counts.get(session_index - 1)
+        return format_simulation_session_brief(
+            SimulationSessionBrief(
+                session_index=session_index,
+                session_count=session_count,
+                sequential=sequential,
+                filename=filename,
+                chunk_label=chunk_label,
+                section=section,
+                loop_label=loop_label,
+                loop_line=loop_line,
+                tokens=tokens,
+            )
+        )
+
+    def _format_simulation_brief(
+        self,
+        chat_sessions: ChatSessions,
+        chat_results: ChatResults,
+        op: OutputParameters,
+        ep: ExecutionParameters,
+        aisp: AIServiceParameters,
+        material: Material,
+        loop: Loop,
+        context_report: ContextValidationReport | None,
+        prompt: PromptTemplate,
+        *,
+        frame: bool = True,
+    ) -> str:
+        chunks = material.chunks
+        pack_limit = None
+        if ep.pack_limit_chars_int_setting.is_set and ep.pack_limit_chars_int_setting.value > 0:
+            pack_limit = ep.pack_limit_chars_int_setting.value
+        peak_session = None
+        if context_report is not None and context_report.max_session_index >= 0:
+            peak_session = context_report.max_session_index + 1
+        return format_simulation_brief(
+            SimulationBrief(
+                model=aisp.model_name_string_setting.value or "",
+                sessions=len(chat_sessions.session_list),
+                chunks=len(chunks),
+                valid_chunks=sum(1 for chunk in chunks if chunk.valid),
+                source_files=len({chunk.filename for chunk in chunks}),
+                loop_items=len(loop.lines),
+                total_chars=sum(len(chunk.content) for chunk in chunks),
+                sequential=prompt.sequential_processing,
+                pack_limit_chars=pack_limit,
+                peak_tokens=None if context_report is None else context_report.max_session_tokens,
+                token_limit=None if context_report is None else context_report.max_tokens_limit,
+                peak_session=peak_session,
+                window_ok=None if context_report is None else context_report.is_valid,
+                warning_count=0 if context_report is None else len(context_report.simulation_warnings),
+                output_dir=(
+                    str(op.output_directory_path_setting.value)
+                    if op.output_directory_path_setting.is_set
+                    else None
+                ),
+                output_file=(
+                    str(op.output_file_path_setting.value)
+                    if op.output_file_path_setting.is_set
+                    else None
+                ),
+                result_count=len(chat_results.chat_result_list),
+            ),
+            frame=frame,
+        )
 
 
 class OutputWriterError(Exception):
