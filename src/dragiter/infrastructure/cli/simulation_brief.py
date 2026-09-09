@@ -27,6 +27,8 @@ class SimulationBrief:
     peak_session: int | None
     window_ok: bool | None
     warning_count: int
+    small_chunks: int
+    oversize_chunks: int
     output_dir: str | None
     output_file: str | None
     result_count: int
@@ -153,6 +155,7 @@ def format_simulation_panel_brief(brief: SimulationBrief, *, frame: bool = True)
         ("valid / loops", f"{brief.valid_chunks} / {brief.loop_items}", "chars", _count(brief.total_chars)),
         ("pack", pack, "window", window),
         ("peak / limit", f"{peak} / {limit}", "peak at / warns", f"{slot} / {brief.warning_count}"),
+        ("small / over", f"{brief.small_chunks} / {brief.oversize_chunks}", "valid chunks", str(brief.valid_chunks)),
         ("output", output, "replies / stdout", f"{brief.result_count} / brief"),
     ]
     return _render_board(rows, frame=frame)

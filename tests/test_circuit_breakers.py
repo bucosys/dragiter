@@ -72,7 +72,7 @@ def _make_resources_with_content(
     section = ResourceSection(
         section_name=section_name,
         text_files=[TextFile(path=path)],
-        regex_pattern=regex,
+        regex_patterns=regex,
         exclude_filters=[],
         include_filters=[],
     )
@@ -206,7 +206,7 @@ class TestMaterialTokenizerChunkLimit:
                 ResourceSection(
                     section_name=name,
                     text_files=[TextFile(path=path)],
-                    regex_pattern=r"(^#+\s+.*$)",
+                    regex_patterns=r"(^#+\s+.*$)",
                     exclude_filters=[],
                     include_filters=[],
                 )
@@ -220,52 +220,53 @@ class TestMaterialTokenizerChunkLimit:
 
 
 class TestMaterialTokenizerChunkSizeWarnings:
-    """Soft warnings for chunks that are too small or extremely large."""
+    """Verbose INFO notes for final chunks that are too small or over budget."""
 
-    def test_tiny_chunk_emits_warning(
+    def test_tiny_chunk_emits_info(
         self, tmp_path: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
-        # Two headings with almost no body → chunks well under WARN_MIN_CHARS.
         content = "# A\nx\n# B\ny\n"
         resources = _make_resources_with_content(tmp_path, content)
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             tokenizer.run(resources, _blank_ep())
 
-        assert any("too small" in r.message.lower() for r in caplog.records)
+        assert any("shorter than" in r.message.lower() for r in caplog.records)
 
-    def test_huge_chunk_emits_warning(
+    def test_oversize_chunk_emits_info_when_pack_limit_set(
         self, tmp_path: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
-        huge_body = "W" * (MaterialTokenizer.WARN_MAX_CHARS + 100)
+        huge_body = "W" * 200
         content = f"# Big Section\n\n{huge_body}\n"
         resources = _make_resources_with_content(tmp_path, content)
+        ep = _blank_ep()
+        ep.pack_limit_chars_int_setting.set(80, ValueOrigin.CLI)
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
 
-        with caplog.at_level("WARNING"):
-            tokenizer.run(resources, _blank_ep())
+        with caplog.at_level("INFO"):
+            tokenizer.run(resources, ep)
 
-        assert any("extremely large" in r.message.lower() for r in caplog.records)
+        assert any("exceed pack_limit_chars" in r.message.lower() for r in caplog.records)
 
-    def test_normal_chunk_emits_no_size_warning(
+    def test_normal_chunk_emits_no_size_info(
         self, tmp_path: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
-        body = "Normal paragraph. " * 20  # comfortably inside the sweet spot
+        body = "Normal paragraph. " * 20
         content = f"# Normal\n\n{body}\n"
         resources = _make_resources_with_content(tmp_path, content)
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             tokenizer.run(resources, _blank_ep())
 
-        size_warnings = [
+        size_notes = [
             r
             for r in caplog.records
-            if "too small" in r.message.lower()
-            or "extremely large" in r.message.lower()
+            if "shorter than" in r.message.lower()
+            or "exceed pack_limit_chars" in r.message.lower()
         ]
-        assert size_warnings == []
+        assert size_notes == []
 
 
 # ---------------------------------------------------------------------------

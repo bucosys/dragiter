@@ -16,9 +16,8 @@ logger = logging.getLogger(__name__)
 class MaterialTokenizer(Worker):
     # Hard limit: Prevents combinatorial explosion
     MAX_TOTAL_CHUNKS: int = 200
-    # Warning thresholds for semantic chunking (in characters)
+    # Warning threshold for undersized final chunks (in characters)
     WARN_MIN_CHARS: int = 50
-    WARN_MAX_CHARS: int = 20000
     _PACK_SEP = "\n\n"
 
     def __init__(self, text_file_reader: TextFileReader) -> None:
@@ -51,16 +50,27 @@ class MaterialTokenizer(Worker):
         global_id: int = 1
         limit = self._effective_limit(ep, rs)
         compiled_patterns = self._compile_patterns(rs)
+        if ep.pack_limit_chars_int_setting.is_set:
+            limit_origin = "global"
+        elif rs.pack_limit_chars is not None and rs.pack_limit_chars > 0:
+            limit_origin = "section"
+        else:
+            limit_origin = "off"
+        logger.debug(
+            f"Section '{rs.section_name}': {len(rs.file_paths)} file(s), "
+            f"{len(compiled_patterns)} pattern(s), "
+            f"pack_limit_chars={limit if limit is not None else 'off'} ({limit_origin})"
+        )
 
         for path_obj in rs.file_paths:
+            filename = path_obj.path.name
+            source = f"{rs.section_name}:{filename}"
             content = self.text_file_reader.read(path_obj)
-            pieces = self._split_staged(content, compiled_patterns, limit)
+            logger.debug(f"{source}: read {len(content)} chars")
+            pieces = self._split_staged(content, compiled_patterns, limit, source=source)
             file_chunks: list[Chunk] = []
 
             for piece in pieces:
-                self._warn_if_chunk_size_suboptimal(
-                    piece, path_obj.path.name, f"chunk {len(file_chunks) + 1}"
-                )
                 file_chunks.append(
                     Chunk(
                         num_id=0,
@@ -72,8 +82,16 @@ class MaterialTokenizer(Worker):
                     )
                 )
 
+            valid_count = sum(1 for chunk in file_chunks if chunk.valid)
+            logger.debug(
+                f"{source}: {len(file_chunks)} piece(s) after split, "
+                f"{valid_count} valid, {len(file_chunks) - valid_count} invalid"
+            )
+
             if limit is not None:
-                file_chunks = self._pack_file_chunks(file_chunks, limit)
+                file_chunks = self._pack_file_chunks(file_chunks, limit, source=source)
+
+            self._log_final_file_chunks(file_chunks, filename, rs.section_name, limit)
 
             section_internal_id = 1
             for chunk in file_chunks:
@@ -101,6 +119,8 @@ class MaterialTokenizer(Worker):
         text: str,
         patterns: list[re.Pattern[str]],
         limit: int | None,
+        *,
+        source: str,
     ) -> list[str]:
         """Split *text* with pattern 0, then refine oversized pieces with the rest.
 
@@ -112,12 +132,26 @@ class MaterialTokenizer(Worker):
             return [stripped] if stripped else []
 
         pieces = self._split_on_regex(text, patterns[0])
+        logger.debug(
+            f"{source}: primary pattern 1/{len(patterns)} on {len(text)} chars "
+            f"-> {len(pieces)} piece(s)"
+        )
         if limit is None or len(patterns) == 1:
             return pieces
 
         refined: list[str] = []
         for piece in pieces:
-            refined.extend(self._refine_overflow(piece, patterns[1:], limit))
+            refined.extend(
+                self._refine_overflow(
+                    piece,
+                    patterns[1:],
+                    limit,
+                    source=source,
+                    pattern_index=2,
+                    total_patterns=len(patterns),
+                )
+            )
+        logger.debug(f"{source}: {len(refined)} piece(s) after overflow refine")
         return refined
 
     def _refine_overflow(
@@ -125,19 +159,46 @@ class MaterialTokenizer(Worker):
         text: str,
         patterns: list[re.Pattern[str]],
         limit: int,
+        *,
+        source: str,
+        pattern_index: int,
+        total_patterns: int,
     ) -> list[str]:
         if len(text) <= limit or not patterns:
             return [text]
 
         split_parts = self._split_on_regex(text, patterns[0])
         rest = patterns[1:]
+        logger.debug(
+            f"{source}: pattern {pattern_index}/{total_patterns} on {len(text)} chars "
+            f"-> {len(split_parts)} piece(s)"
+        )
         if split_parts == [text]:
-            return self._refine_overflow(text, rest, limit)
+            logger.debug(
+                f"{source}: pattern {pattern_index}/{total_patterns} had no effect"
+            )
+            return self._refine_overflow(
+                text,
+                rest,
+                limit,
+                source=source,
+                pattern_index=pattern_index + 1,
+                total_patterns=total_patterns,
+            )
 
         refined: list[str] = []
         for part in split_parts:
             if len(part) > limit and rest:
-                refined.extend(self._refine_overflow(part, rest, limit))
+                refined.extend(
+                    self._refine_overflow(
+                        part,
+                        rest,
+                        limit,
+                        source=source,
+                        pattern_index=pattern_index + 1,
+                        total_patterns=total_patterns,
+                    )
+                )
             else:
                 refined.append(part)
         return refined
@@ -187,12 +248,21 @@ class MaterialTokenizer(Worker):
             return None
         return section_value
 
-    def _pack_file_chunks(self, chunks: list[Chunk], limit: int) -> list[Chunk]:
+    def _pack_file_chunks(
+        self, chunks: list[Chunk], limit: int, *, source: str
+    ) -> list[Chunk]:
         if len(chunks) <= 1:
+            logger.debug(f"{source}: pack skipped ({len(chunks)} chunk(s))")
             return chunks
         forward = self._greedy_pack(chunks, limit)
         backward = self._greedy_pack_backward(chunks, limit)
-        return self._choose_pack(forward, backward)
+        chosen = self._choose_pack(forward, backward)
+        direction = "backward" if chosen is backward else "forward"
+        logger.debug(
+            f"{source}: pack {len(chunks)} chunk(s) -> "
+            f"forward={len(forward)} backward={len(backward)} chosen={direction}"
+        )
+        return chosen
 
     def _greedy_pack(self, chunks: list[Chunk], limit: int) -> list[Chunk]:
         packs: list[list[Chunk]] = []
@@ -251,18 +321,44 @@ class MaterialTokenizer(Worker):
             content=self._PACK_SEP.join(chunk.content for chunk in pack),
         )
 
-    def _warn_if_chunk_size_suboptimal(self, content: str, filename: str, chunk_identifier: str) -> None:
-        """Logs a warning if a chunk is too small to provide context or too large for optimal attention."""
-        size = len(content)
-        if size < self.WARN_MIN_CHARS:
-            logger.warning(
-                f"Chunk too small ({size} chars) in {filename} ({chunk_identifier}). "
-                f"Check if your regex patterns split too aggressively."
+    @classmethod
+    def count_size_flags(
+        cls, chunks: list[Chunk], pack_limit_chars: int | None
+    ) -> tuple[int, int]:
+        """Count final chunks below the minimum size or above the pack budget."""
+        small = sum(1 for chunk in chunks if len(chunk.content) < cls.WARN_MIN_CHARS)
+        if pack_limit_chars is None or pack_limit_chars <= 0:
+            return small, 0
+        oversize = sum(1 for chunk in chunks if len(chunk.content) > pack_limit_chars)
+        return small, oversize
+
+    def _log_final_file_chunks(
+        self,
+        chunks: list[Chunk],
+        filename: str,
+        section_name: str,
+        limit: int | None,
+    ) -> None:
+        if not chunks:
+            logger.debug(f"{section_name}:{filename}: 0 final chunks")
+            return
+        sizes = [len(chunk.content) for chunk in chunks]
+        small, oversize = self.count_size_flags(chunks, limit)
+        logger.debug(
+            f"{section_name}:{filename}: {len(chunks)} final chunk(s), "
+            f"min {min(sizes)} chars, max {max(sizes)} chars, "
+            f"{small} below {self.WARN_MIN_CHARS}, {oversize} over budget"
+        )
+        if small:
+            logger.info(
+                f"{small} chunk(s) shorter than {self.WARN_MIN_CHARS} characters "
+                f"in {filename} (section '{section_name}'). Split may be too fine."
             )
-        elif size > self.WARN_MAX_CHARS:
-            logger.warning(
-                f"Chunk extremely large ({size} chars) in {filename} ({chunk_identifier}). "
-                f"The LLM might suffer from attention dilution. Consider adding a finer overflow pattern."
+        if oversize and limit is not None:
+            logger.info(
+                f"{oversize} chunk(s) exceed pack_limit_chars ({limit}) "
+                f"in {filename} (section '{section_name}'). "
+                f"Overflow patterns did not reduce them."
             )
 
     @staticmethod

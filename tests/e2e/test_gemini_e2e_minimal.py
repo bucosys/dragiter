@@ -67,7 +67,7 @@ The secret code for gamma is 99.
     resource_toml = """\
 [facts]
 glob_patterns = ["facts.md"]
-regex_pattern = '(^#+\\s+.*$)'
+regex_patterns = ['(^#+\\s+.*$)']
 """
     (workspace / "resource.toml").write_text(resource_toml, encoding="utf-8")
 

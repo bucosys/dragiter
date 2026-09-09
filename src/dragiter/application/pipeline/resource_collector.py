@@ -39,6 +39,11 @@ class ResourceCollector(Worker):
                 )
 
                 for s_name, settings in resource_file_toml_dict.items():
+                    if isinstance(settings, dict) and "regex_pattern" in settings:
+                        raise MaterialCollectorError(
+                            f"Section '{s_name}' uses removed key 'regex_pattern'. "
+                            "Replace it with 'regex_patterns' as a list of strings."
+                        )
                     text_files: list[TextFile] = []
                     glob_patterns: list[str] = settings.get("glob_patterns") or []
                     base_dir = settings.get("base_directory") or None
@@ -64,16 +69,22 @@ class ResourceCollector(Worker):
                             section_name=s_name,
                             text_files=text_files,
                             regex_patterns=settings.get("regex_patterns"),
-                            regex_pattern=settings.get("regex_pattern"),
                             exclude_filters=settings.get("exclude_filters"),
                             include_filters=settings.get("include_filters"),
                             pack_limit_chars=settings.get("pack_limit_chars"),
+                        )
+                        logger.debug(
+                            f"Section '{s_name}': {len(text_files)} file(s), "
+                            f"{len(rs.regex_patterns)} regex pattern(s), "
+                            f"pack_limit_chars={rs.pack_limit_chars}"
                         )
                         res.append_resource_section(rs)
 
             logger.debug(f"Loaded {res}")
             return res
 
+        except MaterialCollectorError:
+            raise
         except Exception as e:
             raise MaterialCollectorError(f"Failed to load material chunks: {e}") from e
 

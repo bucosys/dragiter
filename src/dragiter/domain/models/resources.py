@@ -18,7 +18,6 @@ class ResourceSection:
         exclude_filters: list[str],
         include_filters: list[str],
         regex_patterns: list[str] | str | None = None,
-        regex_pattern: str | None = None,
         pack_limit_chars: int | None = None,
     ) -> None:
         """Initialise the configuration object and load settings."""
@@ -35,7 +34,7 @@ class ResourceSection:
         if text_files:
             self._file_paths.extend(text_files)
 
-        self._regex_patterns: list[str] = self._coerce_regex_patterns(regex_patterns, regex_pattern)
+        self._regex_patterns: list[str] = self._coerce_regex_patterns(regex_patterns)
         self._exclude_filters: list[str] = exclude_filters or []
         self._include_filters: list[str] = include_filters or []
         self._pack_limit_chars: int | None = pack_limit_chars if isinstance(pack_limit_chars, int) else None
@@ -52,19 +51,13 @@ class ResourceSection:
     def regex_patterns(self) -> list[str]:
         return self._regex_patterns[:]
 
-    @property
-    def regex_pattern(self) -> str:
-        """First staged pattern. Kept for callers that still expect a single expression."""
-        return self._regex_patterns[0]
-
     @staticmethod
     def _coerce_regex_patterns(
         regex_patterns: list[str] | str | None,
-        regex_pattern: str | None,
     ) -> list[str]:
         raw: list[object]
         if regex_patterns is None:
-            raw = [regex_pattern] if regex_pattern else []
+            raw = []
         elif isinstance(regex_patterns, str):
             raw = [regex_patterns]
         elif isinstance(regex_patterns, list):
@@ -141,7 +134,6 @@ class Resources(ActivityProvider):
                 "section_name": section.section_name,
                 "file_count": len(section.file_paths),
                 "regex_patterns": section.regex_patterns,
-                "regex_pattern": section.regex_pattern,
                 "exclude_filters": section.exclude_filters,
                 "include_filters": section.include_filters,
                 "pack_limit_chars": section.pack_limit_chars,

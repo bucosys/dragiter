@@ -9,6 +9,7 @@ import tempfile
 import time
 from typing import Any
 
+from dragiter.application.pipeline.material_tokenizer import MaterialTokenizer
 from dragiter.domain.models.application_result import ApplicationResult
 from dragiter.domain.models.chat_results import ChatResults
 from dragiter.domain.models.chat_sessions import ChatSession, ChatSessions
@@ -432,6 +433,7 @@ class OutputWriter:
         peak_session = None
         if context_report is not None and context_report.max_session_index >= 0:
             peak_session = context_report.max_session_index + 1
+        small_chunks, oversize_chunks = MaterialTokenizer.count_size_flags(chunks, pack_limit)
         return format_simulation_brief(
             SimulationBrief(
                 model=aisp.model_name_string_setting.value or "",
@@ -448,6 +450,8 @@ class OutputWriter:
                 peak_session=peak_session,
                 window_ok=None if context_report is None else context_report.is_valid,
                 warning_count=0 if context_report is None else len(context_report.simulation_warnings),
+                small_chunks=small_chunks,
+                oversize_chunks=oversize_chunks,
                 output_dir=(
                     str(op.output_directory_path_setting.value)
                     if op.output_directory_path_setting.is_set

@@ -38,6 +38,15 @@ pip install dragiter
 
 Requires Python ≥ 3.11.
 
+## Compatibility
+
+**2026.9.9 is a breaking release for resource files.** The singular TOML key
+`regex_pattern` is no longer accepted. A section that still sets it aborts
+collection and names the section. Use `regex_patterns` as a list of strings:
+
+```toml
+regex_patterns = ['^##\s+', '^###\s+']
+
 ## Quick Start
 
 Keep *resources* (what the model should know) separate from *prompts* (what you want it to do).

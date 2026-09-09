@@ -8,7 +8,25 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+## [2026.9.9] - 2026-09-09
+
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.9.9](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.9)
+
+### Removed
+- Resource TOML key `regex_pattern` is no longer accepted. Use `regex_patterns`
+  as a list. Presence of the old key aborts collection with a section-specific
+  error. The activity record no longer duplicates a singular `regex_pattern`
+  field
+
 ### Added
+- Added `examples/04_staged_regex_sample` to demonstrate staged
+  `regex_patterns` plus sequential per-chunk editing of a requirements
+  profile
+- Simulate run board now shows `small / over` counts for final chunks shorter
+  than 50 characters or larger than the active pack budget
+- `--verbose` logs INFO notes when final chunks are undersized or still over
+  `pack_limit_chars`. `--debug` traces split, overflow, filter and pack steps
+  by section and file (lengths and counts only)
 - `ContextValidationReport` now implements `ActivityProvider`: per-run
   summary and per-session token estimates (`estimated_input_tokens`,
   reserved output, calculated total, limit) are written to the activity
@@ -20,7 +38,8 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   A globally set value, including `0`, overrides the section key
 - Unit tests for chunk packing, resource-TOML `pack_limit_chars`, and
   validator range `merge_max_chars >= 0`
-- Secure staging mechanism for directory outputs (`-O` option) to safeguard expensive LLM API results against unexpected file write conflicts.
+- Secure staging mechanism for directory outputs (`-O` option) to safeguard expensive 
+  LLM API results against unexpected file write conflicts.
 - New infrastructure adapter `write_directory_with_staging` in `io_services` to handle 
   transactional file commits using hidden temporary directories (e.g. `.tmp_staging_<PID>`).
 
@@ -32,8 +51,9 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 - `MaterialTokenizer` splits at regex match starts instead of pairing
   captured headers with bodies; capturing groups are no longer required
 - Resource sections accept `regex_patterns` (list). Pattern 0 always
-  runs; later patterns refine only pieces above `pack_limit_chars`.
-  Singular `regex_pattern` remains as a one-element alias
+  runs; later patterns refine only pieces above `pack_limit_chars`
+- Chunk size notes use the active `pack_limit_chars` instead of a fixed
+  20 000-character ceiling, and they apply to final packed chunks
 - Context-window estimation logs the three parameters, per-session
   totals and a summary at `INFO` when verbose is on (previously
   `DEBUG`, which verbose never showed)

@@ -1,0 +1,42 @@
+# Prompt template for the staged-regex example.
+# Sequential processing is off so the simulate board stays one session
+# and the chunk arithmetic remains easy to read.
+
+[system]
+instruction = """
+You are a precise analyst of software requirements.
+Always answer in British English.
+Use compact Markdown.
+"""
+
+[task]
+first = """
+### REFERENCE MATERIAL
+Use only the following dragiter requirements material:
+"""
+
+material = """
+ID: {CHUNK_NUM_ID:04d}
+FILE: {CHUNK_FILE_NAME}
+SECTION: {CHUNK_SECTION_NAME}
+SECTION NUM ID: {CHUNK_SECTION_NUM_ID}
+CONTENT:
+
+{CHUNK_CONTENT}
+"""
+
+synthesis = """
+From the supplied material, list the staged-regex rules that an operator
+can count on a simulate board: first pattern always cuts, later patterns
+run only on overflow, packing stays inside one file, and size notes
+refer to final chunks.
+Answer as a Markdown table with the columns: Rule, Observable signal.
+"""
+
+[behaviour]
+temperature = 0.0
+sequential_processing = false
+
+[outcome]
+output_delimiter = "\n---\n"
+output_filename_schema = "04_chunk_{CHUNK_NUM_ID:04d}.md"

@@ -1,11 +1,11 @@
 #
 [config01]
 glob_patterns = ["**/*_engine.md", "**/*_thought.md"]
-regex_pattern = '(^#+\s+.*$)'
+regex_patterns = ['(^#+\s+.*$)']
 
 [config02]
 glob_patterns = ["**/*_automata.txt"]
 # Matches lines starting with a number followed by a dot (e.g., "1. ")
-regex_pattern = '(^\d+\.\s+.*$)'
+regex_patterns = ['(^\d+\.\s+.*$)']
 
 

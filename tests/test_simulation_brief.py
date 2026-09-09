@@ -39,6 +39,8 @@ def _sample() -> SimulationBrief:
         peak_session=2,
         window_ok=True,
         warning_count=0,
+        small_chunks=0,
+        oversize_chunks=0,
         output_dir="./outputs",
         output_file=None,
         result_count=6,
@@ -62,6 +64,7 @@ def test_panel_brief_pads_cells_to_fixed_width() -> None:
     assert "mode" in text
     assert "batched" in text
     assert "./outputs" in text
+    assert "small / over" in text
 
 
 def test_file_board_is_valid_gfm() -> None:

@@ -5,10 +5,10 @@ glob_patterns = ["**/*.c", "**/*.h"]
 
 # Improved regex to catch functions and prototypes:
 # It looks for a return type, name, and parentheses.
-regex_pattern = '(^[a-zA-Z_][a-zA-Z0-9_]*\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(.*$)'
+regex_patterns = ['(^[a-zA-Z_][a-zA-Z0-9_]*\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(.*$)']
 
 [c_documented_sections]
 #base_directory="/Users/somebody/somewhere/...""
 glob_patterns = ["**/*.h"]
 # Focuses on the Doxygen-style SECTION comments in the header
-regex_pattern = '(^\s*/\*\*\s*\n\s*\*\s*SECTION:.*$)'
+regex_patterns = ['(^\s*/\*\*\s*\n\s*\*\s*SECTION:.*$)']

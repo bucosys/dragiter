@@ -387,7 +387,7 @@ Inside a section the following keys are used:
 - `regex_patterns` - list of regular expressions used to split the matched files into chunks. The first pattern always
   cuts at match starts (the match text stays on the following piece; capturing groups are ignored). Later patterns are
   applied only to pieces that still exceed `pack_limit_chars`. Default when omitted: a pattern that matches nothing.
-- `regex_pattern` - legacy singular form; treated as a one-element `regex_patterns` list when the list key is absent.
+- `regex_pattern` - removed. A section that still sets this key is rejected. Use `regex_patterns`.
 - Optional filters (supported by the `ResourceSection` model): `exclude_filters`, `include_filters`
 - `pack_limit_chars` (optional, per section) - after the staged regex split, join consecutive chunks of the **same file**
   until this many characters would be exceeded. Measured in characters. `0` or omitted means no packing and no overflow
@@ -612,7 +612,6 @@ Example:
       "section_name": "config01",
       "file_count": 2,
       "regex_patterns": ["^#+\\s+.*$"],
-      "regex_pattern": "^#+\\s+.*$",
       "exclude_filters": [],
       "include_filters": [],
       "pack_limit_chars": 4000,

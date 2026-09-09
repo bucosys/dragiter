@@ -252,8 +252,8 @@ regex_patterns = ['^#+\s+.*$', '\n\n']
 ```
 
 The first pattern always splits at match starts; the match text stays on the following piece. Capturing groups are
-optional and ignored. Further patterns run only on pieces that still exceed `pack_limit_chars`. The singular
-`regex_pattern` key remains accepted as a one-element list. Additional filters (`include_filters`, `exclude_filters`)
+optional and ignored. Further patterns run only on pieces that still exceed `pack_limit_chars`. The legacy
+`regex_pattern` key is no longer accepted; use `regex_patterns`. Additional filters (`include_filters`, `exclude_filters`)
 and a section-local `base_directory` are available; see the Technical Reference for the complete schema.
 
 Optional packing: after the staged regex split, consecutive chunks **from the same file** can be joined until a
