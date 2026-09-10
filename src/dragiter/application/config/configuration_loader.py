@@ -46,6 +46,7 @@ from dragiter.domain.models.settings import (
     MaxOutputTokensIntSetting,
     MaxRetryIntSetting,
     PackLimitCharsIntSetting,
+    MaxChunksIntSetting,
     ModelNameStringSetting,
     OutputDelimiterStringSetting,
     OutputDirectoryPathSetting,
@@ -101,6 +102,7 @@ class ConfigurationLoader(Worker):
             SimulateBoolSetting("simulate"),
             SequentialProcessingBoolSetting("sequential_processing"),
             PackLimitCharsIntSetting("pack_limit_chars"),
+            MaxChunksIntSetting("max_chunks"),
         )
 
         self._ip: InputParameters = InputParameters(
@@ -198,6 +200,10 @@ class ConfigurationLoader(Worker):
                 self._ep.pack_limit_chars_int_setting,
                 help="Merge consecutive chunks per file up to this many characters (0=off)",
             ),
+            IntegerSettingArgumentDecorator(
+                self._ep.max_chunks_int_setting,
+                help="Maximum number of chunks per run (default: 200)",
+            ),
             PathSettingArgumentDecorator(
                 self._wp.base_directory_path_setting,
                 short_key="b",
@@ -228,7 +234,7 @@ class ConfigurationLoader(Worker):
             PathSettingArgumentDecorator(
                 self._lp.log_file_path_setting,
                 short_key="L",
-                help="Write log output to file (with rotation)",
+                help="Write log output to file (simple append, no rotation)",
             ),
             PathSettingArgumentDecorator(
                 self._ip.prompt_file_path_setting,

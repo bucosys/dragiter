@@ -23,6 +23,7 @@ from dragiter.domain.models.parameters import (
     OutputParameters,
 )
 from dragiter.domain.models.prompt_template import PromptTemplate
+from dragiter.domain.models.resources import Resources
 from dragiter.infrastructure.cli.simulation_brief import (
     SimulationBrief,
     SimulationSessionBrief,
@@ -30,6 +31,7 @@ from dragiter.infrastructure.cli.simulation_brief import (
     format_simulation_brief,
     format_simulation_session_brief,
     join_ruled_sections,
+    resolve_pack_budget,
 )
 from dragiter.infrastructure.io.filename_utils import (
     ensure_path_within_directory,
@@ -212,6 +214,7 @@ class OutputWriter:
         material: Material,
         loop: Loop,
         context_report: ContextValidationReport = None,
+        resources: Resources = None,
     ) -> ApplicationResult:
 
         try:
@@ -242,6 +245,7 @@ class OutputWriter:
                     loop,
                     context_report,
                     prompt,
+                    resources,
                     frame=True,
                 )
                 if simulate
@@ -258,6 +262,7 @@ class OutputWriter:
                     loop,
                     context_report,
                     prompt,
+                    resources,
                     frame=False,
                 )
                 if simulate
@@ -266,6 +271,7 @@ class OutputWriter:
             session_count = len(chat_sessions.session_list)
             valid_chunks = sum(1 for chunk in material.chunks if chunk.valid)
             loop_count = len(loop.lines)
+            batched_chars = sum(len(chunk.content) for chunk in material.chunks if chunk.valid)
 
             def _session_header(index: int, chat_session: ChatSession) -> str:
                 return self._format_session_brief(
@@ -276,6 +282,9 @@ class OutputWriter:
                     valid_chunks,
                     loop_count,
                     context_report,
+                    batched_chars,
+                    ep,
+                    resources,
                 )
 
             # write result to one file (-o)
@@ -361,8 +370,8 @@ class OutputWriter:
         ]
         return format_payload_table(messages)
 
-    @staticmethod
     def _format_session_brief(
+        self,
         chat_session: ChatSession,
         session_index: int,
         session_count: int,
@@ -370,21 +379,36 @@ class OutputWriter:
         valid_chunks: int,
         loop_count: int,
         context_report: ContextValidationReport | None,
+        batched_chars: int,
+        ep: ExecutionParameters,
+        resources: Resources | None,
     ) -> str:
         chunk = chat_session.chunk
         loop_item = chat_session.loop_item or {}
+        session_chars: int | None
         if sequential and chunk is not None:
             filename = chunk.filename or "none"
             chunk_label = f"{chunk.num_id} / {max(valid_chunks, 1)}"
             section = chunk.section_name or "none"
+            session_chars = len(chunk.content)
+            valid_label = "yes" if chunk.valid else "no"
         elif sequential:
             filename = "none"
             chunk_label = "none"
             section = "none"
+            session_chars = None
+            valid_label = "none"
         else:
             filename = "all files" if valid_chunks else "none"
             chunk_label = "all"
             section = "all"
+            session_chars = batched_chars
+            valid_label = "yes" if valid_chunks else "no"
+        pack_limit_chars, pack_from = resolve_pack_budget(
+            ep.pack_limit_chars_int_setting.is_set,
+            ep.pack_limit_chars_int_setting.value,
+            self._section_pack_limits(resources, chunk if sequential else None),
+        )
         if loop_count <= 0:
             loop_label = "none"
             loop_line = "none"
@@ -409,6 +433,11 @@ class OutputWriter:
                 loop_label=loop_label,
                 loop_line=loop_line,
                 tokens=tokens,
+                chars=session_chars,
+                pack_limit_chars=pack_limit_chars,
+                pack_from=pack_from,
+                valid=valid_label,
+                loop_items=loop_count,
             )
         )
 
@@ -423,13 +452,16 @@ class OutputWriter:
         loop: Loop,
         context_report: ContextValidationReport | None,
         prompt: PromptTemplate,
+        resources: Resources | None = None,
         *,
         frame: bool = True,
     ) -> str:
         chunks = material.chunks
-        pack_limit = None
-        if ep.pack_limit_chars_int_setting.is_set and ep.pack_limit_chars_int_setting.value > 0:
-            pack_limit = ep.pack_limit_chars_int_setting.value
+        pack_limit, pack_from = resolve_pack_budget(
+            ep.pack_limit_chars_int_setting.is_set,
+            ep.pack_limit_chars_int_setting.value,
+            self._section_pack_limits(resources, None),
+        )
         peak_session = None
         if context_report is not None and context_report.max_session_index >= 0:
             peak_session = context_report.max_session_index + 1
@@ -445,6 +477,7 @@ class OutputWriter:
                 total_chars=sum(len(chunk.content) for chunk in chunks),
                 sequential=prompt.sequential_processing,
                 pack_limit_chars=pack_limit,
+                pack_from=pack_from,
                 peak_tokens=None if context_report is None else context_report.max_session_tokens,
                 token_limit=None if context_report is None else context_report.max_tokens_limit,
                 peak_session=peak_session,
@@ -466,6 +499,23 @@ class OutputWriter:
             ),
             frame=frame,
         )
+
+
+    @staticmethod
+    def _section_pack_limits(
+        resources: Resources | None,
+        chunk: Chunk | None,
+    ) -> list[int | None]:
+        if resources is None:
+            return []
+        sections = resources.resource_sections
+        if chunk is not None:
+            return [
+                section.pack_limit_chars
+                for section in sections
+                if section.section_name == chunk.section_name
+            ]
+        return [section.pack_limit_chars for section in sections]
 
 
 class OutputWriterError(Exception):

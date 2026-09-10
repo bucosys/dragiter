@@ -20,6 +20,7 @@ from dragiter.infrastructure.cli.simulation_brief import (
     format_simulation_panel_brief,
     format_simulation_session_brief,
     format_simulation_transcript,
+    resolve_pack_budget,
 )
 
 
@@ -34,6 +35,7 @@ def _sample() -> SimulationBrief:
         total_chars=4812,
         sequential=False,
         pack_limit_chars=4000,
+        pack_from="cli",
         peak_tokens=410,
         token_limit=8192,
         peak_session=2,
@@ -65,6 +67,9 @@ def test_panel_brief_pads_cells_to_fixed_width() -> None:
     assert "batched" in text
     assert "./outputs" in text
     assert "small / over" in text
+    assert "pack from" in text
+    assert "cli" in text
+    assert "valid chunks" not in text
 
 
 def test_file_board_is_valid_gfm() -> None:
@@ -88,6 +93,11 @@ def test_session_brief_names_chunk_and_loop() -> None:
             loop_label="2 / 3",
             loop_line="Q2-limits",
             tokens=1929,
+            chars=3992,
+            pack_limit_chars=4000,
+            pack_from="section",
+            valid="yes",
+            loop_items=3,
         )
     )
     lines = text.splitlines()
@@ -100,8 +110,24 @@ def test_session_brief_names_chunk_and_loop() -> None:
     assert "notes.md" in text
     assert "2 / 12" in text
     assert "heading-03" in text
-    assert "Q2-limits" in text
+    assert "yes" in text
+    assert "loop index" in text
+    assert "2 / 3" in text
+    assert "loops" in text
     assert "1,929" in text
+    assert "3,992" in text
+    assert "4,000" in text
+    assert "pack from" in text
+    assert "section" in text
+    assert "Q2-limits" not in text
+
+
+def test_resolve_pack_budget_origins() -> None:
+    assert resolve_pack_budget(True, 4000, [2000]) == (4000, "cli")
+    assert resolve_pack_budget(True, 0, [4000]) == (None, "cli")
+    assert resolve_pack_budget(False, None, [4000, 4000]) == (4000, "section")
+    assert resolve_pack_budget(False, None, [4000, 2000]) == (None, "mixed")
+    assert resolve_pack_budget(False, None, [None, 0]) == (None, "off")
 
 
 def test_output_writer_prints_padded_markdown_table(capsys) -> None:

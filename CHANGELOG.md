@@ -8,25 +8,15 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+### Changed
+
 ## [2026.9.9] - 2026-09-09
 
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.9.9](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.9)
 
-### Removed
-- Resource TOML key `regex_pattern` is no longer accepted. Use `regex_patterns`
-  as a list. Presence of the old key aborts collection with a section-specific
-  error. The activity record no longer duplicates a singular `regex_pattern`
-  field
-
 ### Added
-- Added `examples/04_staged_regex_sample` to demonstrate staged
-  `regex_patterns` plus sequential per-chunk editing of a requirements
-  profile
-- Simulate run board now shows `small / over` counts for final chunks shorter
-  than 50 characters or larger than the active pack budget
-- `--verbose` logs INFO notes when final chunks are undersized or still over
-  `pack_limit_chars`. `--debug` traces split, overflow, filter and pack steps
-  by section and file (lengths and counts only)
+- `--max-chunks` / `max_chunks` / `DRAGITER_MAX_CHUNKS`: raise or lower the
+  tokenizer cap (default 200, minimum 1)
 - `ContextValidationReport` now implements `ActivityProvider`: per-run
   summary and per-session token estimates (`estimated_input_tokens`,
   reserved output, calculated total, limit) are written to the activity
@@ -38,22 +28,27 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   A globally set value, including `0`, overrides the section key
 - Unit tests for chunk packing, resource-TOML `pack_limit_chars`, and
   validator range `merge_max_chars >= 0`
-- Secure staging mechanism for directory outputs (`-O` option) to safeguard expensive 
-  LLM API results against unexpected file write conflicts.
+- Secure staging mechanism for directory outputs (`-O` option) to safeguard expensive LLM API results against unexpected file write conflicts.
 - New infrastructure adapter `write_directory_with_staging` in `io_services` to handle 
   transactional file commits using hidden temporary directories (e.g. `.tmp_staging_<PID>`).
 
 ### Changed
-- Simulate mode writes a run board to stdout. `-O` files start with a
-  session board (index, file, chunk, section, loop line, tokens) and
-  the role/content transcript. `-o` prints the run board once, then
-  one session board plus transcript per session
+- Keep `requires-python = ">=3.11"`. The 3.13-only `Path.glob(recurse_symlinks=...)`
+  call was removed in 2026.8.16; the tree no longer needs a 3.13 floor.
+- Pin the LLM stack to the current majors: `openai>=3.0.0,<4.0.0` and
+  `httpx2>=2.7.0,<3.0.0`. The live adapter is coupled to
+  `openai.DefaultHttpx2Client`.
+- Simulate run board shows the effective pack budget and `pack from`
+  (`cli` / `section` / `mixed` / `off`), `small / over`, and window
+  facts. Session boards in `-o`/`-O` list session, file, chunk, section,
+  valid, chars, tokens, pack, pack from and loop index. `sessions` is
+  the request count (chunks × loop lines when sequential)
 - `MaterialTokenizer` splits at regex match starts instead of pairing
   captured headers with bodies; capturing groups are no longer required
 - Resource sections accept `regex_patterns` (list). Pattern 0 always
-  runs; later patterns refine only pieces above `pack_limit_chars`
-- Chunk size notes use the active `pack_limit_chars` instead of a fixed
-  20 000-character ceiling, and they apply to final packed chunks
+  runs; later patterns refine only pieces above `pack_limit_chars`.
+  The singular key `regex_pattern` is no longer accepted; a section
+  that still sets it aborts collection and names the section
 - Context-window estimation logs the three parameters, per-session
   totals and a summary at `INFO` when verbose is on (previously
   `DEBUG`, which verbose never showed)
@@ -63,6 +58,16 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   logic to the infrastructure layer, maintaining strict Clean Architecture boundaries.
 
 ### Fixed
+- `PromptCreator` no longer reads stdin unconditionally. Stdin is consumed
+  only when `-t` / `--task` is set or the prompt template contains `{STDIN}`
+  in `task.first`. Non-interactive runs (`dragiter -s -p …`) no longer hang
+  on an inherited, still-open stdin (CI, systemd, Docker without `-i`).
+- Documentation now matches the breaking change: `regex_pattern` is rejected,
+  not treated as an alias of `regex_patterns`.
+- `PromptCreator` no longer reads stdin unconditionally. Stdin is consumed
+  only when `-t` / `--task` is set or the prompt template contains `{STDIN}`
+  in `task.first`. Non-interactive runs (`dragiter -s -p …`) no longer hang
+  on an inherited, still-open stdin (CI, systemd, Docker without `-i`).
 - Streaming completions requested `stream_options.include_usage` so
   `ChatResults.input_tokens` / `output_tokens` are filled from the
   provider instead of staying `0`

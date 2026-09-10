@@ -30,10 +30,9 @@ class PromptCreator(Worker):
 
 
         try:
-            std_in = read_stdin_content()
-
             if ip.task_string_setting.is_set:
-                return PromptTemplate(instruction=None, first=std_in,
+                # -t/--task opts in: stdin becomes the `first` field.
+                return PromptTemplate(instruction=None, first=read_stdin_content(),
                                       material=None, synthesis=ip.task_string_setting.value,
                                       temperature=(aisp.temperature_float_setting.value or 0.0),
                                       sequential_processing=(ep.sequential_processing_bool_setting.value or False),
@@ -49,8 +48,11 @@ class PromptCreator(Worker):
                 system_sec = toml_result_dict["system"]
                 task_sec = toml_result_dict["task"]
 
-                if task_sec.get("first"):
-                    task_sec["first"] = self._merge_stdin_into_string(task_sec["first"], std_in)
+                first = task_sec.get("first")
+                if isinstance(first, str) and "{STDIN}" in first:
+                    task_sec["first"] = self._merge_stdin_into_string(
+                        first, read_stdin_content()
+                    )
 
                 # now the specialities
                 # a) build defaults

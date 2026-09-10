@@ -14,8 +14,8 @@ DESCRIPTION
        dragiter is a focused command-line tool that performs controlled,
        reproducible calls to OpenAI-compatible LLM services. Live calls
        always stream (OpenAIServiceExt / httpx2). The streaming path
-       requires openai >= 3.0.0 and httpx2 >= 2.7.0; openai 1.x / 2.x
-       do not provide DefaultHttpx2Client. It combines:
+       requires openai >= 3.0.0,<4.0.0 and httpx2 >= 2.7.0,<3.0.0;
+       openai 1.x / 2.x do not provide DefaultHttpx2Client. It combines:
 
        * input material (documents, chunks, JSONL, …)
        * prompt templates
@@ -66,6 +66,8 @@ OPTIONS
                                       as the regex produced them. A value
                                       set here overrides pack_limit_chars
                                       in the resource TOML
+           --max-chunks INT           Maximum chunks per run. Unset uses
+                                      200. Values must be >= 1
 
        API & Connection
            --api-key KEY              API key for the LLM service
@@ -150,6 +152,7 @@ ENVIRONMENT
            DRAGITER_MAX_CONTEXT_TOKENS
            DRAGITER_MAX_OUTPUT_TOKENS
            DRAGITER_PACK_LIMIT_CHARS
+           DRAGITER_MAX_CHUNKS
            DRAGITER_RETRY_DELAY
            DRAGITER_MAX_RETRY
            DRAGITER_OUTPUT_MODE          (x | w | a)

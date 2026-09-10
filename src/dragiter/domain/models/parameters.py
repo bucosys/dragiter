@@ -18,6 +18,7 @@ from dragiter.domain.models.settings import (
     LoopFilePathSetting,
     MaxContextTokensIntSetting,
     MaxOutputTokensIntSetting,
+    MaxChunksIntSetting,
     MaxRetryIntSetting,
     ModelNameStringSetting,
     OutputDelimiterStringSetting,
@@ -73,6 +74,7 @@ class ExecutionParameters(ValueSettingsActivityProvider):
     simulate_bool_setting: SimulateBoolSetting
     sequential_processing_bool_setting: SequentialProcessingBoolSetting
     pack_limit_chars_int_setting: PackLimitCharsIntSetting
+    max_chunks_int_setting: MaxChunksIntSetting
 
 
 @dataclass(frozen=True)

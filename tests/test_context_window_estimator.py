@@ -52,6 +52,7 @@ from dragiter.domain.models.settings import (
     MaxOutputTokensIntSetting,
     MaxRetryIntSetting,
     PackLimitCharsIntSetting,
+    MaxChunksIntSetting,
     ModelNameStringSetting,
     RetryDelayIntSetting,
     SequentialProcessingBoolSetting,
@@ -148,6 +149,7 @@ def make_settings(
         simulate_setting,
         SequentialProcessingBoolSetting("sequential_processing"),
         PackLimitCharsIntSetting("pack_limit_chars"),
+        MaxChunksIntSetting("max_chunks"),
     )
     return aisp, lp, ep
 

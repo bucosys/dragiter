@@ -41,10 +41,11 @@ Before spending API credits or waiting for a local model, verify that file routi
 dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
-The `-s` flag prevents any network or model calls. Stdout prints the run board (sessions, mode batched or sequential,
-chunks, loops, window). Each file under `-O` starts with a session board (session index, file, chunk, section, loop
-line, tokens), then a blank line, then the role/content transcript of that query. A single `-o` file prints the run
-board once, then one session board plus transcript per session.
+The `-s` flag prevents any network or model calls. Stdout prints the run board (sessions as request count, mode,
+chunks, loops, effective pack budget and its origin, small/over, window). Each file under `-O` starts with a
+session board (session index, file, chunk, section, valid, chars, tokens, pack, pack from, loop index), then a
+blank line, then the role/content transcript of that query. A single `-o` file prints the run board once, then
+one session board plus transcript per session.
 
 ### 3. Run against a local Ollama instance
 
@@ -252,8 +253,9 @@ regex_patterns = ['^#+\s+.*$', '\n\n']
 ```
 
 The first pattern always splits at match starts; the match text stays on the following piece. Capturing groups are
-optional and ignored. Further patterns run only on pieces that still exceed `pack_limit_chars`. The legacy
-`regex_pattern` key is no longer accepted; use `regex_patterns`. Additional filters (`include_filters`, `exclude_filters`)
+optional and ignored. Further patterns run only on pieces that still exceed `pack_limit_chars`. The singular key
+`regex_pattern` is no longer accepted; a section that still sets it aborts collection and names the section.
+Additional filters (`include_filters`, `exclude_filters`)
 and a section-local `base_directory` are available; see the Technical Reference for the complete schema.
 
 Optional packing: after the staged regex split, consecutive chunks **from the same file** can be joined until a
@@ -261,6 +263,8 @@ character budget is reached. Set `pack_limit_chars` on the section, or globally 
 `pack_limit_chars` / `DRAGITER_PACK_LIMIT_CHARS`. Unset or `0` disables packing and also disables overflow patterns
 after the first. A globally set value, including `0`, overrides the section key. A single piece that no remaining
 pattern can reduce stays intact. Valid and invalid chunks are not mixed.
+A run that would produce more than 200 chunks aborts unless `--max-chunks` /
+`max_chunks` / `DRAGITER_MAX_CHUNKS` raises the cap (minimum 1).
 
 When you later run dragiter with `-r your_resource.toml`, the matched files are read, split according to the regex, and
 become the material that can be injected into prompts via the `[MATERIAL]` placeholder and the `{CHUNK_*}` variables.

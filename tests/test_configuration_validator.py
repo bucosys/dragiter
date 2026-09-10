@@ -173,3 +173,21 @@ class TestConfigurationValidator:
         result = ConfigurationValidator().run(**s)
 
         assert result is None
+
+    def test_max_chunks_zero_raises(self, tmp_path: Path) -> None:
+        s = _minimal_valid(tmp_path)
+        s["ep"].max_chunks_int_setting.set(0, ValueOrigin.CLI)
+
+        with pytest.raises(ConfigurationValidatorError) as exc_info:
+            ConfigurationValidator().run(**s)
+
+        msg = _findings(exc_info.value)
+        assert "max_chunks" in msg.lower()
+
+    def test_max_chunks_positive_is_accepted(self, tmp_path: Path) -> None:
+        s = _minimal_valid(tmp_path)
+        s["ep"].max_chunks_int_setting.set(400, ValueOrigin.CLI)
+
+        result = ConfigurationValidator().run(**s)
+
+        assert result is None

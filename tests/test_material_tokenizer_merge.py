@@ -10,6 +10,7 @@ from dragiter.domain.models.parameters import ExecutionParameters
 from dragiter.domain.models.resources import Resources, ResourceSection
 from dragiter.domain.models.settings import (
     PackLimitCharsIntSetting,
+    MaxChunksIntSetting,
     SequentialProcessingBoolSetting,
     SimulateBoolSetting,
     ValueOrigin,
@@ -29,6 +30,7 @@ def _ep(pack_limit_chars: int | None = None) -> ExecutionParameters:
         SimulateBoolSetting("simulate"),
         SequentialProcessingBoolSetting("sequential_processing"),
         setting,
+        MaxChunksIntSetting("max_chunks"),
     )
 
 

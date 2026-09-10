@@ -63,8 +63,9 @@ The CLI wires `OpenAIServiceExt` (`src/dragiter/infrastructure/llm/openai_servic
 - The HTTP stack is **httpx2** via `openai.DefaultHttpx2Client`.
 - Read timeout is unlimited; connect / write / pool timeouts stay bounded.
 - `--tcp-keep-alive` maps to `httpx2.HTTPTransport(socket_options=...)`.
-- Hard install floor: `openai>=3.0.0` and `httpx2>=2.7.0`. openai 1.x / 2.x do
-  **not** export `DefaultHttpx2Client` and do not install `httpx2`.
+- Install range: `openai>=3.0.0,<4.0.0` and `httpx2>=2.7.0,<3.0.0`. openai 1.x / 2.x do
+  **not** export `DefaultHttpx2Client` and do not install `httpx2`. The upper
+  bounds keep a future openai 4.x from dropping that client under a live install.
 - The non-streaming `OpenAIService` remains in the tree and still uses classic
   `httpx`; it is not the CLI default.
 
@@ -137,6 +138,7 @@ All settings that appear in the configuration loader are listed below.
 | `retry_delay`            | —         | int    | 3 s at runtime if unset   | Base wait between attempts 2…*n*; doubles each time            |
 | `max_retry`              | —         | int    | 1 attempt if unset        | Maximum number of completion attempts (not extra retries)      |
 | `pack_limit_chars`        | —         | int    | (none) / off              | Pack consecutive regex chunks per file up to N characters      |
+| `max_chunks`              | —         | int    | 200                       | Maximum chunks per run. Must be ≥ 1 when set                   |
 | `base_directory`         | `-b`      | path   | (unset)                   | Base for relative paths. **Not** pre-filled with CWD           |
 | `activity_file`          | `-a`      | path   | (none)                    | Write activity log to this file                                |
 | `ca_bundle_file`         | —         | path   | (none)                    | Custom CA certificate bundle (PEM)                             |
@@ -168,20 +170,21 @@ the setting is left unset.
   “unset” both mean a single try.
 - `chars_per_token` (when set) must be greater than 0.0.
 - `pack_limit_chars` (when set) must be ≥ 0. `0` disables packing.
+- `max_chunks` (when set) must be ≥ 1. Unset uses 200.
 - Paths that are required must be readable (or writable for output paths).
 - `client_key_file` without `client_cert_file` is rejected.
 - `base_url` is optional in simulation mode.
 
 ### Hard limits (circuit breakers)
 
-These limits are enforced at runtime and **cannot be configured**. They exist to protect against accidental
-combinatorial explosion, excessive memory consumption and runaway API costs.
+These limits exist to protect against accidental combinatorial explosion,
+excessive memory consumption and runaway API costs.
 
-| Limit                | Value  | Component              | Behaviour on breach                     |
-|----------------------|--------|------------------------|-----------------------------------------|
-| Maximum file size    | 100 MB | `SimpleTextFileReader` | Raises `TextFileReaderError` and aborts |
-| Maximum total chunks | 200    | `MaterialTokenizer`    | Raises an error and aborts processing   |
-| Maximum loop items   | 50     | `LoopBuilder`          | Raises `LoopBuilderError` and aborts    |
+| Limit                | Value                         | Component              | Behaviour on breach                     |
+|----------------------|-------------------------------|------------------------|-----------------------------------------|
+| Maximum file size    | 100 MB                        | `SimpleTextFileReader` | Raises `TextFileReaderError` and aborts |
+| Maximum total chunks | 200, or `max_chunks` if set   | `MaterialTokenizer`    | Raises an error and aborts processing   |
+| Maximum loop items   | 50                            | `LoopBuilder`          | Raises `LoopBuilderError` and aborts    |
 
 In addition the `MaterialTokenizer` emits warnings (but continues) when an individual chunk is unusually small (< 50
 characters) or unusually large (> 20 000 characters). These warnings help detect poorly chosen regular expressions.
@@ -207,6 +210,7 @@ DRAGITER_TEMPERATURE
 DRAGITER_RETRY_DELAY
 DRAGITER_MAX_RETRY
 DRAGITER_PACK_LIMIT_CHARS
+DRAGITER_MAX_CHUNKS
 DRAGITER_BASE_DIRECTORY
 DRAGITER_CONFIG_FILE
 DRAGITER_PROMPT_FILE
@@ -327,7 +331,10 @@ output_filename_schema = "sample_01.txt"
 - `{CHUNK_CONTENT}`
 - `{LOOP_CONTENT}`
 - `{LOOP_NUM_ID}` (and other keys that may appear in a loop dictionary)
-- `{STDIN}` (replaced by content read from standard input, if any)
+- `{STDIN}` (replaced by content read from standard input, if any).
+  Standard input is read only when this placeholder appears in `task.first`,
+  or when `-t` / `--task` is used (stdin then becomes the `first` field).
+  Templates without the placeholder do not touch stdin.
 
 ### Defaults applied by PromptCreator
 
@@ -387,7 +394,8 @@ Inside a section the following keys are used:
 - `regex_patterns` - list of regular expressions used to split the matched files into chunks. The first pattern always
   cuts at match starts (the match text stays on the following piece; capturing groups are ignored). Later patterns are
   applied only to pieces that still exceed `pack_limit_chars`. Default when omitted: a pattern that matches nothing.
-- `regex_pattern` - removed. A section that still sets this key is rejected. Use `regex_patterns`.
+  The singular key `regex_pattern` is no longer accepted; a section that still sets it aborts collection and names
+  the section.
 - Optional filters (supported by the `ResourceSection` model): `exclude_filters`, `include_filters`
 - `pack_limit_chars` (optional, per section) - after the staged regex split, join consecutive chunks of the **same file**
   until this many characters would be exceeded. Measured in characters. `0` or omitted means no packing and no overflow
@@ -506,6 +514,36 @@ directory (`.tmp_staging_<PID>`) within the target path. Only after all completi
 have been successfully processed are the files atomically committed to their final 
 destination. If a write conflict occurs (such as an existing file under exclusive mode `-m x`), the process aborts to prevent data corruption, whilst leaving all generated results safely preserved inside the staging directory for easy recovery.
 
+### Simulate boards
+
+Stdout in simulate mode prints a four-column run board. `-O` files start with a
+session board; `-o` writes the run board once and then one session board plus
+transcript per session.
+
+`sessions` is the number of chat requests. Sequential mode multiplies valid
+chunks by loop lines (or by one when no loop file is present).
+
+`pack` is the effective character budget. `pack from` is `cli` when
+`pack_limit_chars` is set globally (including `0`), `section` when a single
+positive section budget applies, `mixed` when section budgets differ, and
+`off` when no budget is set. `small / over` uses that same effective budget.
+
+`window`, `peak / limit` and `peak at / warns` stay `--` / `n/a` until
+`chars_per_token`, `max_context_tokens` and `max_output_tokens` are all set.
+`replies / stdout` is the result count plus the word `brief` (the console
+shows the run board, not the payloads).
+
+The session board lists session index, file, chunk, section, valid (`yes` /
+`no`), chars, tokens, pack, pack from, loop index and loop count.
+
+`chars` on a session board is the character length of that session's chunk
+(or of all valid chunks when batched). `tokens` is not `chars / chars_per_token`.
+It is the estimator's **calculated total** for the request: estimated input
+tokens of every message in the session (system, material framing, chunk text
+and synthesis) **plus** the reserved `max_output_tokens`. The same total
+feeds `peak / limit` on the run board. Estimated input alone is written to
+the activity file as `estimated_input_tokens`.
+
 ---
 
 ## 10. Activity log format
@@ -615,7 +653,7 @@ Example:
       "exclude_filters": [],
       "include_filters": [],
       "pack_limit_chars": 4000,
-      "files": 2}
+      "files": 2
     }
   ]
 }

@@ -30,6 +30,7 @@ from dragiter.domain.models.parameters import ExecutionParameters
 from dragiter.domain.models.resources import Resources, ResourceSection
 from dragiter.domain.models.settings import (
     PackLimitCharsIntSetting,
+    MaxChunksIntSetting,
     SequentialProcessingBoolSetting,
     SimulateBoolSetting,
     ValueOrigin,
@@ -86,6 +87,7 @@ def _blank_ep() -> ExecutionParameters:
         SimulateBoolSetting("simulate"),
         SequentialProcessingBoolSetting("sequential_processing"),
         PackLimitCharsIntSetting("pack_limit_chars"),
+        MaxChunksIntSetting("max_chunks"),
     )
 
 
@@ -217,6 +219,25 @@ class TestMaterialTokenizerChunkLimit:
             tokenizer.run(resources, _blank_ep())
 
         assert str(MaterialTokenizer.MAX_TOTAL_CHUNKS) in _error_text(exc_info.value)
+
+    def test_max_chunks_setting_overrides_default(self, tmp_path: Path) -> None:
+        content = _heading_document(6)
+        resources = _make_resources_with_content(tmp_path, content)
+        tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
+        ep = _blank_ep()
+        ep.max_chunks_int_setting.set(5, ValueOrigin.CLI)
+
+        with pytest.raises(MaterialTokenizerError) as exc_info:
+            tokenizer.run(resources, ep)
+
+        msg = _error_text(exc_info.value)
+        assert "5" in msg
+        assert "max_chunks" in msg
+
+        ep_ok = _blank_ep()
+        ep_ok.max_chunks_int_setting.set(6, ValueOrigin.CLI)
+        material = tokenizer.run(resources, ep_ok)
+        assert len(material.chunks) == 6
 
 
 class TestMaterialTokenizerChunkSizeWarnings:

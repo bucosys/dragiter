@@ -31,6 +31,7 @@ from dragiter.domain.models.settings import (
     MaxOutputTokensIntSetting,
     MaxRetryIntSetting,
     PackLimitCharsIntSetting,
+    MaxChunksIntSetting,
     ModelNameStringSetting,
     OutputDelimiterStringSetting,
     OutputDirectoryPathSetting,
@@ -105,6 +106,7 @@ def blank_parameter_groups() -> dict[str, Any]:
         SimulateBoolSetting("simulate"),
         SequentialProcessingBoolSetting("sequential_processing"),
         PackLimitCharsIntSetting("pack_limit_chars"),
+        MaxChunksIntSetting("max_chunks"),
     )
     ip = InputParameters(
         TaskStringSetting("task"),

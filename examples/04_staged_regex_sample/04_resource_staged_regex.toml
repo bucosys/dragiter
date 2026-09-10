@@ -1,54 +1,15 @@
-# Sequential editor for the staged-regex requirements profile.
-# Each session receives one packed chunk and must return cleaned Markdown
-# for that chunk only. Re-run the pipeline on the concatenated result
-# if filler remains.
+# Staged regex demonstration for 04_dragiter_requirements_profile.md
+#
+# Pattern 0 cuts on level-2 chapter headings (`## `).
+# Pattern 1 runs only on pieces that still exceed pack_limit_chars
+# and cuts those pieces on level-3 headings (`### `).
+# `####` requirement blocks are not cut: after `###` comes `#`, not whitespace.
+#
+# Compare:
+#   dragiter -s --pack-limit-chars 0  …   → overflow off, 49 chapter-grain chunks
+#   dragiter -s                          …   → budget 4000, 75 packed chunks
 
-[system]
-instruction = """
-You are a ruthless technical editor for the dragiter project
-(Deterministic Context Iterator).
-
-Write British English. Output Markdown only. No preamble, no apology,
-no analysis of your edits.
-
-Rules:
-- Keep claims that match the real product: CLI pipeline, resource TOML,
-  regex_patterns (list only), staged split, pack_limit_chars, simulate
-  board, verbose INFO, debug counts, configuration precedence, activity
-  log masking, OpenAI-compatible streaming, path containment.
-- Delete filler: repeated index restatements, empty scenario beats,
-  padding written only to inflate page count, sentences that do not
-  change an operator-visible rule.
-- Do not invent features, flags, defaults or APIs.
-- Preserve heading levels that still have substance (`##`, `###`, `####`).
-  Drop a heading that would be left with no body.
-- Do not merge this chunk with material you have not been given.
-- If the chunk is already tight, return it almost unchanged.
-"""
-
-[task]
-first = """
-### CHUNK TO EDIT
-Edit only the following excerpt of the dragiter requirements profile.
-Return the cleaned Markdown for this excerpt and nothing else.
-"""
-
-material = """
-ID: {CHUNK_NUM_ID:04d}
-FILE: {CHUNK_FILE_NAME}
-SECTION: {CHUNK_SECTION_NAME}
-
-{CHUNK_CONTENT}
-"""
-
-synthesis = """
-Rewrite the excerpt now. Output the cleaned Markdown only.
-"""
-
-[behaviour]
-temperature = 0.0
-sequential_processing = true
-
-[outcome]
-output_delimiter = "\n\n"
-output_filename_schema = "04_clean_{CHUNK_NUM_ID:04d}.md"
+[requirements]
+glob_patterns = ["04_dragiter_requirements_profile.md"]
+regex_patterns = ['^##\s+', '^###\s+']
+pack_limit_chars = 4000

@@ -13,7 +13,6 @@ while the wiring between pipeline workers is broken.
 from __future__ import annotations
 
 import inspect
-import io
 import json
 from pathlib import Path
 import sys
@@ -85,10 +84,10 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
     environments that only exercise simulation.
     """
     saved_argv = sys.argv
-    saved_stdin = sys.stdin
     try:
         sys.argv = ["dragiter", *flags]
-        sys.stdin = io.StringIO("")
+        # Do not preload stdin. A template without {STDIN} and without -t
+        # must not block on an inherited, still-open standard input.
         MockAIService.process_query = _compatible_process_query  # type: ignore[method-assign]
 
         app = Application()
@@ -113,7 +112,6 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
     finally:
         MockAIService.process_query = _ORIGINAL_MOCK_PROCESS_QUERY  # type: ignore[method-assign]
         sys.argv = saved_argv
-        sys.stdin = saved_stdin
 
 
 def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:

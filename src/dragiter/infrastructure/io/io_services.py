@@ -247,19 +247,25 @@ class StdinReadError(Exception):
 
 def read_stdin_content(
     max_size_bytes: int = 10 * 1024 * 1024, encoding: str = "utf-8"
-) -> str:
+) -> str | None:
     """
-    Reads all data from stdin and returns it as a string.
+    Read all data from stdin and return it as a string.
+
+    Callers must invoke this only when stdin is part of the contract
+    (``{STDIN}`` in the prompt template, or ``-t`` / ``--task``). A
+    blocking ``read()`` on a non-TTY that never reaches EOF hangs the
+    process (CI, systemd, Docker without ``-i``).
 
     Args:
         max_size_bytes: Memory limit to prevent DoS (default 10MB).
         encoding: The character encoding to use.
 
     Returns:
-        The full content of stdin.
+        The full content of stdin, or ``None`` when stdin is a TTY.
 
     Raises:
-        StdinReadError: If decoding fails, size limit is exceeded, or I/O error occurs.
+        IOServiceError: If decoding fails, the size limit is exceeded, or an I/O error occurs.
+        StdinReadError: If the configured size limit is exceeded.
     """
     try:
         # If it is a terminal and not a pipe/file, we might want to skip reading

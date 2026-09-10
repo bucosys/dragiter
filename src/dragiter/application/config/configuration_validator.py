@@ -205,6 +205,14 @@ class ConfigurationValidator:
                         )
                     )
 
+            if ep.max_chunks_int_setting.is_set and ep.max_chunks_int_setting.value < 1:
+                    cvfs.append(
+                        CVF(
+                            ep.max_chunks_int_setting.key,
+                            f"value should not be less than 1: {ep.max_chunks_int_setting.value}",
+                        )
+                    )
+
             # Stage IV Cert
             if (
                 aisp.client_key_file_path_setting.is_set

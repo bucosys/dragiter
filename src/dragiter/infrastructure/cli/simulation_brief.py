@@ -22,6 +22,7 @@ class SimulationBrief:
     total_chars: int
     sequential: bool
     pack_limit_chars: int | None
+    pack_from: str
     peak_tokens: int | None
     token_limit: int | None
     peak_session: int | None
@@ -47,6 +48,11 @@ class SimulationSessionBrief:
     loop_label: str
     loop_line: str
     tokens: int | None
+    chars: int | None = None
+    pack_limit_chars: int | None = None
+    pack_from: str = "off"
+    valid: str = "yes"
+    loop_items: int = 0
 
 
 def format_simulation_brief(brief: SimulationBrief, *, frame: bool = True) -> str:
@@ -103,6 +109,30 @@ def format_simulation_transcript(
     return join_ruled_sections(table)
 
 
+def resolve_pack_budget(
+    global_is_set: bool,
+    global_value: int | None,
+    section_limits: list[int | None],
+) -> tuple[int | None, str]:
+    """Return the effective pack budget and its origin.
+
+    A globally set value, including ``0``, wins. Otherwise a single positive
+    section budget is ``section``. Differing section budgets are ``mixed``.
+    """
+
+    if global_is_set:
+        if isinstance(global_value, int) and global_value > 0:
+            return global_value, "cli"
+        return None, "cli"
+    positives = [limit for limit in section_limits if isinstance(limit, int) and limit > 0]
+    if not positives:
+        return None, "off"
+    unique = set(positives)
+    if len(unique) == 1:
+        return positives[0], "section"
+    return None, "mixed"
+
+
 def format_simulation_session_brief(
     brief: SimulationSessionBrief,
     *,
@@ -112,11 +142,15 @@ def format_simulation_session_brief(
 
     mode = "sequential" if brief.sequential else "batched"
     tokens = _dash(brief.tokens)
+    pack = _pack_cell(brief.pack_limit_chars, brief.pack_from)
+    chars = _dash(brief.chars)
     rows = [
         ("session", f"{brief.session_index} / {brief.session_count}", "mode", mode),
         ("file", brief.filename or "none", "chunk", brief.chunk_label),
-        ("section", brief.section or "none", "loop", brief.loop_label),
-        ("loop line", brief.loop_line or "none", "tokens", tokens),
+        ("section", brief.section or "none", "valid", brief.valid or "none"),
+        ("chars", chars, "tokens", tokens),
+        ("pack", pack, "pack from", brief.pack_from or "off"),
+        ("loop index", brief.loop_label or "none", "loops", str(brief.loop_items)),
     ]
     return _render_board(rows, frame=frame)
 
@@ -141,7 +175,7 @@ def format_simulation_panel_brief(brief: SimulationBrief, *, frame: bool = True)
 
     model = brief.model or "unset"
     mode = "sequential" if brief.sequential else "batched"
-    pack = "off" if brief.pack_limit_chars is None or brief.pack_limit_chars <= 0 else _count(brief.pack_limit_chars)
+    pack = _pack_cell(brief.pack_limit_chars, brief.pack_from)
     window = _window_word(brief.window_ok)
     peak = _dash(brief.peak_tokens)
     limit = _dash(brief.token_limit)
@@ -153,9 +187,9 @@ def format_simulation_panel_brief(brief: SimulationBrief, *, frame: bool = True)
         ("model", model, "mode", mode),
         ("sessions", str(brief.sessions), "chunks / files", f"{brief.chunks} / {brief.source_files}"),
         ("valid / loops", f"{brief.valid_chunks} / {brief.loop_items}", "chars", _count(brief.total_chars)),
-        ("pack", pack, "window", window),
+        ("pack", pack, "pack from", brief.pack_from or "off"),
+        ("small / over", f"{brief.small_chunks} / {brief.oversize_chunks}", "window", window),
         ("peak / limit", f"{peak} / {limit}", "peak at / warns", f"{slot} / {brief.warning_count}"),
-        ("small / over", f"{brief.small_chunks} / {brief.oversize_chunks}", "valid chunks", str(brief.valid_chunks)),
         ("output", output, "replies / stdout", f"{brief.result_count} / brief"),
     ]
     return _render_board(rows, frame=frame)
@@ -195,6 +229,14 @@ def _output_path(brief: SimulationBrief) -> str:
     if brief.output_file:
         return str(brief.output_file)
     return "none"
+
+
+def _pack_cell(pack_limit_chars: int | None, pack_from: str) -> str:
+    if pack_from == "mixed":
+        return "mixed"
+    if pack_limit_chars is None or pack_limit_chars <= 0:
+        return "off"
+    return _count(pack_limit_chars)
 
 
 def _window_word(window_ok: bool | None) -> str:

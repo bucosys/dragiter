@@ -13,6 +13,8 @@ file by hand. The prompt is the editor.
 - Pattern 0: `^##\s+` — chapter grain.
 - Pattern 1: `^###\s+` — only when a piece still exceeds `pack_limit_chars`.
 - Pack budget on the section: `4000` characters.
+- Pack budgets around 1500 or below exceed the default 200-chunk cap.
+  Raise it with `--max-chunks 400` (or `DRAGITER_MAX_CHUNKS`).
 - No loop file. No singular `regex_pattern` key.
 
 On this revision of the profile the simulate board should report:
@@ -22,9 +24,26 @@ On this revision of the profile the simulate board should report:
 | A | `--pack-limit-chars 0` | 49 / 49 | Overflow off. One session per chapter-grain piece. |
 | B | *(section budget 4000)* | 75 / 75 | Pattern 1 refined the oversized chapters; packing joined neighbours. One live call per packed chunk. |
 
-## Step 1. Open a terminal in the example directory
+## Step 1. Work from the example directory
+
+The resource glob is only the profile file name. If that file is not in
+the process working directory (or in `-b`), dragiter loads **no chunks**.
+The simulate file then looks like `session_0001.md`, mode `batched`,
+`file none`, and raw `{CHUNK_*}` placeholders.
 
     cd examples/04_staged_regex_sample
+    ls 04_dragiter_requirements_profile.md 04_prompt_staged_regex.toml 04_resource_staged_regex.toml
+
+From elsewhere, pass the example directory as the base:
+
+    dragiter -b examples/04_staged_regex_sample \
+      -p examples/04_staged_regex_sample/04_prompt_staged_regex.toml \
+      -r examples/04_staged_regex_sample/04_resource_staged_regex.toml \
+      -s -O out
+
+Confirm the prompt file starts with `You are a ruthless technical editor`
+and contains `sequential_processing = true`. An older copy still says
+`precise analyst` and stays batched.
 
 ## Step 2. Prove the split before spending tokens
 

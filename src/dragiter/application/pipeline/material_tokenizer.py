@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class MaterialTokenizer(Worker):
-    # Hard limit: Prevents combinatorial explosion
-    MAX_TOTAL_CHUNKS: int = 200
+    # Default cap when max_chunks is unset. Prevents combinatorial explosion.
+    DEFAULT_MAX_CHUNKS: int = 200
+    MAX_TOTAL_CHUNKS: int = DEFAULT_MAX_CHUNKS
     # Warning threshold for undersized final chunks (in characters)
     WARN_MIN_CHARS: int = 50
     _PACK_SEP = "\n\n"
@@ -31,10 +32,12 @@ class MaterialTokenizer(Worker):
                 all_chunks.extend(self._process_markdown_configs(resource_section, ep))
 
                 # --- CIRCUIT BREAKER ---
-                if len(all_chunks) > self.MAX_TOTAL_CHUNKS:
+                limit = self._max_chunks(ep)
+                if len(all_chunks) > limit:
                     raise MaterialTokenizerError(
-                        f"Generated {len(all_chunks)} chunks, which exceeds the hard limit of {self.MAX_TOTAL_CHUNKS}. "
-                        f"Please refine your regex patterns or process fewer files at once."
+                        f"Generated {len(all_chunks)} chunks, which exceeds the limit of {limit} "
+                        f"(max_chunks). Refine the regex patterns, process fewer files, or raise "
+                        f"--max-chunks."
                     )
 
             return Material(chunks=all_chunks)
@@ -378,6 +381,13 @@ class MaterialTokenizer(Worker):
 
         # got it
         return True
+
+    @staticmethod
+    def _max_chunks(ep: ExecutionParameters) -> int:
+        setting = ep.max_chunks_int_setting
+        if setting.is_set and isinstance(setting.value, int) and setting.value >= 1:
+            return setting.value
+        return MaterialTokenizer.DEFAULT_MAX_CHUNKS
 
 
 class MaterialTokenizerError(Exception):
