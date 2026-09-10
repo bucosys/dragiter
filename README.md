@@ -46,6 +46,7 @@ collection and names the section. Use `regex_patterns` as a list of strings:
 
 ```toml
 regex_patterns = ['^##\s+', '^###\s+']
+```
 
 ## Quick Start
 
