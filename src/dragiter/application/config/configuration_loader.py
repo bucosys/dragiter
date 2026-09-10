@@ -254,12 +254,12 @@ class ConfigurationLoader(Worker):
             PathSettingArgumentDecorator(
                 self._op.output_file_path_setting,
                 short_key="o",
-                help="Write all output to a single file",
+                help="Write all results to a single file (do not also echo on stdout)",
             ),
             PathSettingArgumentDecorator(
                 self._op.output_directory_path_setting,
                 short_key="O",
-                help="Write outputs to directory (recommended for loops)",
+                help="Write results into a directory (do not also echo on stdout)",
             ),
         ]
 

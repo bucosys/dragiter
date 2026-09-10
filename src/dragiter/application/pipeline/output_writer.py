@@ -345,16 +345,35 @@ class OutputWriter:
                     output_mode=open_mode
                 )
 
-            # last step - print to stdout
-            if run_board_tty is not None:
-                print(run_board_tty)
-            else:
-                print(printable_value)
+            # Default sink is stdout only when neither -o nor -O is set.
+            if self._echo_results_to_stdout(op):
+                if run_board_tty is not None:
+                    print(run_board_tty)
+                else:
+                    print(printable_value)
             return ApplicationResult(0)
 
         except Exception as e:
             # Translate I/O error into a domain-specific error
             raise OutputWriterError(f"Output dispatcher failure: {e}") from e
+
+    @staticmethod
+    def _echo_results_to_stdout(op: OutputParameters) -> bool:
+        """Return True when assembled output should also be printed on stdout.
+
+        Stdout is the default sink. Once ``output_file`` (``-o``) or
+        ``output_directory`` (``-O``) is set from any configuration source,
+        file routing replaces that sink.
+
+        Redirection of stdout (``>``, ``>>``, ``|``) is not inspected.
+        ``isatty()`` cannot tell a user pipe from CI or test capture, and
+        treating a redirected stream as an extra sink would duplicate the
+        file output the caller already asked for.
+        """
+        return not (
+            op.output_file_path_setting.is_set
+            or op.output_directory_path_setting.is_set
+        )
 
     @staticmethod
     def _is_simulation(ep: ExecutionParameters, chat_results: ChatResults) -> bool:

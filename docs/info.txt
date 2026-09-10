@@ -105,8 +105,10 @@ OPTIONS
            -m, --output-mode MODE     File open mode: x = exclusive
                                       (default), w = overwrite, a = append
            -o, --output-file PATH     Write all results to a single file
+                                      (do not also echo on stdout)
            -O, --output-directory DIR Write results into the given
-                                      directory
+                                      directory (do not also echo on
+                                      stdout)
            --output-delimiter TEXT    Text inserted between multiple
                                       results
            --output-filename-schema   Filename template for -O (supports

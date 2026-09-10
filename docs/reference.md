@@ -149,8 +149,8 @@ All settings that appear in the configuration loader are listed below.
 | `prompt_file`            | `-p`      | path   | (none)                    | Path to prompt template (`.toml`)                              |
 | `loop_file`              | `-l`      | path   | (none)                    | Path to loop file (`.txt` or `.jsonl`)                         |
 | `resource_file`          | `-r`      | path   | (none)                    | Path to resource definition (`.toml`)                          |
-| `output_file`            | `-o`      | path   | (none)                    | Write all output to a single file                              |
-| `output_directory`       | `-O`      | path   | (none)                    | Write outputs into this directory                              |
+| `output_file`            | `-o`      | path   | (none)                    | Write all output to a single file; suppress stdout echo        |
+| `output_directory`       | `-O`      | path   | (none)                    | Write outputs into this directory; suppress stdout echo        |
 
 \* The example configuration files document `chars_per_token = 4.0` as the conventional default used for estimation when
 the setting is left unset.
@@ -481,6 +481,19 @@ Additional entry points:
 
 ## 9. Output behaviour
 
+### Stdout
+
+Stdout is the default result sink. Once `output_file` (`-o`) or
+`output_directory` (`-O`) is set from any configuration source, file routing
+replaces that sink: live replies and the simulate run board are written only
+to the requested file(s).
+
+Redirection of stdout (`>`, `>>`, `|`) is not inspected. `isatty()` cannot
+distinguish a user pipe from CI or test capture, and treating a redirected
+stream as an extra sink would duplicate output the caller already routed to a
+file. To keep a stream as well as a file, omit `-o`/`-O` and redirect, or
+read the written file.
+
 ### Filename generation
 
 When an `output_filename_schema` is supplied, the following placeholders are substituted (see
@@ -516,7 +529,8 @@ destination. If a write conflict occurs (such as an existing file under exclusiv
 
 ### Simulate boards
 
-Stdout in simulate mode prints a four-column run board. `-O` files start with a
+Stdout in simulate mode prints a four-column run board **only when neither
+`-o` nor `-O` is set**. `-O` files start with a
 session board; `-o` writes the run board once and then one session board plus
 transcript per session.
 

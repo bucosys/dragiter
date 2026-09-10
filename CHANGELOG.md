@@ -9,6 +9,10 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 ## [Unreleased]
 
 ### Changed
+- Results (and the simulate run board) are echoed on stdout only when
+  neither `output_file` (`-o`) nor `output_directory` (`-O`) is set.
+  File routing replaces the default stdout sink; stdout redirection is
+  not inspected.
 
 ## [2026.9.9] - 2026-09-09
 

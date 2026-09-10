@@ -226,7 +226,8 @@ def test_output_writer_writes_transcript_to_output_directory(tmp_path, capsys) -
     assert "| A " not in body
     assert "secret prompt" not in body
     assert "| DRAGITER" not in body
-    capsys.readouterr()
+    captured = capsys.readouterr()
+    assert captured.out == ""
 
 
 def test_output_writer_writes_transcript_to_output_file(tmp_path, capsys) -> None:
@@ -292,4 +293,5 @@ def test_output_writer_writes_transcript_to_output_file(tmp_path, capsys) -> Non
     assert "question two" in body
     assert body.count("\n\n| R") >= 2
     assert "| A " not in body
-    capsys.readouterr()
+    captured = capsys.readouterr()
+    assert captured.out == ""

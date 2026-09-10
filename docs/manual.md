@@ -41,11 +41,13 @@ Before spending API credits or waiting for a local model, verify that file routi
 dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
-The `-s` flag prevents any network or model calls. Stdout prints the run board (sessions as request count, mode,
+The `-s` flag prevents any network or model calls. When neither `-o` nor `-O` is
+set, stdout prints the run board (sessions as request count, mode,
 chunks, loops, effective pack budget and its origin, small/over, window). Each file under `-O` starts with a
 session board (session index, file, chunk, section, valid, chars, tokens, pack, pack from, loop index), then a
 blank line, then the role/content transcript of that query. A single `-o` file prints the run board once, then
-one session board plus transcript per session.
+one session board plus transcript per session. With `-o` or `-O`, the console
+stays quiet.
 
 ### 3. Run against a local Ollama instance
 
