@@ -101,7 +101,7 @@ A value set by a higher-priority source cannot be overridden by a lower one.
 
 ## Notable capabilities (all present in the code)
 
-- Regex-based document chunking with optional include/exclude filters
+- Regex-based document chunking with optional include/exclude filters and per-section `chunk_substitutions`
 - Sequential or batched processing of material chunks
 - Context-window estimation via `chars_per_token`, `max_context_tokens` and `max_output_tokens`
 - JSONL loops that expose every object key as a template placeholder

@@ -257,8 +257,17 @@ regex_patterns = ['^#+\s+.*$', '\n\n']
 The first pattern always splits at match starts; the match text stays on the following piece. Capturing groups are
 optional and ignored. Further patterns run only on pieces that still exceed `pack_limit_chars`. The singular key
 `regex_pattern` is no longer accepted; a section that still sets it aborts collection and names the section.
-Additional filters (`include_filters`, `exclude_filters`)
-and a section-local `base_directory` are available; see the Technical Reference for the complete schema.
+Additional filters (`include_filters`, `exclude_filters`),
+optional `chunk_substitutions` (literal search-and-replace on each piece after
+the split), and a section-local `base_directory` are available; see the Technical
+Reference for the complete schema.
+
+```toml
+chunk_substitutions = [
+  { pattern = '[ \t]{2,}', replacement = " " },
+  { pattern = '\n{3,}', replacement = "\n\n" },
+]
+```
 
 Optional packing: after the staged regex split, consecutive chunks **from the same file** can be joined until a
 character budget is reached. Set `pack_limit_chars` on the section, or globally via `--pack-limit-chars` /
@@ -268,7 +277,8 @@ pattern can reduce stays intact. Valid and invalid chunks are not mixed.
 A run that would produce more than 200 chunks aborts unless `--max-chunks` /
 `max_chunks` / `DRAGITER_MAX_CHUNKS` raises the cap (minimum 1).
 
-When you later run dragiter with `-r your_resource.toml`, the matched files are read, split according to the regex, and
+When you later run dragiter with `-r your_resource.toml`, the matched files are read, split according to the regex,
+optionally rewritten by `chunk_substitutions`, and
 become the material that can be injected into prompts via the `[MATERIAL]` placeholder and the `{CHUNK_*}` variables.
 
 ### How to write a prompt template

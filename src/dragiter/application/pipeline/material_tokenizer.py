@@ -53,6 +53,7 @@ class MaterialTokenizer(Worker):
         global_id: int = 1
         limit = self._effective_limit(ep, rs)
         compiled_patterns = self._compile_patterns(rs)
+        compiled_substitutions = self._compile_substitutions(rs)
         if ep.pack_limit_chars_int_setting.is_set:
             limit_origin = "global"
         elif rs.pack_limit_chars is not None and rs.pack_limit_chars > 0:
@@ -74,14 +75,19 @@ class MaterialTokenizer(Worker):
             file_chunks: list[Chunk] = []
 
             for piece in pieces:
+                cleaned = self._apply_substitutions(piece, compiled_substitutions)
+                if not cleaned.strip():
+                    continue
                 file_chunks.append(
                     Chunk(
                         num_id=0,
                         filename=path_obj.path.as_posix(),
                         section_name=rs.section_name,
                         section_num_id=0,
-                        valid=self._is_content_valid(piece, rs.exclude_filters, rs.include_filters),
-                        content=piece,
+                        valid=self._is_content_valid(
+                            cleaned, rs.exclude_filters, rs.include_filters
+                        ),
+                        content=cleaned,
                     )
                 )
 
@@ -116,6 +122,31 @@ class MaterialTokenizer(Worker):
                     f"Invalid regex_patterns[{index}] in section '{rs.section_name}': {exc}"
                 ) from exc
         return compiled
+
+    def _compile_substitutions(
+        self, rs: ResourceSection
+    ) -> list[tuple[re.Pattern[str], str]]:
+        compiled: list[tuple[re.Pattern[str], str]] = []
+        for index, rule in enumerate(rs.chunk_substitutions):
+            try:
+                compiled.append(
+                    (re.compile(rule.pattern, flags=re.MULTILINE), rule.replacement)
+                )
+            except re.error as exc:
+                raise MaterialTokenizerError(
+                    f"Invalid chunk_substitutions[{index}] in section '{rs.section_name}': {exc}"
+                ) from exc
+        return compiled
+
+    @staticmethod
+    def _apply_substitutions(
+        text: str,
+        rules: list[tuple[re.Pattern[str], str]],
+    ) -> str:
+        """Apply each rule in order. The replacement string is always literal."""
+        for pattern, replacement in rules:
+            text = pattern.sub(lambda _match, rep=replacement: rep, text)
+        return text
 
     def _split_staged(
         self,

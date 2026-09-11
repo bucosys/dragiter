@@ -2,12 +2,21 @@
 # SPDX-FileCopyrightText: 2026 Michael Buchold
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 from dragiter.domain.models.text_file import TextFile
 from dragiter.domain.ports.activity_provider import ActivityProvider
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ChunkSubstitution:
+    """One literal search-and-replace rule applied to a split chunk."""
+
+    pattern: str
+    replacement: str
 
 
 class ResourceSection:
@@ -19,6 +28,7 @@ class ResourceSection:
         include_filters: list[str],
         regex_patterns: list[str] | str | None = None,
         pack_limit_chars: int | None = None,
+        chunk_substitutions: list[Any] | None = None,
     ) -> None:
         """Initialise the configuration object and load settings."""
 
@@ -38,6 +48,9 @@ class ResourceSection:
         self._exclude_filters: list[str] = exclude_filters or []
         self._include_filters: list[str] = include_filters or []
         self._pack_limit_chars: int | None = pack_limit_chars if isinstance(pack_limit_chars, int) else None
+        self._chunk_substitutions: list[ChunkSubstitution] = self._coerce_chunk_substitutions(
+            chunk_substitutions
+        )
 
     @property
     def file_paths(self) -> list[TextFile]:
@@ -79,6 +92,53 @@ class ResourceSection:
     @property
     def pack_limit_chars(self) -> int | None:
         return self._pack_limit_chars
+
+    @property
+    def chunk_substitutions(self) -> list[ChunkSubstitution]:
+        return self._chunk_substitutions[:]
+
+    def _coerce_chunk_substitutions(
+        self,
+        raw: list[Any] | None,
+    ) -> list[ChunkSubstitution]:
+        if raw is None:
+            return []
+        if not isinstance(raw, list):
+            raise ResourceSectionError(
+                f"Section '{self._section_name}' key 'chunk_substitutions' "
+                "must be a list of tables."
+            )
+        rules: list[ChunkSubstitution] = []
+        for index, item in enumerate(raw):
+            if not isinstance(item, dict):
+                raise ResourceSectionError(
+                    f"Section '{self._section_name}' chunk_substitutions[{index}] "
+                    "must be a table with 'pattern' and 'replacement'."
+                )
+            if "pattern" not in item:
+                raise ResourceSectionError(
+                    f"Section '{self._section_name}' chunk_substitutions[{index}] "
+                    "has no pattern."
+                )
+            if "replacement" not in item:
+                raise ResourceSectionError(
+                    f"Section '{self._section_name}' chunk_substitutions[{index}] "
+                    "has no replacement."
+                )
+            pattern = item["pattern"]
+            replacement = item["replacement"]
+            if not isinstance(pattern, str) or pattern == "":
+                raise ResourceSectionError(
+                    f"Section '{self._section_name}' chunk_substitutions[{index}] "
+                    "pattern must be a non-empty string."
+                )
+            if not isinstance(replacement, str):
+                raise ResourceSectionError(
+                    f"Section '{self._section_name}' chunk_substitutions[{index}] "
+                    "replacement must be a string."
+                )
+            rules.append(ChunkSubstitution(pattern=pattern, replacement=replacement))
+        return rules
 
     def __repr__(self):
         # Displayed in the logger output
@@ -137,6 +197,10 @@ class Resources(ActivityProvider):
                 "exclude_filters": section.exclude_filters,
                 "include_filters": section.include_filters,
                 "pack_limit_chars": section.pack_limit_chars,
+                "chunk_substitutions": [
+                    {"pattern": rule.pattern, "replacement": rule.replacement}
+                    for rule in section.chunk_substitutions
+                ],
             }
             sections_details.append(section_info)
 

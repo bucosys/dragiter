@@ -6,7 +6,11 @@ from pathlib import Path
 
 from dragiter.application.core.xdi import Worker
 from dragiter.domain.models.parameters import InputParameters, WorkspaceParameters
-from dragiter.domain.models.resources import Resources, ResourceSection
+from dragiter.domain.models.resources import (
+    Resources,
+    ResourceSection,
+    ResourceSectionError,
+)
 from dragiter.domain.models.settings import (
     BaseDirectoryPathSetting,
     PathSetting,
@@ -65,14 +69,18 @@ class ResourceCollector(Worker):
                         )
 
                     if text_files:
-                        rs = ResourceSection(
-                            section_name=s_name,
-                            text_files=text_files,
-                            regex_patterns=settings.get("regex_patterns"),
-                            exclude_filters=settings.get("exclude_filters"),
-                            include_filters=settings.get("include_filters"),
-                            pack_limit_chars=settings.get("pack_limit_chars"),
-                        )
+                        try:
+                            rs = ResourceSection(
+                                section_name=s_name,
+                                text_files=text_files,
+                                regex_patterns=settings.get("regex_patterns"),
+                                exclude_filters=settings.get("exclude_filters"),
+                                include_filters=settings.get("include_filters"),
+                                pack_limit_chars=settings.get("pack_limit_chars"),
+                                chunk_substitutions=settings.get("chunk_substitutions"),
+                            )
+                        except ResourceSectionError as exc:
+                            raise MaterialCollectorError(str(exc)) from exc
                         logger.debug(
                             f"Section '{s_name}': {len(text_files)} file(s), "
                             f"{len(rs.regex_patterns)} regex pattern(s), "

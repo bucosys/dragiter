@@ -8,6 +8,16 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+### Added
+- Resource-section key `chunk_substitutions`: an ordered list of
+  `{ pattern, replacement }` tables. Each rule runs as a literal
+  `re.sub` (no backreferences) with `re.MULTILINE` after the staged
+  split and before include/exclude filters and packing. An empty
+  replacement deletes the match. Pieces that are empty or whitespace
+  after substitution are discarded. Missing fields abort collection
+  and name the section; an invalid pattern fails tokenisation with
+  section and index.
+
 ### Changed
 - Results (and the simulate run board) are echoed on stdout only when
   neither `output_file` (`-o`) nor `output_directory` (`-O`) is set.

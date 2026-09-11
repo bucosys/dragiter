@@ -397,7 +397,18 @@ Inside a section the following keys are used:
   The singular key `regex_pattern` is no longer accepted; a section that still sets it aborts collection and names
   the section.
 - Optional filters (supported by the `ResourceSection` model): `exclude_filters`, `include_filters`
-- `pack_limit_chars` (optional, per section) - after the staged regex split, join consecutive chunks of the **same file**
+- `chunk_substitutions` (optional, per section) - ordered list of tables
+  `{ pattern, replacement }`. After the staged split, each piece is rewritten
+  with `re.sub` in list order. The replacement is **literal**: `\1` and
+  `\g<name>` are ordinary characters, not group references. Flags are
+  `re.MULTILINE` only (not `IGNORECASE`). An empty `replacement` deletes the
+  match. A piece that is empty or only whitespace afterwards is discarded.
+  Include/exclude filters and `pack_limit_chars` then see the rewritten text.
+  The first split still runs on the raw file. A missing `pattern` or
+  `replacement`, a non-list value, or a non-table entry aborts collection and
+  names the section. An invalid pattern fails tokenisation and names the
+  section and index. There is no CLI or environment override.
+- `pack_limit_chars` (optional, per section) - after the staged regex split and any `chunk_substitutions`, join consecutive chunks of the **same file**
   until this many characters would be exceeded. Measured in characters. `0` or omitted means no packing and no overflow
   patterns after the first. A globally set
   `pack_limit_chars` (CLI `--pack-limit-chars`, config file or `DRAGITER_PACK_LIMIT_CHARS`) overrides the section value,
@@ -667,6 +678,7 @@ Example:
       "exclude_filters": [],
       "include_filters": [],
       "pack_limit_chars": 4000,
+      "chunk_substitutions": [],
       "files": 2
     }
   ]
