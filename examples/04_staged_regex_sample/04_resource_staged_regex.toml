@@ -5,9 +5,8 @@
 # and cuts those pieces on level-3 headings (`### `).
 # `####` requirement blocks are not cut: after `###` comes `#`, not whitespace.
 #
-# Compare:
-#   dragiter -s --pack-limit-chars 0  …   → overflow off, 49 chapter-grain chunks
-#   dragiter -s                          …   → budget 4000, 75 packed chunks
+# Compare with -s --pack-limit-chars 0 (chapter grain only)
+# versus -s (section budget 4000; overflow + pack if any chapter is long).
 
 [requirements]
 glob_patterns = ["04_dragiter_requirements_profile.md"]

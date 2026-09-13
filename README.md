@@ -110,6 +110,7 @@ A value set by a higher-priority source cannot be overridden by a lower one.
 - Retry logic with configurable delay and maximum attempts (transient 5xx and connection drops; 504 / gateway timeout / runner crash are terminal)
 - Optional mutual TLS (client certificate + key)
 - Output modes: exclusive create (`x`), overwrite (`w`), append (`a`)
+- Verbose stderr run board; per-session scratch files under `.dragiter-partial/`
 
 ## Tool Chaining (the Unix way)
 

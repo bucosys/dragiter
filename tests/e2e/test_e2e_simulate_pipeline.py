@@ -36,6 +36,7 @@ from dragiter.domain.models.parameters import AIServiceParameters
 from dragiter.domain.services.chat_sessions_validator import ChatSessionsValidator
 from dragiter.infrastructure.file.simple_file_checker import SimpleFileChecker
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
+from dragiter.infrastructure.io.scratch_persistence_service import SCRATCH_DIR_NAME
 from dragiter.infrastructure.llm.mockai_service import MockAIService
 from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
 
@@ -57,6 +58,7 @@ def _compatible_process_query(
     aisp: AIServiceParameters,
     lp_or_session: Any,
     chat_session: ChatSession | None = None,
+    progress: Any = None,
 ) -> ChatResult:
     """
     Accept both the Protocol signature (aisp, lp, session) and the
@@ -146,7 +148,11 @@ def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:
     returncode = _run_simulate_pipeline(flags)
     assert returncode == 0, f"Simulate pipeline failed (exit {returncode})."
 
-    created = [p for p in output_dir.rglob("*") if p.is_file()]
+    created = [
+        p
+        for p in output_dir.rglob("*")
+        if p.is_file() and SCRATCH_DIR_NAME not in p.parts
+    ]
     assert created, f"No output files written to {output_dir}"
 
     for path in created:

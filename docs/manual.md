@@ -58,9 +58,10 @@ dragiter -v -c config-ollama.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l
 ```
 
 The `-v` (verbose) flag is recommended for local models. They can take considerably longer to respond than cloud
-services; without it the terminal appears frozen. Verbose mode logs an INFO
-heartbeat every ten seconds while a completion is still streaming; it does
-not print a spinner onto stdout.
+services; without it the terminal appears frozen. Verbose mode writes a short
+board on stderr (start block, one request line per call with ◴◷◶◵ on the
+left, closing block). It does not print onto stdout. Completions are also
+copied into `.dragiter-partial/` as they finish.
 
 ### 4. Optional: make the configuration permanent
 

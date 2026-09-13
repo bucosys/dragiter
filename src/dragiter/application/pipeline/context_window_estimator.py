@@ -27,7 +27,7 @@ class ContextWindowEstimator(Worker):
         aisp: AIServiceParameters,
         lp: LoggingParameters,
         ep: ExecutionParameters,
-    ) -> ContextValidationReport | None:
+    ) -> ContextValidationReport:
 
         if not (
             aisp.chars_per_token_float_setting.is_set
@@ -38,7 +38,11 @@ class ContextWindowEstimator(Worker):
                 "Neither chars-per-token nor max-context-tokens nor "
                 "max-output-tokens are set. Validation is not applicable."
             )
-            return None
+            return ContextValidationReport(
+                is_valid=True,
+                total_tokens=0,
+                max_tokens_limit=0,
+            )
 
         if lp.verbose_bool_setting.value:
             logger.info(

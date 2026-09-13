@@ -22,6 +22,7 @@ from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.models.parameters import AIServiceParameters, LoggingParameters
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
+from dragiter.domain.ports.stream_progress_listener import StreamProgressListener
 from dragiter.infrastructure.llm.openai_runtime import (
     CompletionRetryPolicy,
     OpenAITransportFactory,
@@ -106,7 +107,11 @@ class OpenAIServiceExt(LLMService):
         return http_client, client
 
     def process_query(
-        self, aisp: AIServiceParameters, lp: LoggingParameters, chat_session: ChatSession
+        self,
+        aisp: AIServiceParameters,
+        lp: LoggingParameters,
+        chat_session: ChatSession,
+        progress: StreamProgressListener | None = None,
     ) -> ChatResult:
         retry_delay: int = aisp.retry_delay_int_setting.value or 3
         max_attempts = self._retry_policy.max_attempts(aisp)
@@ -119,13 +124,15 @@ class OpenAIServiceExt(LLMService):
 
         api_kwargs = self._build_payload(aisp, chat_session)
         http_client, client = self._create_client(aisp)
-        progress = self._log_progress()
+        watches = self._log_progress()
 
         try:
             with client:
                 for attempt in range(1, max_attempts + 1):
                     wait_time = self._retry_policy.wait_seconds(attempt, retry_delay)
                     if wait_time:
+                        if progress is not None:
+                            progress.abandon_session()
                         logger.warning(
                             "Retrying in %ss (attempt %s/%s)",
                             wait_time,
@@ -136,7 +143,12 @@ class OpenAIServiceExt(LLMService):
 
                     try:
                         return self._consume_stream(
-                            client, api_kwargs, lp, progress, chat_result
+                            client,
+                            api_kwargs,
+                            lp,
+                            watches,
+                            chat_result,
+                            progress,
                         )
                     except (
                         openai.APIConnectionError,
@@ -148,6 +160,8 @@ class OpenAIServiceExt(LLMService):
                             raise OpenAIServiceError(
                                 f"Attempt {attempt}/{max_attempts} failed: {detail}"
                             ) from exc
+                        if progress is not None:
+                            progress.abandon_session()
                         logger.warning(
                             "Attempt %s/%s failed: %s",
                             attempt,
@@ -188,8 +202,9 @@ class OpenAIServiceExt(LLMService):
         client: OpenAI,
         api_kwargs: OpenAIPayload,
         lp: LoggingParameters,
-        progress: Iterator[str],
+        watches: Iterator[str],
         chat_result: ChatResult,
+        listener: StreamProgressListener | None = None,
     ) -> ChatResult:
         stream = client.chat.completions.create(**api_kwargs)
 
@@ -199,8 +214,10 @@ class OpenAIServiceExt(LLMService):
         output_tokens = 0
 
         for chunk in stream:
-            if lp.verbose_bool_setting.value:
-                next(progress)
+            if listener is not None:
+                listener.on_stream_chunk()
+            elif lp.verbose_bool_setting.value:
+                next(watches)
 
             if not chunk.choices:
                 if hasattr(chunk, "usage") and chunk.usage is not None:

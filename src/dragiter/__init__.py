@@ -5,5 +5,5 @@ __tool_name__ = "dragiter"
 try:
     __version__ = version("dragiter")
 except PackageNotFoundError:
-    __version__ = "2026.9.9"  # fall back version (current)
+    __version__ = "2026.9.13"  # fall back version (current)
 

@@ -170,11 +170,11 @@ def make_chat_sessions(num_sessions: int = 1) -> ChatSessions:
 # ---------------------------------------------------------------------------
 
 
-def test_run_returns_none_when_required_settings_missing():
+def test_run_returns_empty_report_when_required_settings_missing():
     """
     If chars-per-token / max-context-tokens / max-output-tokens are not all
-    set, validation is not applicable and run() must short-circuit to None
-    without ever touching the payload estimator.
+    set, validation is not applicable. run() still returns a report so
+    later workers always receive an instance.
     """
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
@@ -184,7 +184,8 @@ def test_run_returns_none_when_required_settings_missing():
         chat_sessions=make_chat_sessions(1), aisp=aisp, lp=lp, ep=ep
     )
 
-    assert result is None
+    assert result.max_tokens_limit == 0
+    assert result.total_tokens == 0
     assert stub.calls == []
 
 

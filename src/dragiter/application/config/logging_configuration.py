@@ -75,7 +75,9 @@ class LoggingConfigurator:
             if env_log:
                 log_file = Path(env_log)
 
-        log_level = logging.DEBUG if debug else (logging.INFO if verbose else logging.WARNING)
+        # ``-v`` drives the stderr board, not the root logger. Only ``-d``
+        # raises the process log level.
+        log_level = logging.DEBUG if debug else logging.WARNING
 
         # === Console logging (stderr) ===
         logging.basicConfig(
@@ -84,6 +86,11 @@ class LoggingConfigurator:
             stream=sys.stderr,
             force=True
         )
+
+        for noisy in ("httpx2", "httpx", "httpcore", "openai"):
+            logging.getLogger(noisy).setLevel(
+                logging.NOTSET if debug else logging.WARNING
+            )
 
         # === File logging (simple append, no rotation) ===
         if log_file:
@@ -107,8 +114,6 @@ class LoggingConfigurator:
 
         if debug:
             logger.debug(f"Debug mode enabled | CWD: {Path.cwd()}")
-        if verbose and not debug:
-            logger.info("Verbose mode enabled")
 
         return LoggingConfiguration(
             debug=debug,

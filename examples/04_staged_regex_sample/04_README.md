@@ -3,12 +3,11 @@
 This example does two jobs at once.
 
 1. It shows that `regex_patterns` is staged and countable.
-2. It walks the long requirements profile **one packed chunk at a time**
-   (`sequential_processing = true`) and asks the model to strip filler
-   that is not about dragiter.
+2. It walks the compact requirements profile **one packed chunk at a time**
+   (`sequential_processing = true`).
 
-The corpus is `04_dragiter_requirements_profile.md`. Do not shorten that
-file by hand. The prompt is the editor.
+The corpus is `04_dragiter_requirements_profile.md`. It states the
+product contract; it is no longer padded to force overflow.
 
 - Pattern 0: `^##\s+` — chapter grain.
 - Pattern 1: `^###\s+` — only when a piece still exceeds `pack_limit_chars`.
@@ -17,12 +16,10 @@ file by hand. The prompt is the editor.
   Raise it with `--max-chunks 400` (or `DRAGITER_MAX_CHUNKS`).
 - No loop file. No singular `regex_pattern` key.
 
-On this revision of the profile the simulate board should report:
-
-| Run | Command extra | Sessions / chunks | Meaning |
-| --- | --- | ---: | --- |
-| A | `--pack-limit-chars 0` | 49 / 49 | Overflow off. One session per chapter-grain piece. |
-| B | *(section budget 4000)* | 75 / 75 | Pattern 1 refined the oversized chapters; packing joined neighbours. One live call per packed chunk. |
+Simulate first and read the board. With `--pack-limit-chars 0` expect one
+chunk per `##` chapter that has body text. With the section budget,
+chapters that still exceed `pack_limit_chars` may split on `###` and
+neighbours may pack. Counts change if you edit the profile.
 
 ## Step 1. Work from the example directory
 
@@ -51,13 +48,15 @@ Chapter grain only:
 
     dragiter -s --pack-limit-chars 0 -p 04_prompt_staged_regex.toml -r 04_resource_staged_regex.toml
 
-Expect **49** sessions and **49** chunks.
+Expect one session per chapter-grain piece (see the simulate board).
 
 Overflow plus packing:
 
     dragiter -s -p 04_prompt_staged_regex.toml -r 04_resource_staged_regex.toml
 
-Expect **75** sessions and **75** chunks. `pack` should show `4,000`.
+Read sessions / chunks from the board. `pack` should show `4,000`.
+The two runs should differ only if at least one chapter exceeds the
+budget; on the compact profile they may match.
 
 Optional waterfall:
 
@@ -75,9 +74,8 @@ chapters. It must not dump the profile text.
       -O out_pass1 \
       -m x
 
-Seventy-five streamed calls, one packed chunk each. Use a model you can
-afford to run that many times. Interrupt is exit status 130; exclusive
-mode leaves finished files in place.
+One streamed call per packed chunk. Interrupt is exit status 130;
+exclusive mode leaves finished files in place.
 
 Concatenate in identifier order:
 
@@ -96,7 +94,7 @@ before the next live pass.
 
 - `sequential_processing = false` (one giant batched request)
 - a resource file that still contains `regex_pattern`
-- step 2A and step 2B reporting the same chunk count
+- a resource file whose first pattern does not cut on `## `
 - a glob that also swallows this README
 
 ## Further information

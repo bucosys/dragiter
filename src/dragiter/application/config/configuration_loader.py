@@ -138,7 +138,7 @@ class ConfigurationLoader(Worker):
                 help="Simulation mode (no API calls)",
             ),
             BoolSettingArgumentDecorator(
-                self._lp.verbose_bool_setting, short_key="v", help="Verbose output"
+                self._lp.verbose_bool_setting, short_key="v", help="Verbose stderr run board"
             ),
             BoolSettingArgumentDecorator(
                 self._ep.sequential_processing_bool_setting,

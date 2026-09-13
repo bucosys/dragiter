@@ -40,10 +40,14 @@ OPTIONS
        General Flags
            -d, --debug                Enable debug logging
            -s, --simulate             Simulation mode (no real API calls)
-           -v, --verbose              Verbose progress: logger INFO
-                                      heartbeat every 10 s while a
-                                      completion is streaming (no stdout
-                                      spinner)
+           -v, --verbose              stderr run board: start block
+                                      (model, mode, pack, window, output),
+                                      one request line per completion
+                                      (◴◷◶◵ on the left, advanced
+                                      from the stream loop every 10 s),
+                                      closing block. Not written to
+                                      stdout. With -d the board is mixed
+                                      into the debug log
            -c, --config-file PATH     Path to a specific TOML configuration
                                       file. A relative path is resolved
                                       against -b when -b is set

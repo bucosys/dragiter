@@ -93,14 +93,28 @@ def test_debug_flag_sets_debug_level(
 
 
 @pytest.mark.parametrize("flag", ["--verbose", "-v"])
-def test_verbose_flag_sets_info_level(
+def test_verbose_flag_keeps_warning_level(
     monkeypatch: pytest.MonkeyPatch, flag: str
 ) -> None:
     config = _run(monkeypatch, argv=["dragiter", flag])
 
     assert config.debug is False
     assert config.verbose is True
-    assert config.log_level == logging.INFO
+    assert config.log_level == logging.WARNING
+
+
+def test_verbose_without_debug_quiets_httpx2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _run(monkeypatch, argv=["dragiter", "--verbose"])
+    assert logging.getLogger("httpx2").level == logging.WARNING
+
+
+def test_debug_leaves_httpx2_unforced(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _run(monkeypatch, argv=["dragiter", "--debug"])
+    assert logging.getLogger("httpx2").level == logging.NOTSET
 
 
 def test_debug_takes_precedence_over_verbose(
@@ -154,7 +168,7 @@ def test_env_debug_rejects_falsy_values(
     assert config.log_level == logging.WARNING
 
 
-def test_env_verbose_sets_info_level(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_env_verbose_keeps_warning_level(monkeypatch: pytest.MonkeyPatch) -> None:
     config = _run(
         monkeypatch,
         argv=["dragiter"],
@@ -163,7 +177,7 @@ def test_env_verbose_sets_info_level(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert config.verbose is True
     assert config.debug is False
-    assert config.log_level == logging.INFO
+    assert config.log_level == logging.WARNING
 
 
 def test_cli_debug_overrides_env_verbose(

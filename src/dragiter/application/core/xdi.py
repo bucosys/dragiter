@@ -93,7 +93,8 @@ class ApplicationManager:
         If a validator is registered for the data's type, it validates the data first.
         """
 
-        logger.info(
+        # @TODO Opt in w/ --debug AND --validate ? (was: logger.info(...))
+        logger.debug(
             f"\N{WHITE SQUARE} {worker.__class__.__name__} \N{RIGHTWARDS DOUBLE ARROW} {data!s}"
         )
 

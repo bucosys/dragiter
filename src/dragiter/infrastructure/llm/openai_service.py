@@ -14,6 +14,7 @@ from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.models.parameters import AIServiceParameters, LoggingParameters
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
+from dragiter.domain.ports.stream_progress_listener import StreamProgressListener
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +31,14 @@ class OpenAIPayload(TypedDict, total=False):
 
 class OpenAIService(LLMService):
     def process_query(
-        self, aisp: AIServiceParameters, lp: LoggingParameters ,chat_session: ChatSession
+        self,
+        aisp: AIServiceParameters,
+        lp: LoggingParameters,
+        chat_session: ChatSession,
+        progress: StreamProgressListener | None = None,
     ) -> ChatResult:
 
+        _ = progress
         attempt: int = 0
         last_exception: Exception | None = None
         retry_delay: int = aisp.retry_delay_int_setting.value or 3

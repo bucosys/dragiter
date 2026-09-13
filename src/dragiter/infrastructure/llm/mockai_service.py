@@ -10,6 +10,7 @@ from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.models.parameters import AIServiceParameters, LoggingParameters
 from dragiter.domain.ports.llm_service import LLMService, LLMServiceError
 from dragiter.domain.ports.payload_estimator import PayloadEstimator
+from dragiter.domain.ports.stream_progress_listener import StreamProgressListener
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +24,16 @@ class MockAIService(LLMService):
     def __init__(self, payload_estimator: PayloadEstimator = None):
         self.payload_estimator = payload_estimator
 
-    def process_query(self, aisp: AIServiceParameters, lp: LoggingParameters, chat_session: ChatSession) \
-            -> ChatResult:
+    def process_query(
+        self,
+        aisp: AIServiceParameters,
+        lp: LoggingParameters,
+        chat_session: ChatSession,
+        progress: StreamProgressListener | None = None,
+    ) -> ChatResult:
         if not chat_session or not chat_session.input_chat_message_list:
             raise MockAIServiceError("ChatSession or input messages are empty")
+        _ = progress
 
         try:
             last_msg = chat_session.input_chat_message_list[-1]

@@ -8,7 +8,27 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+### Changed
+- The ``-v`` start board lists mode, chunks/files, pack, window, peak and output, as labelled lines (not a pipe table).
+
+### Fixed
+- Streaming completions return when ``finish_reason`` arrives instead of
+  waiting for a trailing usage event that some local runtimes never
+  send. The last ``-v`` request line no longer sits open after the
+  model has finished.
+
 ### Added
+- ``-v`` prints a labelled run board on stderr: a start block (every
+  line prefixed with ``▷``), one request line per completion with a
+  single pulse mark on the left (``◴◷◶◵``, same geometric family as
+  ``▷`` / ``□``; advanced from the stream loop, at
+  most every ten seconds), and a closing block (every line prefixed
+  with ``■``). ``-d`` is unchanged; together with ``-v`` the board is
+  mixed into the debug stream.
+- Each successful completion is written immediately under
+  ``.dragiter-partial/`` so a later failure does not discard earlier
+  replies. The directory sits next to ``-O``, next to ``-o``, or in
+  the current working directory.
 - Resource-section key `chunk_substitutions`: an ordered list of
   `{ pattern, replacement }` tables. Each rule runs as a literal
   `re.sub` (no backreferences) with `re.MULTILINE` after the staged

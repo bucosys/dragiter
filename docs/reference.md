@@ -1,6 +1,6 @@
 # dragiter Technical Reference
 
-**Version:** derived from source (2026.9.1)  
+**Version:** derived from source (2026.9.13)  
 **Language:** British English  
 **Scope:** Configuration, file formats, CLI, defaults, output behaviour and activity log  
 **Sources:** Source code (`src/dragiter/`), in particular `PromptCreator`, `OpenAIServiceExt` and example TOML files under `examples/`
@@ -69,9 +69,22 @@ The CLI wires `OpenAIServiceExt` (`src/dragiter/infrastructure/llm/openai_servic
 - The non-streaming `OpenAIService` remains in the tree and still uses classic
   `httpx`; it is not the CLI default.
 
-With `-v` / `--verbose` the adapter emits an INFO heartbeat on the logger
-every ten seconds while a streamed completion is still running. It does
-**not** write a spinner to stdout (that would corrupt result files).
+With `-v` / `--verbose` dragiter writes a labelled board on **stderr**:
+a start block (prefix `▷` on every line: model, mode, sessions, chunks/files, pack, window, peak, output), one request line per
+completion, and a closing block (prefix `□` on every line). The request
+line carries a single pulse mark on the left (`◴◷◶◵`, one cell, same
+family as `▷` and `□`). The mark advances from
+the streaming `for chunk in stream:` loop, at most every ten seconds;
+there is no thread. The board is never written to stdout. `-d` /
+`--debug` keeps the existing logger behaviour; with both flags the
+board is mixed into the debug stream. Without `-d`, `httpx2` request
+lines stay off.
+
+Each successful completion is also written immediately to
+`.dragiter-partial/` so a later failed call does not drop earlier
+replies. The folder is created beside `-O`, beside `-o`, or in the
+current working directory.
+
 Payload dumps stay on DEBUG.
 
 The OpenAI SDK’s own retries are disabled (`max_retries=0`). The adapter
