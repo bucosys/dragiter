@@ -39,9 +39,10 @@ class ContextWindowEstimator(Worker):
                 "max-output-tokens are set. Validation is not applicable."
             )
             return ContextValidationReport(
-                is_valid=True,
+                is_valid=None,
                 total_tokens=0,
-                max_tokens_limit=0,
+                max_tokens_limit=None,
+                max_session_tokens=None,
             )
 
         if lp.verbose_bool_setting.value:
@@ -79,7 +80,10 @@ class ContextWindowEstimator(Worker):
                 report.session_input_token_counts[index] = calc_input_tokens
 
                 # Track the maximal value (High-Water Mark)
-                if tot_tokens > report.max_session_tokens:
+                if (
+                    report.max_session_tokens is None
+                    or tot_tokens > report.max_session_tokens
+                ):
                     report.max_session_tokens = tot_tokens
                     report.max_session_index = index
 

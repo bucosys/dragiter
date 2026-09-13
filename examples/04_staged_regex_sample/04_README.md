@@ -7,19 +7,23 @@ This example does two jobs at once.
    (`sequential_processing = true`).
 
 The corpus is `04_dragiter_requirements_profile.md`. It states the
-product contract; it is no longer padded to force overflow.
+product contract and is no longer padded with dummy text. Overflow is
+produced by a section budget that sits below the longest `##` chapter
+(about 1 300 characters), not by inflating the file.
 
 - Pattern 0: `^##\s+` — chapter grain.
 - Pattern 1: `^###\s+` — only when a piece still exceeds `pack_limit_chars`.
-- Pack budget on the section: `4000` characters.
-- Pack budgets around 1500 or below exceed the default 200-chunk cap.
-  Raise it with `--max-chunks 400` (or `DRAGITER_MAX_CHUNKS`).
+- Pack budget on the section: `500` characters.
+- The default 200-chunk cap is far above this compact file. Demonstrate
+  the breaker with `--max-chunks 1` (or any value below the packed count).
 - No loop file. No singular `regex_pattern` key.
 
 Simulate first and read the board. With `--pack-limit-chars 0` expect one
-chunk per `##` chapter that has body text. With the section budget,
-chapters that still exceed `pack_limit_chars` may split on `###` and
-neighbours may pack. Counts change if you edit the profile.
+chunk per `##` heading that has body text, plus the title block
+(21 pieces on the shipped profile). With the section budget of 500,
+several chapters split on `###`, neighbours pack, `small / over` shows
+leftover pieces above 500, and the session count is no longer 21.
+Counts change if you edit the profile.
 
 ## Step 1. Work from the example directory
 
@@ -54,15 +58,22 @@ Overflow plus packing:
 
     dragiter -s -p 04_prompt_staged_regex.toml -r 04_resource_staged_regex.toml
 
-Read sessions / chunks from the board. `pack` should show `4,000`.
-The two runs should differ only if at least one chapter exceeds the
-budget; on the compact profile they may match.
+Read sessions / chunks from the board. `pack` should show `500`.
+The two runs must differ: the section budget refines long chapters on
+`###` and then packs neighbours. `small / over` is not `0 / 0`.
+
+Chunk-cap abort (does not call the model):
+
+    dragiter -s --max-chunks 1 -p 04_prompt_staged_regex.toml -r 04_resource_staged_regex.toml
+
+That run must stop with `max_chunks` in the error. Raise the cap, or
+omit the flag, to continue.
 
 Optional waterfall:
 
     dragiter -s -v -d -p 04_prompt_staged_regex.toml -r 04_resource_staged_regex.toml
 
-`--debug` should mention `pattern 1/2` and `pattern 2/2` on the long
+`--debug` must mention `pattern 1/2` and `pattern 2/2` on the long
 chapters. It must not dump the profile text.
 
 ## Step 3. First cleaning pass (sequential, live)

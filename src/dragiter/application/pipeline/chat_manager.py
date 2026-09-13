@@ -135,9 +135,11 @@ class ChatManager(Worker):
         elif op.output_file_path_setting.is_set:
             output = str(op.output_file_path_setting.value)
         peak_session = None
-        if report.max_session_index >= 0:
+        if (
+            report.max_tokens_limit is not None
+            and report.max_session_index >= 0
+        ):
             peak_session = report.max_session_index + 1
-        window_applicable = report.max_tokens_limit > 0
         return {
             "sequential": bool(prompt_template.sequential_processing),
             "chunks": len(chunks),
@@ -147,10 +149,10 @@ class ChatManager(Worker):
             "total_chars": sum(len(chunk.content) for chunk in chunks),
             "pack_limit_chars": pack_limit,
             "pack_from": pack_from,
-            "window_ok": report.is_valid if window_applicable else None,
-            "peak_tokens": report.max_session_tokens if window_applicable else None,
-            "token_limit": report.max_tokens_limit if window_applicable else None,
-            "peak_session": peak_session if window_applicable else None,
+            "window_ok": report.is_valid,
+            "peak_tokens": report.max_session_tokens,
+            "token_limit": report.max_tokens_limit,
+            "peak_session": peak_session,
             "warning_count": len(report.simulation_warnings),
             "output": output,
             "planned_sessions": sessions,

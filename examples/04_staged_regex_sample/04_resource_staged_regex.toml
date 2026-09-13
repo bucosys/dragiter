@@ -6,9 +6,9 @@
 # `####` requirement blocks are not cut: after `###` comes `#`, not whitespace.
 #
 # Compare with -s --pack-limit-chars 0 (chapter grain only)
-# versus -s (section budget 4000; overflow + pack if any chapter is long).
+# versus -s (section budget 500: several ## chapters overflow onto ###).
 
 [requirements]
 glob_patterns = ["04_dragiter_requirements_profile.md"]
 regex_patterns = ['^##\s+', '^###\s+']
-pack_limit_chars = 4000
+pack_limit_chars = 500

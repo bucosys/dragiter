@@ -67,6 +67,28 @@ def _session(name: str = "note.md") -> ChatSession:
     )
 
 
+def test_chat_manager_board_facts_keep_inapplicable_window_none() -> None:
+    material, loop, report, resources, prompt = _pipeline_deps()
+    report.is_valid = None
+    report.max_tokens_limit = None
+    report.max_session_tokens = None
+    groups = blank_parameter_groups()
+    facts = ChatManager._board_facts(
+        groups["ep"],
+        groups["op"],
+        1,
+        material,
+        loop,
+        report,
+        resources,
+        prompt,
+    )
+    assert facts["window_ok"] is None
+    assert facts["peak_tokens"] is None
+    assert facts["token_limit"] is None
+    assert facts["peak_session"] is None
+
+
 def test_start_and_end_board_prefix_every_line() -> None:
     stream = StringIO()
     board = StderrSessionBoard(stream, interactive=False)
@@ -111,6 +133,28 @@ def test_start_and_end_board_prefix_every_line() -> None:
     assert "window yes" in joined
     assert "peak 4,562 / 32,000" in joined
     assert "output /tmp/a.out" in joined
+
+
+def test_start_board_marks_window_na_when_estimate_missing() -> None:
+    stream = StringIO()
+    board = StderrSessionBoard(stream, interactive=False)
+    board.begin_run(
+        model="qwen3:8b",
+        sessions=1,
+        simulate=True,
+        window_ok=None,
+        peak_tokens=None,
+        token_limit=None,
+        peak_session=None,
+        warning_count=0,
+        output="none",
+    )
+    text = stream.getvalue()
+    assert "window n/a" in text
+    assert "peak -- / --" in text
+    assert "peak at --" in text
+    assert "window yes" not in text
+    assert "peak 0 / 0" not in text
 
 
 def test_clock_stays_on_one_line_and_throttles(monkeypatch: pytest.MonkeyPatch) -> None:

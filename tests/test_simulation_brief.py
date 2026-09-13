@@ -7,6 +7,7 @@ from support import blank_parameter_groups
 
 from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.domain.models.chat_results import ChatResult, ChatResults
+from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatSessions
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.loop import Loop
@@ -128,6 +129,57 @@ def test_resolve_pack_budget_origins() -> None:
     assert resolve_pack_budget(False, None, [4000, 4000]) == (4000, "section")
     assert resolve_pack_budget(False, None, [4000, 2000]) == (None, "mixed")
     assert resolve_pack_budget(False, None, [None, 0]) == (None, "off")
+
+
+def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> None:
+    """
+    The live pipeline always injects a ContextValidationReport. The
+    not-applicable estimator result must render as n/a and -- / --, not
+    yes and 0 / 0.
+    """
+    groups = blank_parameter_groups()
+    groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
+    groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
+
+    chunk = Chunk(
+        num_id=1,
+        filename="note.md",
+        section_name="sec01",
+        section_num_id=1,
+        valid=True,
+        content="hello",
+    )
+    session = ChatSession(
+        input_chat_message_list=[ChatMessage(role="user", content="ask")],
+        chunk=chunk,
+    )
+    result = ChatResult()
+    result.output_chat_message.content = "mock-body"
+
+    OutputWriter().run(
+        ChatSessions([session]),
+        ChatResults([result]),
+        groups["op"],
+        PromptTemplate("", "", "", "", 0.0, False, "", "\n\n"),
+        groups["ep"],
+        groups["aisp"],
+        Material([chunk]),
+        Loop(),
+        ContextValidationReport(
+            is_valid=None,
+            total_tokens=0,
+            max_tokens_limit=None,
+            max_session_tokens=None,
+        ),
+    )
+
+    captured = capsys.readouterr().out
+    window_line = next(line for line in captured.splitlines() if "window" in line)
+    peak_line = next(line for line in captured.splitlines() if "peak / limit" in line)
+    assert "n/a" in window_line
+    assert "yes" not in window_line
+    assert "-- / --" in peak_line
+    assert "0 / 0" not in peak_line
 
 
 def test_output_writer_prints_padded_markdown_table(capsys) -> None:

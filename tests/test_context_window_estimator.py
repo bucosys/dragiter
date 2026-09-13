@@ -175,6 +175,10 @@ def test_run_returns_empty_report_when_required_settings_missing():
     If chars-per-token / max-context-tokens / max-output-tokens are not all
     set, validation is not applicable. run() still returns a report so
     later workers always receive an instance.
+
+    The inapplicable branch must use None, not 0 / True. Boards treat an
+    int peak or limit as a real count and True as window-yes; 0 / 0 / yes
+    was the shipped lie.
     """
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
@@ -184,7 +188,10 @@ def test_run_returns_empty_report_when_required_settings_missing():
         chat_sessions=make_chat_sessions(1), aisp=aisp, lp=lp, ep=ep
     )
 
-    assert result.max_tokens_limit == 0
+    assert result.is_valid is None
+    assert result.max_tokens_limit is None
+    assert result.max_session_tokens is None
+    assert result.max_session_index == -1
     assert result.total_tokens == 0
     assert stub.calls == []
 

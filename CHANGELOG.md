@@ -8,6 +8,16 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+### Fixed
+- When ``chars_per_token``, ``max_context_tokens`` and
+  ``max_output_tokens`` are not all set, ``ContextWindowEstimator``
+  now records ``is_valid``, ``max_session_tokens`` and
+  ``max_tokens_limit`` as ``None``. Run boards therefore show
+  ``window n/a`` and ``peak -- / --`` instead of ``yes`` and ``0 / 0``.
+- Example 04 uses a section budget of 500 characters so the compact
+  requirements profile still exercises overflow pattern ``###``,
+  ``small / over``, and a ``--max-chunks`` abort.
+
 ### Changed
 - The ``-v`` start board lists mode, chunks/files, pack, window, peak and output, as labelled lines (not a pipe table).
 

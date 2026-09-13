@@ -12,16 +12,18 @@ class ContextValidationReport(ActivityProvider):
     """Encapsulates the result of context window token estimation and validation."""
 
     # Did the payload pass validation?
-    is_valid: bool
+    # None when estimation is not applicable (token settings unset).
+    is_valid: bool | None
 
     # Aggregate metrics
     total_tokens: int
 
-    # The configured limit applied during this run
-    max_tokens_limit: int
+    # The configured limit applied during this run.
+    # None when estimation is not applicable.
+    max_tokens_limit: int | None
 
     # The High-Water Mark (Maximal Values)
-    max_session_tokens: int = 0
+    max_session_tokens: int | None = None
     max_session_index: int = -1
 
     # Detailed telemetry

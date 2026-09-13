@@ -366,9 +366,10 @@ simulate path before spend.
 ### 17.1 Split
 
 From `examples/04_staged_regex_sample`, a simulate run with
-`--pack-limit-chars 0` yields one piece per `##` chapter that has body
-text. With the section budget, oversized chapters may refine on `###`
-and neighbours may pack.
+`--pack-limit-chars 0` yields one piece per `##` heading that has body
+text, plus the title block. With the section budget of 500, oversized
+chapters refine on `###`, neighbours pack, and at least one packed
+piece still exceeds the budget. `--max-chunks 1` aborts.
 
 ### 17.2 Resource file
 
