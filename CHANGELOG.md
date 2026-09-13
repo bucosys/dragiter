@@ -8,6 +8,10 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+## [2026.9.13] - 2026-09-13
+
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.9.13](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.13)
+
 ### Fixed
 - When ``chars_per_token``, ``max_context_tokens`` and
   ``max_output_tokens`` are not all set, ``ContextWindowEstimator``
@@ -19,6 +23,9 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   ``small / over``, and a ``--max-chunks`` abort.
 
 ### Changed
+- The root README states the stdout contract (board or replies only
+  without ``-o``/``-O``; ``-v`` on stderr), staged packing and the
+  chunk cap, and that stdin is not read unless asked.
 - The ``-v`` start board lists mode, chunks/files, pack, window, peak and output, as labelled lines (not a pipe table).
 
 ### Fixed

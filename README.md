@@ -65,7 +65,11 @@ cd examples/01_md_sample
 dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
-No network calls, no tokens spent - just a clear view of the assembled prompts and file routing.
+No network calls, no tokens spent. With neither `-o` nor `-O`, stdout prints
+the run board only (sessions, pack, window, routing). Payload transcripts
+are not echoed there. Add `-O out` (or `-o file.md`) to write session boards
+and transcripts to files; stdout then stays quiet. Shell redirection of
+stdout is not treated as a file sink.
 
 ### 3. Run against a local Ollama instance
 
@@ -73,8 +77,9 @@ No network calls, no tokens spent - just a clear view of the assembled prompts a
 dragiter -v -c config-ollama.toml -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
-The `-v` flag is advisable with local models; they can take their time and the silence is otherwise rather
-disconcerting.
+`-v` writes the live run board on stderr, not onto the result sink. It is
+advisable with local models; they can take their time and the silence is
+otherwise rather disconcerting.
 
 ## Documentation
 
@@ -101,14 +106,17 @@ A value set by a higher-priority source cannot be overridden by a lower one.
 
 ## Notable capabilities (all present in the code)
 
-- Regex-based document chunking with optional include/exclude filters and per-section `chunk_substitutions`
+- Staged `regex_patterns`: pattern 0 always cuts; later patterns refine only pieces above `pack_limit_chars`
+- Optional packing (`pack_limit_chars` on the section, or `--pack-limit-chars`) and a chunk cap (`--max-chunks`, default 200)
+- Include/exclude filters and per-section `chunk_substitutions`
 - Sequential or batched processing of material chunks
-- Context-window estimation via `chars_per_token`, `max_context_tokens` and `max_output_tokens`
+- Context-window estimation when `chars_per_token`, `max_context_tokens` and `max_output_tokens` are all set; otherwise boards show `n/a` / `--`
 - JSONL loops that expose every object key as a template placeholder
-- Standard input support (`{STDIN}` placeholder or automatic use with `-t`)
+- Stdin is read only when `-t` / `--task` is set or the prompt contains `{STDIN}`
 - Activity tracing to JSONL for auditing
 - Retry logic with configurable delay and maximum attempts (transient 5xx and connection drops; 504 / gateway timeout / runner crash are terminal)
 - Optional mutual TLS (client certificate + key)
+- Results (and the simulate run board) on stdout only when neither `-o` nor `-O` is set; file routing replaces that sink
 - Output modes: exclusive create (`x`), overwrite (`w`), append (`a`)
 - Verbose stderr run board; per-session scratch files under `.dragiter-partial/`
 
@@ -117,9 +125,12 @@ A value set by a higher-priority source cannot be overridden by a lower one.
 Because dragiter does one job cleanly it composes with the rest of the terminal. Standard input is fully supported:
 
 ```bash
-# Pipe live data straight into a prompt that contains the {STDIN} placeholder
+# Stdin into a prompt that contains {STDIN}; -o replaces the stdout sink
 curl -s https://example-competitor.com/pricing \
   | dragiter -p summarize_pricing.toml -r web_resources.toml -o pricing_report.txt
+
+# Omit -o/-O to echo the result (or the simulate board) on stdout
+dragiter -s -p summarize_pricing.toml -r web_resources.toml > board.md
 ```
 
 The same pattern works with database exports, log files or any other tool that can produce a stream.
