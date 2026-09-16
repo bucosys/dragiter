@@ -11,8 +11,11 @@ are interpolated into output_filename_schema.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 import re
+import time
+from typing import Any
 
 # Characters that are never allowed in a generated filename component.
 _UNSAFE_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
@@ -89,3 +92,75 @@ def ensure_path_within_directory(candidate: Path, base_directory: Path) -> Path:
         ) from exc
 
     return resolved_candidate
+
+
+def sortable_timestamp() -> str:
+    """Return a lexicographically sortable UTC timestamp with nanoseconds."""
+    ns = time.time_ns()
+    seconds = ns // 1_000_000_000
+    nanoseconds = ns % 1_000_000_000
+    dt = datetime.fromtimestamp(seconds, tz=UTC)
+    return dt.strftime("%Y%m%d_%H%M%S_") + f"{nanoseconds:09d}"
+
+
+def schema_has_runtime_tokens(template: str | None) -> bool:
+    """True when the filename schema can only be resolved at write time."""
+    return "TIMESTAMP" in (template or "")
+
+
+def format_output_filename(
+    chunk: Any | None = None,
+    loop_dict_item: dict[str, Any] | None = None,
+    session_index: int | None = None,
+    template: str = "",
+) -> str:
+    """
+    Format a single-component output filename from a schema template.
+    """
+    result = template or ""
+    d: dict[str, Any] = {}
+
+    if chunk:
+        d["CHUNK_NUM_ID"] = chunk.num_id if chunk.num_id is not None else 0
+        d["CHUNK_FILE_NAME"] = sanitize_filename(chunk.filename or "file")
+        d["CHUNK_SECTION_NAME"] = sanitize_filename(chunk.section_name or "section")
+        d["CHUNK_SECTION_NUM_ID"] = (
+            chunk.section_num_id if chunk.section_num_id is not None else 0
+        )
+
+    if loop_dict_item:
+        for key, value in loop_dict_item.items():
+            if key.endswith("_NUM_ID") or key == "LOOP_NUM_ID":
+                try:
+                    d[key] = int(value)
+                except (ValueError, TypeError):
+                    d[key] = session_index or 0
+            elif isinstance(value, (int, float)):
+                d[key] = value
+            else:
+                d[key] = sanitize_filename(str(value))
+
+        if "LOOP_NUM_ID" not in d:
+            d["LOOP_NUM_ID"] = session_index or 0
+
+        d.setdefault(
+            "LOOP_ID",
+            sanitize_filename(str(loop_dict_item.get("LOOP_ID", "unknown"))),
+        )
+
+    d["TIMESTAMP"] = sortable_timestamp()
+
+    known_placeholders = ["CHUNK_", "LOOP_", "TIMESTAMP"]
+    if not any(ph in result for ph in known_placeholders):
+        if session_index is not None:
+            return f"session_{session_index:04d}.md"
+        return "output.md"
+
+    try:
+        formatted = result.format_map(d)
+    except (KeyError, ValueError):
+        if session_index is not None:
+            return f"session_{session_index:04d}.md"
+        formatted = result
+
+    return sanitize_filename(formatted)

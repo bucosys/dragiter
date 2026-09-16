@@ -12,6 +12,7 @@ import pytest
 
 from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.domain.models.chunk import Chunk
+from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.io.filename_utils import (
     ensure_path_within_directory,
     sanitize_filename,
@@ -111,7 +112,7 @@ def test_ensure_path_within_directory_rejects_absolute_escape(tmp_path: Path):
 # ---------------------------------------------------------------------------
 
 def test_format_filename_sanitises_chunk_filename():
-    writer = OutputWriter()
+    writer = OutputWriter(MarkdownResultBoard())
     chunk = Chunk(
         num_id=1,
         filename="../../etc/passwd",
@@ -136,7 +137,7 @@ def test_format_filename_sanitises_chunk_filename():
 
 
 def test_format_filename_sanitises_loop_values():
-    writer = OutputWriter()
+    writer = OutputWriter(MarkdownResultBoard())
     loop_item = {
         "LOOP_ID": "../../../tmp/evil",
         "platform": "Instagram/../secret",
@@ -155,6 +156,6 @@ def test_format_filename_sanitises_loop_values():
 
 
 def test_format_filename_fallback_when_no_placeholders():
-    writer = OutputWriter()
+    writer = OutputWriter(MarkdownResultBoard())
     result = writer._format_filename(session_index=7, template="plain_name")
     assert result == "session_0007.md"

@@ -8,6 +8,38 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
 
+### Added
+- One run workspace ``.tmp_staging_dir_<PID>/`` beside ``-O``, beside
+  ``-o``, or in the current working directory. It is created before the
+  first completion. Each reply is stored as a timestamped file; an empty
+  reply still creates an empty file. ``OutputWriter`` commits from that
+  directory: ``-O`` applies ``output_filename_schema``, ``-o`` joins with
+  ``output_delimiter``, and live stdout without a file sink prints the
+  same joined text. Success removes this process's workspace; a mid-run
+  failure leaves it in place.
+- ``-m x`` is checked before any completion call against the ``-o`` file
+  and against planned ``-O`` names. A schema that contains ``TIMESTAMP``
+  skips that early check and prints one line on stderr (also without
+  ``-v``); exclusive create still runs at commit.
+- ``ResultBoardService`` with default adapter ``MarkdownResultBoard``
+  for post-run simulate boards on stdout and in ``-o`` / ``-O`` files.
+  The live stderr board remains ``SessionBoardService`` on
+  ``ChatManager``.
+
+### Changed
+- ``-m a`` inserts ``output_delimiter`` between existing target bytes
+  and the new block. An empty assembled body does not touch the target.
+- Live ``-o`` / ``-O`` bytes come from the workspace, not from the
+  in-memory result list, when the workspace has files.
+
+### Removed
+- ``.dragiter-partial/``, ``ScratchPersistenceService``,
+  ``write_directory_with_staging``, and
+  ``OutputWriter._write_to_directory_with_staging``. Without ``-o`` or
+  ``-O`` the workspace still exists for stdout; there is no second
+  scratch tree.
+
+
 ## [2026.9.13] - 2026-09-13
 
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.9.13](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.13)

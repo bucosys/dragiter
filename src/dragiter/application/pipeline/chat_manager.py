@@ -23,7 +23,11 @@ from dragiter.domain.ports.session_board_service import SessionBoardService
 from dragiter.infrastructure.cli.null_session_board import NullSessionBoard
 from dragiter.infrastructure.cli.simulation_brief import resolve_pack_budget
 from dragiter.infrastructure.cli.stderr_session_board import StderrSessionBoard
-from dragiter.infrastructure.io.scratch_persistence_service import ScratchPersistenceService
+from dragiter.infrastructure.io.null_persistence_service import NullPersistenceService
+from dragiter.infrastructure.io.workspace_service import (
+    WorkspaceConflictError,
+    WorkspacePersistenceService,
+)
 from dragiter.infrastructure.llm.mockai_service import MockAIService
 from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
 
@@ -56,11 +60,15 @@ class ChatManager(Worker):
     ) -> ChatResults:
         chat_result_list: list[ChatResult] = []
         board = self._resolve_board(lp)
-        persistence = self._resolve_persistence(op)
+        persistence = self._resolve_persistence(op, prompt_template)
         sessions = chat_sessions.session_list
         total = len(sessions)
 
         try:
+            if isinstance(persistence, WorkspacePersistenceService):
+                persistence.check_exclusive(sessions)
+                persistence.prepare()
+
             if ep.simulate_bool_setting.value:
                 payload_estimator = SimplePayloadEstimator()
                 self.llm_service = MockAIService(payload_estimator)
@@ -98,6 +106,8 @@ class ChatManager(Worker):
             board.end_run(results)
             return results
 
+        except WorkspaceConflictError as e:
+            raise ChatManagerError(str(e)) from e
         except Exception as e:
             raise ChatManagerError(f"Failed to process openai query: {e}") from e
 
@@ -158,10 +168,16 @@ class ChatManager(Worker):
             "planned_sessions": sessions,
         }
 
-    def _resolve_persistence(self, op: OutputParameters) -> PersistenceService:
+    def _resolve_persistence(
+        self,
+        op: OutputParameters,
+        prompt_template: PromptTemplate | None = None,
+    ) -> PersistenceService:
         if self._persistence is not None:
             return self._persistence
-        return ScratchPersistenceService.from_output_parameters(op)
+        if prompt_template is None:
+            return NullPersistenceService()
+        return WorkspacePersistenceService(op, prompt_template)
 
 
 class ChatManagerError(Exception):

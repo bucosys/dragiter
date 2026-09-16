@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from io import StringIO
+import os
 from pathlib import Path
 
 import pytest
@@ -26,9 +27,9 @@ from dragiter.infrastructure.cli.stderr_session_board import (
     StderrSessionBoard,
 )
 from dragiter.infrastructure.io.null_persistence_service import NullPersistenceService
-from dragiter.infrastructure.io.scratch_persistence_service import (
-    SCRATCH_DIR_NAME,
-    ScratchPersistenceService,
+from dragiter.infrastructure.io.workspace_service import (
+    DIR_STAGING_PREFIX,
+    WorkspacePersistenceService,
 )
 from dragiter.infrastructure.llm.mockai_service import MockAIService
 
@@ -177,18 +178,22 @@ def test_clock_stays_on_one_line_and_throttles(monkeypatch: pytest.MonkeyPatch) 
     assert PULSE_MARKS[1] in raw
 
 
-def test_scratch_persistence_keeps_prior_sessions(tmp_path: Path) -> None:
+def test_workspace_persistence_keeps_prior_sessions(tmp_path: Path) -> None:
     groups = blank_parameter_groups()
     op = groups["op"]
     op.output_directory_path_setting.set(tmp_path, ValueOrigin.CLI)
-    service = ScratchPersistenceService.from_output_parameters(op)
+    op.output_mode_string_setting.set("w", ValueOrigin.CLI)
+    _, _, _, _, prompt = _pipeline_deps()
+    prompt.output_filename_schema = "{CHUNK_FILE_NAME}"
+    service = WorkspacePersistenceService(op, prompt)
+    service.prepare()
     first = ChatResult()
     first.output_chat_message.content = "one"
     second = ChatResult()
     second.output_chat_message.content = "two"
     service.persist(1, _session("a.md"), first)
     service.persist(2, _session("b.md"), second)
-    stored = sorted((tmp_path / SCRATCH_DIR_NAME).glob("session_*.txt"))
+    stored = sorted(p for p in service.dir_workspace.iterdir() if p.is_file())
     assert len(stored) == 2
     assert stored[0].read_text(encoding="utf-8") == "one"
     assert stored[1].read_text(encoding="utf-8") == "two"
@@ -212,8 +217,11 @@ def test_chat_manager_persists_before_a_later_failure(tmp_path: Path) -> None:
     groups = blank_parameter_groups()
     groups["aisp"].model_name_string_setting.set("test", ValueOrigin.CLI)
     groups["op"].output_directory_path_setting.set(tmp_path, ValueOrigin.CLI)
+    groups["op"].output_mode_string_setting.set("w", ValueOrigin.CLI)
     sessions = ChatSessions(session_list=[_session("a.md"), _session("b.md")])
     manager = ChatManager(_FailOnSecond())
+    deps = _pipeline_deps()
+    deps[4].output_filename_schema = "{CHUNK_FILE_NAME}"
     with pytest.raises(ChatManagerError, match="boom"):
         manager.run(
             groups["aisp"],
@@ -221,12 +229,13 @@ def test_chat_manager_persists_before_a_later_failure(tmp_path: Path) -> None:
             groups["ep"],
             sessions,
             groups["op"],
-            *_pipeline_deps(),
+            *deps,
         )
-    saved = list((tmp_path / SCRATCH_DIR_NAME).glob("session_0001_*.txt"))
+    staging = tmp_path / f"{DIR_STAGING_PREFIX}{os.getpid()}"
+    saved = sorted(p for p in staging.iterdir() if p.is_file()) if staging.is_dir() else []
+    assert staging.is_dir(), list(tmp_path.iterdir())
     assert len(saved) == 1
     assert saved[0].read_text(encoding="utf-8") == "ok-1"
-    assert not list((tmp_path / SCRATCH_DIR_NAME).glob("session_0002_*.txt"))
 
 
 def test_mock_does_not_emit_stream_chunks() -> None:

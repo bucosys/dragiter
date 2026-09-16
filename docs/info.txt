@@ -40,14 +40,17 @@ OPTIONS
        General Flags
            -d, --debug                Enable debug logging
            -s, --simulate             Simulation mode (no real API calls)
-           -v, --verbose              stderr run board: start block
-                                      (model, mode, pack, window, output),
-                                      one request line per completion
-                                      (◴◷◶◵ on the left, advanced
-                                      from the stream loop every 10 s),
-                                      closing block. Not written to
-                                      stdout. With -d the board is mixed
-                                      into the debug log
+           -v, --verbose              stderr run board. Does not raise
+                                      the log level (use -d). Start:
+                                      model, mode, pack, window,
+                                      peak / limit. Request line:
+                                      pulse mark, duration, finish
+                                      reason, provider in=/out= when
+                                      the endpoint sent usage. Close:
+                                      reply count and summed provider
+                                      tokens. Not written to stdout.
+                                      With -d the board is mixed into
+                                      the debug log
            -c, --config-file PATH     Path to a specific TOML configuration
                                       file. A relative path is resolved
                                       against -b when -b is set

@@ -1,15 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # SPDX-FileCopyrightText: 2026 Michael Buchold
-from datetime import UTC, datetime
 import logging
-import os
 from pathlib import Path
-import shutil
-import tempfile
-import time
 from typing import Any
 
-from dragiter.application.pipeline.material_tokenizer import MaterialTokenizer
 from dragiter.domain.models.application_result import ApplicationResult
 from dragiter.domain.models.chat_results import ChatResults
 from dragiter.domain.models.chat_sessions import ChatSession, ChatSessions
@@ -24,51 +18,25 @@ from dragiter.domain.models.parameters import (
 )
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.resources import Resources
-from dragiter.infrastructure.cli.simulation_brief import (
-    SimulationBrief,
-    SimulationSessionBrief,
-    format_payload_table,
-    format_simulation_brief,
-    format_simulation_session_brief,
-    join_ruled_sections,
-    resolve_pack_budget,
-)
+from dragiter.domain.ports.result_board_service import ResultBoardService
+from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.io.filename_utils import (
     ensure_path_within_directory,
-    sanitize_filename,
+    format_output_filename,
 )
-from dragiter.infrastructure.io.io_services import (
-    write_directory_with_staging,
-    write_or_append_lines_to_unique_file,
+from dragiter.infrastructure.io.workspace_service import (
+    cleanup_run_workspaces,
+    commit_assembled_output,
+    join_workspace_text,
+    list_workspace_files,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class OutputWriter:
-    def __init__(self) -> None:
-        pass
-
-    def _get_sortable_timestamp(self) -> str:
-        """
-        Generates a high-resolution, sortable timestamp string.
-
-        The format is designed to be lexicographically sortable and
-        includes nanosecond precision.
-
-        Returns:
-            str: Timestamp in the format 'YYYYMMDD_HHMMSS_nnnnnnnnn'
-                 Example: '20250621_231845_847291384'
-        """
-        ns = time.time_ns()
-
-        # Separate seconds and nanoseconds
-        seconds = ns // 1_000_000_000
-        nanoseconds = ns % 1_000_000_000
-
-        dt = datetime.fromtimestamp(seconds, tz=UTC)
-
-        return dt.strftime("%Y%m%d_%H%M%S_") + f"{nanoseconds:09d}"
+    def __init__(self, result_board: ResultBoardService) -> None:
+        self._board = result_board
 
     def _format_filename(
         self,
@@ -77,131 +45,9 @@ class OutputWriter:
         session_index: int | None = None,
         template: str = "",
     ) -> str:
-        """
-        Formats a filename using the provided template.
-        Ensures numeric format specifiers work correctly.
-        """
-        result = template or ""
-        d: dict[str, Any] = {}
-
-        # Chunk data
-        if chunk:
-            d["CHUNK_NUM_ID"] = chunk.num_id if chunk.num_id is not None else 0
-            d["CHUNK_FILE_NAME"] = sanitize_filename(chunk.filename or "file")
-            d["CHUNK_SECTION_NAME"] = sanitize_filename(chunk.section_name or "section")
-            d["CHUNK_SECTION_NUM_ID"] = (
-                chunk.section_num_id if chunk.section_num_id is not None else 0
-            )
-
-        # Loop data - force numeric fields to int
-        if loop_dict_item:
-            for key, value in loop_dict_item.items():
-                if key.endswith("_NUM_ID") or key == "LOOP_NUM_ID":
-                    try:
-                        d[key] = int(value)
-                    except (ValueError, TypeError):
-                        d[key] = session_index or 0
-                elif isinstance(value, (int, float)):
-                    d[key] = value
-                else:
-                    d[key] = sanitize_filename(str(value))
-
-            # Ensure LOOP_NUM_ID is always present and numeric
-            if "LOOP_NUM_ID" not in d:
-                d["LOOP_NUM_ID"] = session_index or 0
-
-            d.setdefault(
-                "LOOP_ID",
-                sanitize_filename(str(loop_dict_item.get("LOOP_ID", "unknown"))),
-            )
-
-        # Timestamp
-        d["TIMESTAMP"] = self._get_sortable_timestamp()
-
-        # Fallback if no placeholders
-        known_placeholders = ["CHUNK_", "LOOP_", "TIMESTAMP"]
-        if not any(ph in result for ph in known_placeholders):
-            if session_index is not None:
-                return f"session_{session_index:04d}.md"
-            return "output.md"
-
-        try:
-            formatted = result.format_map(d)
-        except (KeyError, ValueError):
-            if session_index is not None:
-                return f"session_{session_index:04d}.md"
-            formatted = result
-
-        return sanitize_filename(formatted)
-
-    def _write_to_directory_with_staging(
-        self,
-        chat_sessions: ChatSessions,
-        chat_results: ChatResults,
-        final_dir: Path,
-        prompt: PromptTemplate,
-        open_mode: str,
-    ) -> None:
-        """Writes results to a temporary staging directory first and transfers them upon completion."""
-
-        # 1. Generate staging directory (in the OS temp directory)
-        #staging_dir = Path(tempfile.mkdtemp(prefix="dragiter_staging_"))
-        staging_dir = final_dir / f".tmp_staging_{os.getpid()}"
-        staging_dir.mkdir(parents=True, exist_ok=True)
-
-        try:
-            # List for the subsequent commit phase
-            file_mappings = []
-            index: int = 0
-
-            # 2. Write LLM results to the staging directory
-            for chat_session, chat_result in zip(
-                chat_sessions.session_list,
-                chat_results.chat_result_list,
-                strict=True,
-            ):
-                index += 1
-                formatted_file_name: str = self._format_filename(
-                    chat_session.chunk,
-                    chat_session.loop_item,
-                    index,
-                    prompt.output_filename_schema,
-                )
-
-                content = chat_result.output_chat_message.content
-                staged_path = staging_dir / formatted_file_name
-
-                # Write to the staging directory without conflicts (always mode "x")
-                write_or_append_lines_to_unique_file(staged_path, "x", [content])
-
-                # Prepare target data for the commit phase
-                target_path = final_dir / formatted_file_name
-                safe_path = ensure_path_within_directory(target_path, final_dir)
-                file_mappings.append((safe_path, content))
-
-            # 3. Commit phase: Transfer to the actual target directory
-            for safe_path, content in file_mappings:
-                try:
-                    write_or_append_lines_to_unique_file(safe_path, open_mode, [content])
-                except Exception as e:
-                    # If writing to the final target fails (e.g., due to mode "x"):
-                    raise OutputWriterError(
-                        f"Write conflict for file {safe_path.name}. "
-                        f"Aborting! All generated results are safely stored in: {staging_dir}\n"
-                        f"Original error: {e}"
-                    ) from e
-
-            # 4. Cleanup: Remove the staging directory if successful
-            shutil.rmtree(staging_dir, ignore_errors=True)
-
-        except Exception as e:
-            # Pass through if it is our own OutputWriterError
-            if isinstance(e, OutputWriterError):
-                raise
-            # Otherwise catch and point to the staging directory
-            raise OutputWriterError(
-                f"Unexpected error. The temporary data is stored in: {staging_dir} | {e}"
-            ) from e
+        return format_output_filename(
+            chunk, loop_dict_item, session_index, template
+        )
 
     def run(
         self,
@@ -226,16 +72,16 @@ class OutputWriter:
             for chat_result in chat_results.chat_result_list:
                 content_list.append(chat_result.output_chat_message.content)
 
-            # if nothin to report - bail out ...
             out_data = " ".join(content_list)
-            if out_data == "":
-                return application_result  # --> out 0
+            if out_data == "" and not list_workspace_files(op):
+                cleanup_run_workspaces(op)
+                return application_result
 
             # printable_value = "\n\n\n\n".join(content_list)
             printable_value = prompt.output_delimiter.join(content_list)
             simulate = self._is_simulation(ep, chat_results)
             run_board_tty = (
-                self._format_simulation_brief(
+                self._board.run_board(
                     chat_sessions,
                     chat_results,
                     op,
@@ -252,7 +98,7 @@ class OutputWriter:
                 else None
             )
             run_board_file = (
-                self._format_simulation_brief(
+                self._board.run_board(
                     chat_sessions,
                     chat_results,
                     op,
@@ -274,7 +120,7 @@ class OutputWriter:
             batched_chars = sum(len(chunk.content) for chunk in material.chunks if chunk.valid)
 
             def _session_header(index: int, chat_session: ChatSession) -> str:
-                return self._format_session_brief(
+                return self._board.session_board(
                     chat_session,
                     index,
                     session_count,
@@ -286,6 +132,10 @@ class OutputWriter:
                     ep,
                     resources,
                 )
+
+            delimiter = prompt.output_delimiter or ""
+            staged_files = list_workspace_files(op)
+            staged_join = join_workspace_text(op, delimiter) if staged_files else None
 
             # write result to one file (-o)
             if op.output_file_path_setting.is_set:
@@ -300,57 +150,104 @@ class OutputWriter:
                         start=1,
                     ):
                         sections.append(_session_header(index, session))
-                        sections.append(self._payload_table(session))
-                    file_body = join_ruled_sections(*sections)
+                        sections.append(self._board.payload_table(session))
+                    file_body = self._board.join(*sections)
+                elif staged_join is not None:
+                    file_body = staged_join
                 else:
                     file_body = printable_value
-                write_or_append_lines_to_unique_file(
-                    op.output_file_path_setting.value, open_mode, [file_body]
+                commit_assembled_output(
+                    Path(op.output_file_path_setting.value),
+                    open_mode,
+                    file_body,
+                    delimiter,
                 )
 
-            # write to many files (-O) -> Utilises the new staging method
+            # write to many files (-O)
             if op.output_directory_path_setting.is_set:
                 file_mappings = []
-                index: int = 0
-
-                for chat_session, chat_result in zip(
-                        chat_sessions.session_list,
-                        chat_results.chat_result_list,
-                        strict=True,
-                ):
-                    index += 1
-                    formatted_file_name: str = self._format_filename(
-                        chat_session.chunk,
-                        chat_session.loop_item,
-                        index,
-                        prompt.output_filename_schema,
-                    )
-                    target_path = op.output_directory_path_setting.value / formatted_file_name
-                    safe_path = ensure_path_within_directory(
-                        target_path, op.output_directory_path_setting.value
-                    )
-                    if simulate:
-                        body = join_ruled_sections(
-                            _session_header(index, chat_session),
-                            self._payload_table(chat_session),
+                target_dir = Path(op.output_directory_path_setting.value)
+                if simulate:
+                    for index, (chat_session, chat_result) in enumerate(
+                        zip(
+                            chat_sessions.session_list,
+                            chat_results.chat_result_list,
+                            strict=True,
+                        ),
+                        start=1,
+                    ):
+                        formatted_file_name = self._format_filename(
+                            chat_session.chunk,
+                            chat_session.loop_item,
+                            index,
+                            prompt.output_filename_schema,
                         )
-                    else:
-                        body = chat_result.output_chat_message.content or ""
-                    file_mappings.append((safe_path, body))
+                        safe_path = ensure_path_within_directory(
+                            target_dir / formatted_file_name, target_dir
+                        )
+                        body = self._board.join(
+                            _session_header(index, chat_session),
+                            self._board.payload_table(chat_session),
+                        )
+                        file_mappings.append((safe_path, body))
+                elif staged_files:
+                    sessions = chat_sessions.session_list
+                    for index, staged in enumerate(staged_files, start=1):
+                        body = staged.read_text(encoding="utf-8")
+                        if index <= len(sessions):
+                            session = sessions[index - 1]
+                            formatted_file_name = self._format_filename(
+                                session.chunk,
+                                session.loop_item,
+                                index,
+                                prompt.output_filename_schema,
+                            )
+                        else:
+                            formatted_file_name = staged.name
+                        safe_path = ensure_path_within_directory(
+                            target_dir / formatted_file_name, target_dir
+                        )
+                        file_mappings.append((safe_path, body))
+                else:
+                    for index, (chat_session, chat_result) in enumerate(
+                        zip(
+                            chat_sessions.session_list,
+                            chat_results.chat_result_list,
+                            strict=True,
+                        ),
+                        start=1,
+                    ):
+                        formatted_file_name = self._format_filename(
+                            chat_session.chunk,
+                            chat_session.loop_item,
+                            index,
+                            prompt.output_filename_schema,
+                        )
+                        safe_path = ensure_path_within_directory(
+                            target_dir / formatted_file_name, target_dir
+                        )
+                        file_mappings.append(
+                            (safe_path, chat_result.output_chat_message.content or "")
+                        )
 
-                # Delegate the complete transfer to the infrastructure layer
-                write_directory_with_staging(
-                    file_mappings=file_mappings,
-                    target_dir=op.output_directory_path_setting.value,
-                    output_mode=open_mode
-                )
+                for safe_path, body in file_mappings:
+                    commit_assembled_output(
+                        safe_path,
+                        open_mode,
+                        body,
+                        delimiter,
+                        allow_empty=True,
+                    )
 
             # Default sink is stdout only when neither -o nor -O is set.
             if self._echo_results_to_stdout(op):
                 if run_board_tty is not None:
                     print(run_board_tty)
+                elif staged_join is not None:
+                    print(staged_join)
                 else:
                     print(printable_value)
+            cleanup_run_workspaces(op)
             return ApplicationResult(0)
 
         except Exception as e:
@@ -381,164 +278,6 @@ class OutputWriter:
             return True
         return any(result.finish_reason == "mock" for result in chat_results.chat_result_list)
 
-    @staticmethod
-    def _payload_table(chat_session: ChatSession) -> str:
-        messages = [
-            (message.role, message.content)
-            for message in chat_session.input_chat_message_list
-        ]
-        return format_payload_table(messages)
-
-    def _format_session_brief(
-        self,
-        chat_session: ChatSession,
-        session_index: int,
-        session_count: int,
-        sequential: bool,
-        valid_chunks: int,
-        loop_count: int,
-        context_report: ContextValidationReport | None,
-        batched_chars: int,
-        ep: ExecutionParameters,
-        resources: Resources | None,
-    ) -> str:
-        chunk = chat_session.chunk
-        loop_item = chat_session.loop_item or {}
-        session_chars: int | None
-        if sequential and chunk is not None:
-            filename = chunk.filename or "none"
-            chunk_label = f"{chunk.num_id} / {max(valid_chunks, 1)}"
-            section = chunk.section_name or "none"
-            session_chars = len(chunk.content)
-            valid_label = "yes" if chunk.valid else "no"
-        elif sequential:
-            filename = "none"
-            chunk_label = "none"
-            section = "none"
-            session_chars = None
-            valid_label = "none"
-        else:
-            filename = "all files" if valid_chunks else "none"
-            chunk_label = "all"
-            section = "all"
-            session_chars = batched_chars
-            valid_label = "yes" if valid_chunks else "no"
-        pack_limit_chars, pack_from = resolve_pack_budget(
-            ep.pack_limit_chars_int_setting.is_set,
-            ep.pack_limit_chars_int_setting.value,
-            self._section_pack_limits(resources, chunk if sequential else None),
-        )
-        if loop_count <= 0:
-            loop_label = "none"
-            loop_line = "none"
-        else:
-            loop_num = loop_item.get("LOOP_NUM_ID", session_index)
-            loop_label = f"{loop_num} / {loop_count}"
-            raw_line = loop_item.get("LOOP_ID") or loop_item.get("LOOP_CONTENT") or ""
-            loop_line = " ".join(str(raw_line).split()) or "none"
-        tokens = None
-        if context_report is not None:
-            tokens = context_report.session_token_counts.get(session_index - 1)
-            if tokens is None:
-                tokens = context_report.session_input_token_counts.get(session_index - 1)
-        return format_simulation_session_brief(
-            SimulationSessionBrief(
-                session_index=session_index,
-                session_count=session_count,
-                sequential=sequential,
-                filename=filename,
-                chunk_label=chunk_label,
-                section=section,
-                loop_label=loop_label,
-                loop_line=loop_line,
-                tokens=tokens,
-                chars=session_chars,
-                pack_limit_chars=pack_limit_chars,
-                pack_from=pack_from,
-                valid=valid_label,
-                loop_items=loop_count,
-            )
-        )
-
-    def _format_simulation_brief(
-        self,
-        chat_sessions: ChatSessions,
-        chat_results: ChatResults,
-        op: OutputParameters,
-        ep: ExecutionParameters,
-        aisp: AIServiceParameters,
-        material: Material,
-        loop: Loop,
-        context_report: ContextValidationReport | None,
-        prompt: PromptTemplate,
-        resources: Resources | None = None,
-        *,
-        frame: bool = True,
-    ) -> str:
-        chunks = material.chunks
-        pack_limit, pack_from = resolve_pack_budget(
-            ep.pack_limit_chars_int_setting.is_set,
-            ep.pack_limit_chars_int_setting.value,
-            self._section_pack_limits(resources, None),
-        )
-        peak_session = None
-        if context_report is not None and context_report.max_session_index >= 0:
-            peak_session = context_report.max_session_index + 1
-        small_chunks, oversize_chunks = MaterialTokenizer.count_size_flags(chunks, pack_limit)
-        return format_simulation_brief(
-            SimulationBrief(
-                model=aisp.model_name_string_setting.value or "",
-                sessions=len(chat_sessions.session_list),
-                chunks=len(chunks),
-                valid_chunks=sum(1 for chunk in chunks if chunk.valid),
-                source_files=len({chunk.filename for chunk in chunks}),
-                loop_items=len(loop.lines),
-                total_chars=sum(len(chunk.content) for chunk in chunks),
-                sequential=prompt.sequential_processing,
-                pack_limit_chars=pack_limit,
-                pack_from=pack_from,
-                peak_tokens=None if context_report is None else context_report.max_session_tokens,
-                token_limit=None if context_report is None else context_report.max_tokens_limit,
-                peak_session=peak_session,
-                window_ok=None if context_report is None else context_report.is_valid,
-                warning_count=0 if context_report is None else len(context_report.simulation_warnings),
-                small_chunks=small_chunks,
-                oversize_chunks=oversize_chunks,
-                output_dir=(
-                    str(op.output_directory_path_setting.value)
-                    if op.output_directory_path_setting.is_set
-                    else None
-                ),
-                output_file=(
-                    str(op.output_file_path_setting.value)
-                    if op.output_file_path_setting.is_set
-                    else None
-                ),
-                result_count=len(chat_results.chat_result_list),
-            ),
-            frame=frame,
-        )
-
-
-    @staticmethod
-    def _section_pack_limits(
-        resources: Resources | None,
-        chunk: Chunk | None,
-    ) -> list[int | None]:
-        if resources is None:
-            return []
-        sections = resources.resource_sections
-        if chunk is not None:
-            return [
-                section.pack_limit_chars
-                for section in sections
-                if section.section_name == chunk.section_name
-            ]
-        return [section.pack_limit_chars for section in sections]
-
 
 class OutputWriterError(Exception):
     pass
-
-
-

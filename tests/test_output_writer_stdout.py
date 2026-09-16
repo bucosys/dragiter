@@ -16,6 +16,7 @@ from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.settings import ValueOrigin
+from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 
 RESULT_TEXT = "unique-result-payload-stdout-routing"
 
@@ -37,7 +38,7 @@ def _run(
     )
     result = ChatResult(finish_reason="mock" if simulate else "stop")
     result.output_chat_message.content = content
-    OutputWriter().run(
+    OutputWriter(MarkdownResultBoard()).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],
@@ -120,3 +121,45 @@ def test_simulate_board_not_echoed_when_output_file_is_set(
     body = target.read_text(encoding="utf-8")
     assert "| DRAGITER" in body
     assert RESULT_TEXT not in body
+
+
+class _FixedResultBoard:
+    def run_board(self, *args, frame: bool = True, **kwargs) -> str:
+        return "FIXED-RUN-BOARD"
+
+    def session_board(self, *args, **kwargs) -> str:
+        return "FIXED-SESSION-BOARD"
+
+    def payload_table(self, chat_session) -> str:
+        return "FIXED-PAYLOAD"
+
+    def join(self, *sections: str) -> str:
+        return "\n".join(sections)
+
+
+def test_output_writer_uses_injected_result_board(capsys) -> None:
+    groups = blank_parameter_groups()
+    groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
+    groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
+    chunk = Chunk(1, "note.md", "sec01", 1, True, "hello")
+    session = ChatSession(
+        input_chat_message_list=[ChatMessage(role="user", content="ask")],
+        chunk=chunk,
+        loop_item={"LOOP_CONTENT": "ask", "LOOP_NUM_ID": 1},
+    )
+    result = ChatResult(finish_reason="mock")
+    result.output_chat_message.content = RESULT_TEXT
+    OutputWriter(result_board=_FixedResultBoard()).run(
+        ChatSessions([session]),
+        ChatResults([result]),
+        groups["op"],
+        PromptTemplate("", "", "", "", 0.0, False, "result.txt", "\n\n"),
+        groups["ep"],
+        groups["aisp"],
+        Material([chunk]),
+        Loop([{"LOOP_CONTENT": "ask", "LOOP_NUM_ID": 1}]),
+    )
+    captured = capsys.readouterr()
+    assert "FIXED-RUN-BOARD" in captured.out
+    assert RESULT_TEXT not in captured.out
+    assert "| DRAGITER" not in captured.out

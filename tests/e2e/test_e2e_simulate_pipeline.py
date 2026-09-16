@@ -34,9 +34,13 @@ from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.models.parameters import AIServiceParameters
 from dragiter.domain.services.chat_sessions_validator import ChatSessionsValidator
+from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.file.simple_file_checker import SimpleFileChecker
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
-from dragiter.infrastructure.io.scratch_persistence_service import SCRATCH_DIR_NAME
+from dragiter.infrastructure.io.workspace_service import (
+    DIR_STAGING_PREFIX,
+    FILE_STAGING_PREFIX,
+)
 from dragiter.infrastructure.llm.mockai_service import MockAIService
 from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
 
@@ -103,7 +107,7 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
         app.register(MessageBuilder(), ChatSessionsValidator())
         app.register_worker(ContextWindowEstimator(SimplePayloadEstimator()))
         app.register_worker(ChatManager(MockAIService(SimplePayloadEstimator())))
-        app.register_worker(OutputWriter())
+        app.register_worker(OutputWriter(MarkdownResultBoard()))
         app.run()
         return 0
     except SystemExit as exc:
@@ -151,7 +155,12 @@ def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:
     created = [
         p
         for p in output_dir.rglob("*")
-        if p.is_file() and SCRATCH_DIR_NAME not in p.parts
+        if p.is_file()
+        and DIR_STAGING_PREFIX not in p.name
+        and FILE_STAGING_PREFIX not in p.name
+        and not any(
+            part.startswith(DIR_STAGING_PREFIX) for part in p.parts
+        )
     ]
     assert created, f"No output files written to {output_dir}"
 

@@ -24,6 +24,7 @@ from dragiter.application.pipeline.prompt_creator import PromptCreator
 from dragiter.application.pipeline.resource_collector import ResourceCollector
 from dragiter.domain.services.chat_sessions_validator import ChatSessionsValidator
 from dragiter.infrastructure.cli.info_presenter import InfoPresenter
+from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.cli.resource_exporter import ResourceExporter
 from dragiter.infrastructure.file.simple_file_checker import SimpleFileChecker
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
@@ -71,7 +72,7 @@ def main():
         app.register(MessageBuilder(), ChatSessionsValidator())  # -> ChatSessions
         app.register_worker(ContextWindowEstimator(SimplePayloadEstimator()))  # -> None
         app.register_worker(ChatManager(OpenAIServiceExt()))  # -> ChatResults
-        app.register_worker(OutputWriter())  # -> ApplicationResult
+        app.register_worker(OutputWriter(MarkdownResultBoard()))  # -> ApplicationResult
         app.run()
 
         return 0

@@ -24,6 +24,9 @@ pages:
   script:
     - cp -f docs/manual.md web/manual.md
     - cp -f docs/reference.md web/reference.md
+    - cp -f docs/faq.md web/faq.md
+    - cp -f docs/glossary.md web/glossary.md
+    - cp -f docs/suggested-settings.md web/suggested-settings.md
     - cp -f README.md web/index.md
     - |
       cat << 'EOF' >> web/index.md

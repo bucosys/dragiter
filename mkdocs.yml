@@ -30,6 +30,9 @@ nav:
   - Home: index.md
   - Manual: manual.md
   - Reference: reference.md
+  - FAQ: faq.md
+  - Suggested settings: suggested-settings.md
+  - Glossary: glossary.md
   - Legal Notice / Impressum: legal_notice.md
   - Privacy Policy: privacy_policy.md
 

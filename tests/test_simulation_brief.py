@@ -7,13 +7,14 @@ from support import blank_parameter_groups
 
 from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.domain.models.chat_results import ChatResult, ChatResults
-from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatSessions
 from dragiter.domain.models.chunk import Chunk
+from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.settings import ValueOrigin
+from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.cli.simulation_brief import (
     COLUMN_WIDTHS,
     SimulationBrief,
@@ -156,7 +157,7 @@ def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> 
     result = ChatResult()
     result.output_chat_message.content = "mock-body"
 
-    OutputWriter().run(
+    OutputWriter(MarkdownResultBoard()).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],
@@ -203,7 +204,7 @@ def test_output_writer_prints_padded_markdown_table(capsys) -> None:
     result = ChatResult()
     result.output_chat_message.content = '{"mock": true, "full_content": "secret prompt"}'
 
-    OutputWriter().run(
+    OutputWriter(MarkdownResultBoard()).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],
@@ -254,7 +255,7 @@ def test_output_writer_writes_transcript_to_output_directory(tmp_path, capsys) -
     result = ChatResult()
     result.output_chat_message.content = '{"mock": true, "full_content": "secret prompt"}'
 
-    OutputWriter().run(
+    OutputWriter(MarkdownResultBoard()).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],
@@ -320,7 +321,7 @@ def test_output_writer_writes_transcript_to_output_file(tmp_path, capsys) -> Non
     results.chat_result_list[0].output_chat_message.content = '{"mock": true, "full_content": "secret 1"}'
     results.chat_result_list[1].output_chat_message.content = '{"mock": true, "full_content": "secret 2"}'
 
-    OutputWriter().run(
+    OutputWriter(MarkdownResultBoard()).run(
         sessions,
         results,
         groups["op"],
