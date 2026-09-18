@@ -26,7 +26,7 @@ pages:
     - cp -f docs/reference.md web/reference.md
     - cp -f docs/faq.md web/faq.md
     - cp -f docs/glossary.md web/glossary.md
-    - cp -f docs/suggested-settings.md web/suggested-settings.md
+    - cp -f docs/window-starting-values.md web/window-starting-values.md
     - cp -f README.md web/index.md
     - |
       cat << 'EOF' >> web/index.md

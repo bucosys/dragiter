@@ -1,5 +1,5 @@
 # ===================================================================
-# REVISITED: 2026-08-15 Configuration Update
+# REVISITED: 2026-09-18 Window starting values
 # ===================================================================
 #
 # dragiter Configuration Template (google gemini)
@@ -38,25 +38,20 @@
 # ===================================================================
 
 # api_key = "DO-NOT-PUT-A-REAL-KEY-HERE"
-
 base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-model_name = "gemini-3.6-flash"
+model_name = "gemini-3.8-flash"
+
+# Working total W is not the vendor 1 048 576 input / 65 536 output cap.
+# Estimation runs only when all three window keys are set.
+# There is no runtime default for chars_per_token.
+# max_output_tokens is the reserved reply budget and the API max_tokens value.
+chars_per_token = 3.8
+max_context_tokens = 128000
+max_output_tokens = 10240
 
 # ===================================================================
 # Optional advanced settings (uncomment and adjust as needed)
 # ===================================================================
-
-# Average characters per token for token estimation (default: 4.0)
-# chars_per_token = 3.8
-
-# Maximum context window of the model (input + output)
-# Gemini 2.5 Flash supports up to 1M tokens. 200k-500k is a good practical range.
-# max_context_tokens = 200000
-
-# Maximum number of tokens the model is allowed to generate as output.
-# This value is used for dragiter's token estimation AND passed to the API
-# as max_tokens. Always leave some buffer for the answer.
-# max_output_tokens = 8192
 
 # Delay in seconds between retry attempts
 # retry_delay = 5

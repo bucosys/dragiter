@@ -1,27 +1,31 @@
 # ===================================================================
-# REVISITED: 2026-07-02 Configuration Update
+# REVISITED: 2026-09-18 Window starting values
 # ===================================================================
 # dragiter Configuration Template for OLLAMA (OpenAI compatible)
+#
+# Local Ollama is not a getting-started path. The three window keys
+# below are a fail-closed first cut. They are valid only when the
+# loaded runner window (num_ctx) is at least max_context_tokens.
+# The OpenAI-compatible /v1 API does not set or return num_ctx.
+# Read the CONTEXT column of `ollama ps` before raising W.
+# Estimation runs only when all three window keys are set.
+# There is no runtime default for chars_per_token.
+# ===================================================================
 
 api_key = "Ollama"
 base_url = "http://localhost:11434/v1"
 model_name = "qwen3:8b"
 tcp_keep_alive = true
 
+# Working window: input budget is max_context_tokens minus max_output_tokens.
+# chars_per_token is an estimate (characters / n, truncated), not a vendor tokenizer.
+chars_per_token = 3.8
+max_context_tokens = 4096
+max_output_tokens = 1024
+
 # ===================================================================
 # Optional advanced settings (uncomment and adjust as needed)
 # ===================================================================
-
-# Average characters per token for token estimation (default: 4.0)
-# chars_per_token = 3.8
-
-# Maximum context window of the model (input + output)
-# max_context_tokens = 32000
-
-# Maximum number of tokens the model is allowed to generate as output.
-# This value is used for dragiter's token estimation AND passed to the API
-# as max_tokens. Always leave some buffer for the answer.
-# max_output_tokens = 4000
 
 # Delay in seconds between retry attempts
 # retry_delay = 5

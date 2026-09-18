@@ -31,6 +31,18 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   and the new block. An empty assembled body does not touch the target.
 - Live ``-o`` / ``-O`` bytes come from the workspace, not from the
   in-memory result list, when the workspace has files.
+- Example and test Ollama configs now set live window keys
+  (`chars_per_token = 3.8`, `max_context_tokens = 4096`,
+  `max_output_tokens = 1024`) instead of leaving them commented.
+- Example 01 cloud configs (Grok, Claude, Gemini) use the same
+  first-cut triple `3.8` / `128000` / `10240` with slugs
+  `grok-4.6`, `claude-sonnet-5` and `gemini-3.8-flash`.
+- All example and test Ollama configs set `tcp_keep_alive = true`.
+  The test config keeps `temperature = 0.0`.
+- Replaced `docs/suggested-settings.md` with
+  `docs/window-starting-values.md` (nav updated). The page lists
+  shipped slugs and alternatives in one table; cloud rows share
+  the first-cut figures, not vendor maxima.
 
 ### Removed
 - ``.dragiter-partial/``, ``ScratchPersistenceService``,
