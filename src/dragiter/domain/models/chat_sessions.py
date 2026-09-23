@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from dragiter.domain.models.chunk import Chunk
-from dragiter.domain.ports.activity_provider import ActivityProvider
+from dragiter.domain.common.activity_provider import ActivityProvider
 
 ChatRoles = Literal["system", "user", "assistant"]
 

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 import time
 from typing import TextIO
 
@@ -22,17 +21,11 @@ INTERVAL_SECONDS = 10.0
 class StderrSessionBoard:
     """Labelled run board on stderr. One pulse mark, swapped on stream chunks."""
 
-    def __init__(
-        self,
-        stream: TextIO | None = None,
-        *,
-        interactive: bool | None = None,
-    ) -> None:
-        self._stream = stream if stream is not None else sys.stderr
-        if interactive is None:
-            self._interactive = bool(getattr(self._stream, "isatty", lambda: False)())
-        else:
-            self._interactive = interactive
+    def __init__(self, stream: TextIO, *, interactive: bool) -> None:
+        # Stream and terminal mode are chosen at the composition root
+        # (ADR-0000, rules 2, 3 and 5); the board only renders.
+        self._stream = stream
+        self._interactive = interactive
         self._watch_index = 0
         self._last_pulse = 0.0
         self._line_open = False

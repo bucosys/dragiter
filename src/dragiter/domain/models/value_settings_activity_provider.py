@@ -5,7 +5,7 @@ from dataclasses import fields
 from typing import Any
 
 from dragiter.domain.models.settings import ValueSetting
-from dragiter.domain.ports.activity_provider import ActivityProvider
+from dragiter.domain.common.activity_provider import ActivityProvider
 
 
 class ValueSettingsActivityProvider(ActivityProvider):

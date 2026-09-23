@@ -42,6 +42,22 @@ class ConfigurationValidator:
 
         try:
             CVF = ConfigurationValidatorFinding  # shorthand
+
+            # Staging profile v2.1, Section 1 / criterion 6: -o and -O are mutually
+            # exclusive. Refuse at once, before any path is validated.
+            if op.output_file_path_setting.is_set and op.output_directory_path_setting.is_set:
+                raise ConfigurationValidatorError(
+                    [
+                        CVF(
+                            f"{op.output_file_path_setting.key} / "
+                            f"{op.output_directory_path_setting.key}",
+                            "mutually exclusive",
+                            "Use either -o FILE or -O DIR, not both. Without either, "
+                            "the result goes to standard out.",
+                        )
+                    ]
+                )
+
             cvfs: list[CVF] = []
 
             if ip.task_string_setting.is_set:  # so if user choose that param
@@ -100,7 +116,6 @@ class ConfigurationValidator:
                 aisp.client_key_file_path_setting,
                 ip.loop_file_path_setting,
                 ip.resource_file_path_setting,
-                op.output_directory_path_setting,
             ]
 
             cvfs.extend(
@@ -115,7 +130,6 @@ class ConfigurationValidator:
             output_path_settings_to_check = [
                 lp.activity_file_path_setting,
                 lp.log_file_path_setting,
-                op.output_file_path_setting,
             ]
 
             cvfs.extend(
@@ -125,6 +139,23 @@ class ConfigurationValidator:
                     if setting.is_set and not os.access(setting.value.parent, os.R_OK)
                 ]
             )
+
+            # stage IIa: sink parents (staging profile v2.1, Section 5.1).
+            # dragiter never creates DIR or FILE.parent.
+            sink_parents = []
+            if op.output_directory_path_setting.is_set:
+                sink_parents.append(
+                    (op.output_directory_path_setting.key, op.output_directory_path_setting.value)
+                )
+            if op.output_file_path_setting.is_set:
+                sink_parents.append(
+                    (op.output_file_path_setting.key, op.output_file_path_setting.value.parent)
+                )
+            for key, parent in sink_parents:
+                if not parent.is_dir():
+                    cvfs.append(CVF(key, f"Directory missing or not a directory: {parent}"))
+                elif not os.access(parent, os.W_OK | os.X_OK):
+                    cvfs.append(CVF(key, f"Directory not writable: {parent}"))
 
             # stage IIb: -o / -a existence against -m (output_mode)
             # x = exclusive create (file must not exist)

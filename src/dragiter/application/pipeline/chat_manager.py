@@ -18,32 +18,45 @@ from dragiter.domain.models.parameters import (
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.resources import Resources
 from dragiter.domain.ports.llm_service import LLMService
-from dragiter.domain.ports.persistence_service import PersistenceService
-from dragiter.domain.ports.session_board_service import SessionBoardService
-from dragiter.infrastructure.cli.null_session_board import NullSessionBoard
-from dragiter.infrastructure.cli.simulation_brief import resolve_pack_budget
-from dragiter.infrastructure.cli.stderr_session_board import StderrSessionBoard
-from dragiter.infrastructure.io.null_persistence_service import NullPersistenceService
-from dragiter.infrastructure.io.workspace_service import (
-    WorkspaceConflictError,
-    WorkspacePersistenceService,
+from dragiter.domain.ports.persistence_service import (
+    PersistenceError,
+    PersistenceService,
 )
-from dragiter.infrastructure.llm.mockai_service import MockAIService
-from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
+from dragiter.domain.ports.session_board_service import SessionBoardService
+from dragiter.infrastructure.cli.simulation_brief import resolve_pack_budget
 
 logger = logging.getLogger(__name__)
 
 
 class ChatManager(Worker):
+    """
+    Runs every chat session against the LLM service selected for this run.
+
+    All collaborators are constructed at the composition root without run data.
+    Run data (parameters, prompt template, sessions) is handed to them per call;
+    none of them is replaced or reassigned afterwards (ADR-0000, rule 6).
+    """
+
     def __init__(
         self,
         llm_service: LLMService,
-        session_board: SessionBoardService | None = None,
-        persistence: PersistenceService | None = None,
+        mock_service: LLMService,
+        verbose_board: SessionBoardService,
+        silent_board: SessionBoardService,
+        persistence: PersistenceService,
     ) -> None:
-        self.llm_service = llm_service
-        self._session_board = session_board
-        self._persistence = persistence
+        # Validate, never substitute (ADR-0000, rule 3). The Protocol check only
+        # verifies method names (rule 13); signatures are covered by mypy.
+        _require(llm_service, LLMService, "llm_service")
+        _require(mock_service, LLMService, "mock_service")
+        _require(verbose_board, SessionBoardService, "verbose_board")
+        _require(silent_board, SessionBoardService, "silent_board")
+        _require(persistence, PersistenceService, "persistence")
+        self._llm_service: LLMService = llm_service
+        self._mock_service: LLMService = mock_service
+        self._verbose_board: SessionBoardService = verbose_board
+        self._silent_board: SessionBoardService = silent_board
+        self._persistence: PersistenceService = persistence
 
     def run(
         self,
@@ -59,24 +72,22 @@ class ChatManager(Worker):
         prompt_template: PromptTemplate,
     ) -> ChatResults:
         chat_result_list: list[ChatResult] = []
-        board = self._resolve_board(lp)
-        persistence = self._resolve_persistence(op, prompt_template)
+        simulate = bool(ep.simulate_bool_setting.value)
+        verbose = bool(lp.verbose_bool_setting.value)
+        # All variants were injected; the run parameters only pick among them.
+        # Nothing is reassigned, so the manager behaves the same on every run.
+        llm_service = self._mock_service if simulate else self._llm_service
+        board = self._verbose_board if verbose else self._silent_board
         sessions = chat_sessions.session_list
         total = len(sessions)
 
         try:
-            if isinstance(persistence, WorkspacePersistenceService):
-                persistence.check_exclusive(sessions)
-                persistence.prepare()
-
-            if ep.simulate_bool_setting.value:
-                payload_estimator = SimplePayloadEstimator()
-                self.llm_service = MockAIService(payload_estimator)
+            sink = self._persistence.open(op, prompt_template, sessions)
 
             board.begin_run(
                 model=aisp.model_name_string_setting.value,
                 sessions=total,
-                simulate=bool(ep.simulate_bool_setting.value),
+                simulate=simulate,
                 **self._board_facts(
                     ep,
                     op,
@@ -92,13 +103,11 @@ class ChatManager(Worker):
             for index, session in enumerate(sessions, start=1):
                 board.begin_session(index, total, session)
                 try:
-                    result = self.llm_service.process_query(
-                        aisp, lp, session, progress=board
-                    )
+                    result = llm_service.process_query(aisp, lp, session, progress=board)
                 except Exception:
                     board.abandon_session()
                     raise
-                persistence.persist(index, session, result)
+                sink.persist(index, session, result)
                 board.end_session(result)
                 chat_result_list.append(result)
 
@@ -106,17 +115,10 @@ class ChatManager(Worker):
             board.end_run(results)
             return results
 
-        except WorkspaceConflictError as e:
+        except PersistenceError as e:
             raise ChatManagerError(str(e)) from e
         except Exception as e:
-            raise ChatManagerError(f"Failed to process openai query: {e}") from e
-
-    def _resolve_board(self, lp: LoggingParameters) -> SessionBoardService:
-        if self._session_board is not None:
-            return self._session_board
-        if lp.verbose_bool_setting.value:
-            return StderrSessionBoard()
-        return NullSessionBoard()
+            raise ChatManagerError(f"Failed to process chat session: {e}") from e
 
     @staticmethod
     def _board_facts(
@@ -168,16 +170,13 @@ class ChatManager(Worker):
             "planned_sessions": sessions,
         }
 
-    def _resolve_persistence(
-        self,
-        op: OutputParameters,
-        prompt_template: PromptTemplate | None = None,
-    ) -> PersistenceService:
-        if self._persistence is not None:
-            return self._persistence
-        if prompt_template is None:
-            return NullPersistenceService()
-        return WorkspacePersistenceService(op, prompt_template)
+
+def _require(value: object, protocol: type, name: str) -> None:
+    if not isinstance(value, protocol):
+        raise TypeError(
+            f"ChatManager: '{name}' must implement {protocol.__name__}, "
+            f"got {type(value).__name__}."
+        )
 
 
 class ChatManagerError(Exception):

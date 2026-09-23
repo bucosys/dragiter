@@ -1,4 +1,4 @@
-# Window starting values
+# Window Starting Values
 
 **Status:** accepted starting-value list for the shipped example providers  
 **Language:** British English  

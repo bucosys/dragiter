@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from support import blank_parameter_groups
+from support import RecordingCommitService, blank_parameter_groups
 
 from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.domain.models.chat_results import ChatResult, ChatResults
@@ -157,7 +157,7 @@ def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> 
     result = ChatResult()
     result.output_chat_message.content = "mock-body"
 
-    OutputWriter(MarkdownResultBoard()).run(
+    OutputWriter(MarkdownResultBoard(), RecordingCommitService()).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],
@@ -204,7 +204,7 @@ def test_output_writer_prints_padded_markdown_table(capsys) -> None:
     result = ChatResult()
     result.output_chat_message.content = '{"mock": true, "full_content": "secret prompt"}'
 
-    OutputWriter(MarkdownResultBoard()).run(
+    OutputWriter(MarkdownResultBoard(), RecordingCommitService()).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],
@@ -255,7 +255,7 @@ def test_output_writer_writes_transcript_to_output_directory(tmp_path, capsys) -
     result = ChatResult()
     result.output_chat_message.content = '{"mock": true, "full_content": "secret prompt"}'
 
-    OutputWriter(MarkdownResultBoard()).run(
+    OutputWriter(MarkdownResultBoard(), RecordingCommitService()).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],
@@ -321,7 +321,7 @@ def test_output_writer_writes_transcript_to_output_file(tmp_path, capsys) -> Non
     results.chat_result_list[0].output_chat_message.content = '{"mock": true, "full_content": "secret 1"}'
     results.chat_result_list[1].output_chat_message.content = '{"mock": true, "full_content": "secret 2"}'
 
-    OutputWriter(MarkdownResultBoard()).run(
+    OutputWriter(MarkdownResultBoard(), RecordingCommitService()).run(
         sessions,
         results,
         groups["op"],

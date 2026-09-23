@@ -14,14 +14,14 @@ from __future__ import annotations
 
 import inspect
 import json
+import os
 from pathlib import Path
 import sys
 from typing import Any
 
 from dragiter.application.config.configuration_loader import ConfigurationLoader
 from dragiter.application.config.configuration_validator import ConfigurationValidator
-from dragiter.application.core.file_activity_logger import FileActivityLogger
-from dragiter.application.pipeline.application import Application
+from dragiter.application.core.xdi import ApplicationManager
 from dragiter.application.pipeline.chat_manager import ChatManager
 from dragiter.application.pipeline.context_window_estimator import ContextWindowEstimator
 from dragiter.application.pipeline.loop_builder import LoopBuilder
@@ -34,15 +34,23 @@ from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.models.parameters import AIServiceParameters
 from dragiter.domain.services.chat_sessions_validator import ChatSessionsValidator
+from dragiter.infrastructure.checksum.basic_checksum_generator import BasicChecksumGenerator
 from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
+from dragiter.infrastructure.cli.null_session_board import NullSessionBoard
+from dragiter.infrastructure.cli.stderr_session_board import StderrSessionBoard
 from dragiter.infrastructure.file.simple_file_checker import SimpleFileChecker
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
 from dragiter.infrastructure.io.workspace_service import (
     DIR_STAGING_PREFIX,
     FILE_STAGING_PREFIX,
+    WorkspaceCommitService,
+    WorkspaceLayout,
+    WorkspacePersistenceService,
+    user_temp_directory,
 )
 from dragiter.infrastructure.llm.mockai_service import MockAIService
 from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
+from dragiter.infrastructure.logging.file_activity_logger import FileActivityLogger
 
 _ORIGINAL_MOCK_PROCESS_QUERY = MockAIService.process_query
 
@@ -96,8 +104,8 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
         # must not block on an inherited, still-open standard input.
         MockAIService.process_query = _compatible_process_query  # type: ignore[method-assign]
 
-        app = Application()
-        app.register_activity_logger(FileActivityLogger())
+        layout = WorkspaceLayout(pid=os.getpid(), user_temp=user_temp_directory(os.environ))
+        app = ApplicationManager(BasicChecksumGenerator(), FileActivityLogger())
         app.register_worker(ConfigurationLoader())
         app.register_worker(ConfigurationValidator())
         app.register_worker(ResourceCollector(SimpleFileChecker()))
@@ -106,8 +114,18 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
         app.register_worker(PromptCreator())
         app.register(MessageBuilder(), ChatSessionsValidator())
         app.register_worker(ContextWindowEstimator(SimplePayloadEstimator()))
-        app.register_worker(ChatManager(MockAIService(SimplePayloadEstimator())))
-        app.register_worker(OutputWriter(MarkdownResultBoard()))
+        app.register_worker(
+            ChatManager(
+                _ForbiddenLiveService(),
+                MockAIService(SimplePayloadEstimator()),
+                StderrSessionBoard(sys.stderr, interactive=False),
+                NullSessionBoard(),
+                WorkspacePersistenceService(layout),
+            )
+        )
+        app.register_worker(
+            OutputWriter(MarkdownResultBoard(), WorkspaceCommitService(layout, sys.stdout))
+        )
         app.run()
         return 0
     except SystemExit as exc:
@@ -118,6 +136,13 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
     finally:
         MockAIService.process_query = _ORIGINAL_MOCK_PROCESS_QUERY  # type: ignore[method-assign]
         sys.argv = saved_argv
+
+
+class _ForbiddenLiveService:
+    """Live slot in e2e runs: simulate mode must never reach it."""
+
+    def process_query(self, aisp, lp, chat_session, progress=None):
+        raise AssertionError("e2e simulate run reached the live LLM service")
 
 
 def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:

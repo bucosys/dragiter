@@ -4,8 +4,11 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+import sys
 
+import pytest
 from support import blank_parameter_groups
 
 from dragiter.application.pipeline.output_writer import OutputWriter
@@ -17,12 +20,19 @@ from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.settings import ValueOrigin
 from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
+from dragiter.infrastructure.io.workspace_service import (
+    WorkspaceCommitService,
+    WorkspaceError,
+    WorkspaceLayout,
+    WorkspacePersistenceService,
+)
 
 RESULT_TEXT = "unique-result-payload-stdout-routing"
 
 
 def _run(
     groups,
+    user_temp: Path,
     *,
     simulate: bool = False,
     content: str = RESULT_TEXT,
@@ -38,11 +48,16 @@ def _run(
     )
     result = ChatResult(finish_reason="mock" if simulate else "stop")
     result.output_chat_message.content = content
-    OutputWriter(MarkdownResultBoard()).run(
+    prompt = PromptTemplate("", "", "", "", 0.0, False, filename_schema, "\n\n")
+    layout = WorkspaceLayout(pid=os.getpid(), user_temp=user_temp)
+    # Live runs commit from the workspace, so persist first as ChatManager would.
+    run = WorkspacePersistenceService(layout).open(groups["op"], prompt, [session])
+    run.persist(1, session, result)
+    OutputWriter(MarkdownResultBoard(), WorkspaceCommitService(layout, sys.stdout)).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],
-        PromptTemplate("", "", "", "", 0.0, False, filename_schema, "\n\n"),
+        prompt,
         groups["ep"],
         groups["aisp"],
         Material([chunk]),
@@ -50,9 +65,9 @@ def _run(
     )
 
 
-def test_live_result_echoes_on_stdout_when_no_file_sink(capsys) -> None:
+def test_live_result_echoes_on_stdout_when_no_file_sink(tmp_path: Path, capsys) -> None:
     groups = blank_parameter_groups()
-    _run(groups, simulate=False)
+    _run(groups, tmp_path, simulate=False)
     captured = capsys.readouterr()
     assert RESULT_TEXT in captured.out
     assert captured.out.strip() == RESULT_TEXT
@@ -62,7 +77,7 @@ def test_live_result_not_echoed_when_output_file_is_set(tmp_path: Path, capsys) 
     groups = blank_parameter_groups()
     target = tmp_path / "out.txt"
     groups["op"].output_file_path_setting.set(target, ValueOrigin.CLI)
-    _run(groups, simulate=False)
+    _run(groups, tmp_path, simulate=False)
     captured = capsys.readouterr()
     assert captured.out == ""
     assert RESULT_TEXT in target.read_text(encoding="utf-8")
@@ -73,7 +88,7 @@ def test_live_result_not_echoed_when_output_directory_is_set(
 ) -> None:
     groups = blank_parameter_groups()
     groups["op"].output_directory_path_setting.set(tmp_path, ValueOrigin.CLI)
-    _run(groups, simulate=False, filename_schema="{CHUNK_FILE_NAME}.txt")
+    _run(groups, tmp_path, simulate=False, filename_schema="{CHUNK_FILE_NAME}.txt")
     captured = capsys.readouterr()
     assert captured.out == ""
     written = [p for p in tmp_path.iterdir() if p.is_file()]
@@ -81,28 +96,20 @@ def test_live_result_not_echoed_when_output_directory_is_set(
     assert RESULT_TEXT in written[0].read_text(encoding="utf-8")
 
 
-def test_live_result_not_echoed_when_both_file_sinks_are_set(
-    tmp_path: Path, capsys
-) -> None:
+def test_both_file_sinks_are_rejected(tmp_path: Path) -> None:
     groups = blank_parameter_groups()
-    out_file = tmp_path / "single.txt"
     out_dir = tmp_path / "many"
     out_dir.mkdir()
-    groups["op"].output_file_path_setting.set(out_file, ValueOrigin.CLI)
+    groups["op"].output_file_path_setting.set(tmp_path / "single.txt", ValueOrigin.CLI)
     groups["op"].output_directory_path_setting.set(out_dir, ValueOrigin.CLI)
-    _run(groups, simulate=False, filename_schema="{CHUNK_FILE_NAME}.txt")
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert RESULT_TEXT in out_file.read_text(encoding="utf-8")
-    written = [p for p in out_dir.iterdir() if p.is_file()]
-    assert written
-    assert RESULT_TEXT in written[0].read_text(encoding="utf-8")
+    with pytest.raises(WorkspaceError, match="mutually exclusive"):
+        _run(groups, tmp_path, simulate=False, filename_schema="{CHUNK_FILE_NAME}.txt")
 
 
-def test_simulate_board_stays_on_stdout_without_file_sink(capsys) -> None:
+def test_simulate_board_stays_on_stdout_without_file_sink(tmp_path: Path, capsys) -> None:
     groups = blank_parameter_groups()
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
-    _run(groups, simulate=True)
+    _run(groups, tmp_path, simulate=True)
     captured = capsys.readouterr()
     assert "| DRAGITER" in captured.out
     assert RESULT_TEXT not in captured.out
@@ -115,7 +122,7 @@ def test_simulate_board_not_echoed_when_output_file_is_set(
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
     target = tmp_path / "sim.md"
     groups["op"].output_file_path_setting.set(target, ValueOrigin.CLI)
-    _run(groups, simulate=True)
+    _run(groups, tmp_path, simulate=True)
     captured = capsys.readouterr()
     assert captured.out == ""
     body = target.read_text(encoding="utf-8")
@@ -137,7 +144,7 @@ class _FixedResultBoard:
         return "\n".join(sections)
 
 
-def test_output_writer_uses_injected_result_board(capsys) -> None:
+def test_output_writer_uses_injected_result_board(tmp_path: Path, capsys) -> None:
     groups = blank_parameter_groups()
     groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
@@ -149,7 +156,11 @@ def test_output_writer_uses_injected_result_board(capsys) -> None:
     )
     result = ChatResult(finish_reason="mock")
     result.output_chat_message.content = RESULT_TEXT
-    OutputWriter(result_board=_FixedResultBoard()).run(
+    layout = WorkspaceLayout(pid=os.getpid(), user_temp=tmp_path)
+    OutputWriter(
+        result_board=_FixedResultBoard(),
+        output_commit=WorkspaceCommitService(layout, sys.stdout),
+    ).run(
         ChatSessions([session]),
         ChatResults([result]),
         groups["op"],

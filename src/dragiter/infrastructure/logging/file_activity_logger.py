@@ -3,9 +3,9 @@
 
 from pathlib import PosixPath
 
-from dragiter.application.core.buffered_activity_logger import BufferedActivityLogger
-from dragiter.domain.ports.activity_provider import ActivityProvider
+from dragiter.domain.common.activity_provider import ActivityProvider
 from dragiter.infrastructure.io.io_services import append_jsonl_to_file
+from dragiter.infrastructure.logging.buffered_activity_logger import BufferedActivityLogger
 
 
 class FileActivityLogger(BufferedActivityLogger):

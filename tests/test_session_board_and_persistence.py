@@ -20,6 +20,7 @@ from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.resources import Resources
 from dragiter.domain.models.settings import ValueOrigin
+from dragiter.infrastructure.cli.null_session_board import NullSessionBoard
 from dragiter.infrastructure.cli.stderr_session_board import (
     END_MARK,
     PULSE_MARKS,
@@ -29,7 +30,9 @@ from dragiter.infrastructure.cli.stderr_session_board import (
 from dragiter.infrastructure.io.null_persistence_service import NullPersistenceService
 from dragiter.infrastructure.io.workspace_service import (
     DIR_STAGING_PREFIX,
+    WorkspaceLayout,
     WorkspacePersistenceService,
+    WorkspaceRun,
 )
 from dragiter.infrastructure.llm.mockai_service import MockAIService
 
@@ -185,15 +188,16 @@ def test_workspace_persistence_keeps_prior_sessions(tmp_path: Path) -> None:
     op.output_mode_string_setting.set("w", ValueOrigin.CLI)
     _, _, _, _, prompt = _pipeline_deps()
     prompt.output_filename_schema = "{CHUNK_FILE_NAME}"
-    service = WorkspacePersistenceService(op, prompt)
-    service.prepare()
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    service = WorkspaceRun(workspace)
     first = ChatResult()
     first.output_chat_message.content = "one"
     second = ChatResult()
     second.output_chat_message.content = "two"
     service.persist(1, _session("a.md"), first)
     service.persist(2, _session("b.md"), second)
-    stored = sorted(p for p in service.dir_workspace.iterdir() if p.is_file())
+    stored = sorted(p for p in service.path.iterdir() if p.is_file())
     assert len(stored) == 2
     assert stored[0].read_text(encoding="utf-8") == "one"
     assert stored[1].read_text(encoding="utf-8") == "two"
@@ -219,7 +223,13 @@ def test_chat_manager_persists_before_a_later_failure(tmp_path: Path) -> None:
     groups["op"].output_directory_path_setting.set(tmp_path, ValueOrigin.CLI)
     groups["op"].output_mode_string_setting.set("w", ValueOrigin.CLI)
     sessions = ChatSessions(session_list=[_session("a.md"), _session("b.md")])
-    manager = ChatManager(_FailOnSecond())
+    manager = ChatManager(
+        _FailOnSecond(),
+        MockAIService(),
+        StderrSessionBoard(StringIO(), interactive=False),
+        NullSessionBoard(),
+        WorkspacePersistenceService(WorkspaceLayout(pid=os.getpid(), user_temp=tmp_path)),
+    )
     deps = _pipeline_deps()
     deps[4].output_filename_schema = "{CHUNK_FILE_NAME}"
     with pytest.raises(ChatManagerError, match="boom"):
@@ -266,7 +276,9 @@ def test_mock_does_not_emit_stream_chunks() -> None:
     probe = _Probe()
     manager = ChatManager(
         MockAIService(),
-        session_board=probe,
+        MockAIService(),
+        verbose_board=probe,
+        silent_board=probe,
         persistence=NullPersistenceService(),
     )
     sessions = ChatSessions(session_list=[_session()])
@@ -279,3 +291,37 @@ def test_mock_does_not_emit_stream_chunks() -> None:
         *_pipeline_deps(),
     )
     assert probe.chunks == 0
+
+
+def test_chat_manager_rejects_missing_collaborator() -> None:
+    """ADR-0000, rule 8: a missing dependency is an error, never a fallback."""
+    with pytest.raises(TypeError, match="silent_board"):
+        ChatManager(
+            MockAIService(),
+            MockAIService(),
+            NullSessionBoard(),
+            None,  # type: ignore[arg-type]
+            NullPersistenceService(),
+        )
+
+
+def test_chat_manager_uses_silent_board_without_verbose(tmp_path: Path) -> None:
+    groups = blank_parameter_groups()
+    groups["aisp"].model_name_string_setting.set("mock", ValueOrigin.CLI)
+    stream = StringIO()
+    manager = ChatManager(
+        MockAIService(),
+        MockAIService(),
+        StderrSessionBoard(stream, interactive=False),
+        NullSessionBoard(),
+        NullPersistenceService(),
+    )
+    manager.run(
+        groups["aisp"],
+        groups["lp"],
+        groups["ep"],
+        ChatSessions(session_list=[_session()]),
+        groups["op"],
+        *_pipeline_deps(),
+    )
+    assert stream.getvalue() == ""

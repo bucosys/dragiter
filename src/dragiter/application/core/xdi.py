@@ -6,9 +6,9 @@ import inspect
 import logging
 from typing import Any, Protocol, TypeVar
 
+from dragiter.domain.common.activity_provider import ActivityProvider
 from dragiter.domain.common.base_validator import BaseValidator
 from dragiter.domain.ports.activity_logger import ActivityLogger
-from dragiter.domain.ports.activity_provider import ActivityProvider
 from dragiter.domain.ports.checksum_generator import ChecksumGenerator
 
 logger = logging.getLogger(__name__)
@@ -21,12 +21,14 @@ class Worker(Protocol):
 
 
 class ApplicationManager:
-    def __init__(self, checksum_generator: ChecksumGenerator):
+    def __init__(self, checksum_generator: ChecksumGenerator, activity_logger: ActivityLogger):
+        self._checksum_generator: ChecksumGenerator = checksum_generator
+        self._activity_logger: ActivityLogger = activity_logger
+        
         self.workers: list[Worker] = []
         self.store: dict[type[Any], Any] = {}
-        self.activity_logger: ActivityLogger | None = None
         self._validators: dict[type[Any], BaseValidator] = {}
-        self._checksum_generator = checksum_generator
+
 
     def register(self, worker: Worker, *validators: "BaseValidator") -> None:
         self.register_worker(worker)
@@ -35,8 +37,6 @@ class ApplicationManager:
     def register_worker(self, worker: "Worker"):
         self.workers.append(worker)
 
-    def register_activity_logger(self, activity_logger: ActivityLogger):
-        self.activity_logger = activity_logger
 
     def register_validators(self, *validators: "BaseValidator") -> None:
         """
@@ -126,8 +126,8 @@ class ApplicationManager:
             )
 
         # 2. Activity logging, if a activity logger is registered
-        if self.activity_logger and isinstance(data, ActivityProvider):
-            self.activity_logger.write_activity(data)
+        if self._activity_logger and isinstance(data, ActivityProvider):
+            self._activity_logger.write_activity(data)
 
         # 3. Store the data securely only AFTER it has passed validation
 
@@ -183,8 +183,8 @@ class ApplicationManager:
 
         except Exception as e:
             # 2. Activity logging, if a activity logger is registered
-            if self.activity_logger:
-                self.activity_logger.write_exception(e)
+            if self._activity_logger:
+                self._activity_logger.write_exception(e)
 
             raise ApplicationManagerError(
                 f"Failed to execute application manager run cycle: {e}"

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from dragiter.domain.models.chat_sessions import ChatMessage
-from dragiter.domain.ports.activity_provider import ActivityProvider
+from dragiter.domain.common.activity_provider import ActivityProvider
 
 
 @dataclass

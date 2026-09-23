@@ -880,10 +880,10 @@ and section 5.
 
 **Activity log**
 
-- ActivityProvider protocol: `src/dragiter/domain/ports/activity_provider.py`
+- ActivityProvider protocol: `../src/dragiter/domain/common/activity_provider.py`
 - ActivityLogger protocol: `src/dragiter/domain/ports/activity_logger.py`
-- Buffered logger: `src/dragiter/application/core/buffered_activity_logger.py`
-- File logger: `src/dragiter/application/core/file_activity_logger.py`
+- Buffered logger: `../src/dragiter/infrastructure/logging/buffered_activity_logger.py`
+- File logger: `../src/dragiter/infrastructure/logging/file_activity_logger.py`
 - JSONL writer: `src/dragiter/infrastructure/io/io_services.py` → `append_jsonl_to_file`
 - Value-settings masking: `src/dragiter/domain/models/value_settings_activity_provider.py`
 - Domain producers:

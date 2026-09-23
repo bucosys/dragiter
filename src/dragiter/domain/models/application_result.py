@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from dragiter import __tool_name__, __version__
-from dragiter.domain.ports.activity_provider import ActivityProvider
+from dragiter.domain.common.activity_provider import ActivityProvider
 
 
 @dataclass(frozen=True)

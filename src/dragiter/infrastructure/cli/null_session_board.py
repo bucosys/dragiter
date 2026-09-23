@@ -6,7 +6,12 @@ from dragiter.domain.models.chat_sessions import ChatSession
 
 
 class NullSessionBoard:
-    """No-op board used when ``-v`` is off."""
+    """
+    Silent SessionBoardService variant for runs without ``-v``.
+
+    Injected explicitly at the composition root; never an implicit fallback
+    (ADR-0000, rule 1).
+    """
 
     def begin_run(self, *, model: str, sessions: int, simulate: bool, **facts: object) -> None:
         return None

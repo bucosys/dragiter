@@ -9,28 +9,47 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 ## [Unreleased]
 
 ### Added
-- One run workspace ``.tmp_staging_dir_<PID>/`` beside ``-O``, beside
-  ``-o``, or in the current working directory. It is created before the
-  first completion. Each reply is stored as a timestamped file; an empty
-  reply still creates an empty file. ``OutputWriter`` commits from that
-  directory: ``-O`` applies ``output_filename_schema``, ``-o`` joins with
-  ``output_delimiter``, and live stdout without a file sink prints the
-  same joined text. Success removes this process's workspace; a mid-run
-  failure leaves it in place.
-- ``-m x`` is checked before any completion call against the ``-o`` file
-  and against planned ``-O`` names. A schema that contains ``TIMESTAMP``
-  skips that early check and prints one line on stderr (also without
-  ``-v``); exclusive create still runs at commit.
+- One run workspace per sink, created after validation and the early
+  check, before the first persist: ``DIR/.tmp_staging_dir_<PID>/`` for
+  ``-O``, ``FILE.parent/.tmp_staging_file_<PID>/`` for ``-o``,
+  ``{user temp}/.tmp_staging_stdout_<PID>/`` when neither flag is set.
+  User temp is ``$TMPDIR`` when set, otherwise the platform default —
+  not CWD.
+- Unified persist: every completion, including an empty one, is a
+  finished shard ``res<N>`` (zero-padded, workspace-local). Sink rules
+  (delimiter, schema, empty-body policy) apply only at commit.
+- Assembly before ``-o`` and stdout-only commit: non-empty shards are
+  joined in sequence with ``output_delimiter``; empty shards are
+  dropped. ``-O`` commits shards directly, without Assembly.
+- ``-o`` and ``-O`` are mutually exclusive. Both set: abort before any
+  workspace or path check. Neither set: stdout-only.
+- ``-m x`` is checked before any completion against ``-o FILE`` and
+  against planned ``-O`` names. A schema that contains ``TIMESTAMP``
+  skips that early check; exclusive create still runs at commit.
+  ``{TIMESTAMP}`` on ``-O`` is the shard's filesystem mtime.
 - ``ResultBoardService`` with default adapter ``MarkdownResultBoard``
-  for post-run simulate boards on stdout and in ``-o`` / ``-O`` files.
-  The live stderr board remains ``SessionBoardService`` on
-  ``ChatManager``.
+  for post-run simulate boards. The live stderr board remains
+  ``SessionBoardService`` on ``ChatManager``.
+- Composition root in ``cli.py`` constructs both LLM adapters, both
+  session boards, ``WorkspacePersistenceService`` and
+  ``WorkspaceCommitService`` before ``ApplicationManager.run``.
+- Port ``OutputCommitService`` (``commit`` / ``discard``).
+- ``PersistenceService.open`` returns a run-scoped ``ResultSink``.
+  ``NullPersistenceService`` is a test double only.
 
 ### Changed
-- ``-m a`` inserts ``output_delimiter`` between existing target bytes
-  and the new block. An empty assembled body does not touch the target.
-- Live ``-o`` / ``-O`` bytes come from the workspace, not from the
-  in-memory result list, when the workspace has files.
+- ``-m a``: target missing or empty → new block with no leading
+  delimiter; target non-empty → ``output_delimiter`` then the block.
+  An empty new block does not touch the target.
+- Live ``-o`` / ``-O`` bytes come from the workspace (after Assembly
+  for ``-o``), not from the in-memory result list.
+- ``ChatManager`` takes five collaborators and no longer builds
+  boards, ``MockAIService`` or persistence inside ``run``.
+- ``ApplicationManager`` takes ``ChecksumGenerator`` and
+  ``ActivityLogger`` at construction.
+- Activity loggers and the checksum generator live under
+  ``infrastructure``; ``ActivityProvider`` lives under
+  ``domain.common``.
 - Example and test Ollama configs now set live window keys
   (`chars_per_token = 3.8`, `max_context_tokens = 4096`,
   `max_output_tokens = 1024`) instead of leaving them commented.
@@ -45,12 +64,13 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   the first-cut figures, not vendor maxima.
 
 ### Removed
+- Combined ``-o`` + ``-O`` in one run (two workspaces, commit
+  ``-O`` then ``-o``).
 - ``.dragiter-partial/``, ``ScratchPersistenceService``,
   ``write_directory_with_staging``, and
-  ``OutputWriter._write_to_directory_with_staging``. Without ``-o`` or
-  ``-O`` the workspace still exists for stdout; there is no second
-  scratch tree.
-
+  ``OutputWriter._write_to_directory_with_staging``.
+- ``application/pipeline/application.py``.
+- Implicit ``None`` fallbacks on ``ChatManager.__init__``.
 
 ## [2026.9.13] - 2026-09-13
 

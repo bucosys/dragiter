@@ -19,7 +19,7 @@
 
 from typing import Protocol, runtime_checkable
 
-from dragiter.domain.ports.activity_provider import ActivityProvider
+from dragiter.domain.common.activity_provider import ActivityProvider
 
 
 @runtime_checkable

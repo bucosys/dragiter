@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from dragiter.domain.models.text_file import TextFile
-from dragiter.domain.ports.activity_provider import ActivityProvider
+from dragiter.domain.common.activity_provider import ActivityProvider
 
 logger = logging.getLogger(__name__)
 

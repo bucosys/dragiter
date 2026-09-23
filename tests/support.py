@@ -126,3 +126,17 @@ def blank_parameter_groups() -> dict[str, Any]:
         ConfigFilePathSetting("config_file"),
     )
     return {"aisp": aisp, "lp": lp, "ep": ep, "ip": ip, "op": op, "wp": wp}
+
+
+class RecordingCommitService:
+    """OutputCommitService double for tests that only exercise simulate boards."""
+
+    def __init__(self) -> None:
+        self.committed = 0
+        self.discarded = 0
+
+    def commit(self, op, prompt_template, sessions) -> None:
+        self.committed += 1
+
+    def discard(self, op) -> None:
+        self.discarded += 1

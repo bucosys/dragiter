@@ -96,7 +96,11 @@ def ensure_path_within_directory(candidate: Path, base_directory: Path) -> Path:
 
 def sortable_timestamp() -> str:
     """Return a lexicographically sortable UTC timestamp with nanoseconds."""
-    ns = time.time_ns()
+    return format_timestamp_ns(time.time_ns())
+
+
+def format_timestamp_ns(ns: int) -> str:
+    """Format a nanosecond epoch value (e.g. a file's ``st_mtime_ns``) for ``{TIMESTAMP}``."""
     seconds = ns // 1_000_000_000
     nanoseconds = ns % 1_000_000_000
     dt = datetime.fromtimestamp(seconds, tz=UTC)
@@ -113,11 +117,21 @@ def format_output_filename(
     loop_dict_item: dict[str, Any] | None = None,
     session_index: int | None = None,
     template: str = "",
+    *,
+    timestamp: str | None,
 ) -> str:
     """
     Format a single-component output filename from a schema template.
+
+    *timestamp* is the value for ``{TIMESTAMP}``. The caller decides where it
+    comes from (shard mtime at commit, clock for simulate boards). ``None`` is
+    only allowed when the template does not use ``{TIMESTAMP}``.
     """
     result = template or ""
+    if timestamp is None and schema_has_runtime_tokens(result):
+        raise ValueError(
+            "output_filename_schema uses {TIMESTAMP}, but no timestamp was supplied."
+        )
     d: dict[str, Any] = {}
 
     if chunk:
@@ -148,7 +162,8 @@ def format_output_filename(
             sanitize_filename(str(loop_dict_item.get("LOOP_ID", "unknown"))),
         )
 
-    d["TIMESTAMP"] = sortable_timestamp()
+    if timestamp is not None:
+        d["TIMESTAMP"] = timestamp
 
     known_placeholders = ["CHUNK_", "LOOP_", "TIMESTAMP"]
     if not any(ph in result for ph in known_placeholders):

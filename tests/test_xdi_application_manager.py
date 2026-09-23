@@ -54,9 +54,28 @@ def make_manager() -> ApplicationManager:
 
     `checksum_generator` is a structural Protocol that ApplicationManager
     currently only stores (it is not exercised by any of the mechanics under
-    test here), so a plain `object()` stand-in is enough.
+    test here), so a plain `object()` stand-in is enough. The activity logger
+    is a mandatory collaborator; a recording double is passed explicitly.
     """
-    return ApplicationManager(checksum_generator=object())
+    return ApplicationManager(
+        checksum_generator=object(), activity_logger=_RecordingActivityLogger()
+    )
+
+
+class _RecordingActivityLogger:
+    """ActivityLogger double: records calls, writes nothing."""
+
+    def __init__(self) -> None:
+        self.activities: list[object] = []
+        self.exceptions: list[Exception] = []
+
+    def write_activity(self, activity_provider: object) -> int:
+        self.activities.append(activity_provider)
+        return 0
+
+    def write_exception(self, e: Exception) -> int:
+        self.exceptions.append(e)
+        return 0
 
 
 # ---------------------------------------------------------------------------

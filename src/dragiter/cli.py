@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Michael Buchold
 
 import logging
+import os
 import sys
 
 from dragiter.application.config.configuration_loader import ConfigurationLoader
@@ -10,8 +11,7 @@ from dragiter.application.config.logging_configuration import (
     LoggingConfiguration,
     LoggingConfigurator,
 )
-from dragiter.application.core.file_activity_logger import FileActivityLogger
-from dragiter.application.pipeline.application import Application
+from dragiter.application.core.xdi import ApplicationManager
 from dragiter.application.pipeline.chat_manager import ChatManager
 from dragiter.application.pipeline.context_window_estimator import (
     ContextWindowEstimator,
@@ -23,13 +23,24 @@ from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.application.pipeline.prompt_creator import PromptCreator
 from dragiter.application.pipeline.resource_collector import ResourceCollector
 from dragiter.domain.services.chat_sessions_validator import ChatSessionsValidator
+from dragiter.infrastructure.checksum.basic_checksum_generator import BasicChecksumGenerator
 from dragiter.infrastructure.cli.info_presenter import InfoPresenter
 from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
+from dragiter.infrastructure.cli.null_session_board import NullSessionBoard
 from dragiter.infrastructure.cli.resource_exporter import ResourceExporter
+from dragiter.infrastructure.cli.stderr_session_board import StderrSessionBoard
 from dragiter.infrastructure.file.simple_file_checker import SimpleFileChecker
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
+from dragiter.infrastructure.io.workspace_service import (
+    WorkspaceCommitService,
+    WorkspaceLayout,
+    WorkspacePersistenceService,
+    user_temp_directory,
+)
+from dragiter.infrastructure.llm.mockai_service import MockAIService
 from dragiter.infrastructure.llm.openai_service_ext import OpenAIServiceExt
 from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
+from dragiter.infrastructure.logging.file_activity_logger import FileActivityLogger
 
 
 def gen_docs():
@@ -61,8 +72,14 @@ def main():
 
     ## TASK THE CHAIN
     try:
-        app = Application()
-        app.register_activity_logger(FileActivityLogger())
+        app = ApplicationManager(BasicChecksumGenerator(), FileActivityLogger())
+
+        # One layout for both ends of the staging pipeline: ChatManager persists
+        # into it, OutputWriter commits out of it (staging profile v2.1).
+        workspace_layout = WorkspaceLayout(
+            pid=os.getpid(), user_temp=user_temp_directory(os.environ)
+        )
+
         app.register_worker(ConfigurationLoader())
         app.register_worker(ConfigurationValidator())
         app.register_worker(ResourceCollector(SimpleFileChecker()))  # -> Resources
@@ -71,8 +88,21 @@ def main():
         app.register_worker(PromptCreator())  # -> PromptTemplate
         app.register(MessageBuilder(), ChatSessionsValidator())  # -> ChatSessions
         app.register_worker(ContextWindowEstimator(SimplePayloadEstimator()))  # -> None
-        app.register_worker(ChatManager(OpenAIServiceExt()))  # -> ChatResults
-        app.register_worker(OutputWriter(MarkdownResultBoard()))  # -> ApplicationResult
+        app.register_worker(
+            ChatManager(
+                OpenAIServiceExt(),
+                MockAIService(SimplePayloadEstimator()),
+                StderrSessionBoard(sys.stderr, interactive=sys.stderr.isatty()),
+                NullSessionBoard(),
+                WorkspacePersistenceService(workspace_layout),
+            )
+        )  # -> ChatResults
+        app.register_worker(
+            OutputWriter(
+                MarkdownResultBoard(),
+                WorkspaceCommitService(workspace_layout, sys.stdout),
+            )
+        )  # -> ApplicationResult
         app.run()
 
         return 0
