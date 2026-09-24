@@ -115,7 +115,7 @@ class _FixedContentReader:
 
 
 class TestSimpleTextFileReaderLimit:
-    """100 MB per-file hard limit."""
+    """100 MB per-file hard limit. Covers LIMT-08."""
 
     def test_small_file_is_accepted(self, tmp_path: Path) -> None:
         path = tmp_path / "ok.txt"
@@ -168,7 +168,7 @@ class TestSimpleTextFileReaderLimit:
 
 
 class TestMaterialTokenizerChunkLimit:
-    """200 total chunks hard limit."""
+    """200 total chunks hard limit. Covers LIMT-09."""
 
     def test_under_limit_succeeds(self, tmp_path: Path) -> None:
         content = _heading_document(MaterialTokenizer.MAX_TOTAL_CHUNKS)
@@ -221,6 +221,7 @@ class TestMaterialTokenizerChunkLimit:
         assert str(MaterialTokenizer.MAX_TOTAL_CHUNKS) in _error_text(exc_info.value)
 
     def test_max_chunks_setting_overrides_default(self, tmp_path: Path) -> None:
+        """Covers LIMT-10."""
         content = _heading_document(6)
         resources = _make_resources_with_content(tmp_path, content)
         tokenizer = MaterialTokenizer(text_file_reader=SimpleTextFileReader())
@@ -241,7 +242,7 @@ class TestMaterialTokenizerChunkLimit:
 
 
 class TestMaterialTokenizerChunkSizeWarnings:
-    """Verbose INFO notes for final chunks that are too small or over budget."""
+    """Verbose INFO notes for final chunks that are too small or over budget. Covers LIMT-11."""
 
     def test_tiny_chunk_emits_info(
         self, tmp_path: Path, caplog: pytest.LogCaptureFixture
@@ -296,7 +297,7 @@ class TestMaterialTokenizerChunkSizeWarnings:
 
 
 class TestLoopBuilderItemLimit:
-    """50 loop-item hard limit."""
+    """50 loop-item hard limit. Covers LIMT-12."""
 
     def _loop_params(self, path: Path) -> InputParameters:
         from dragiter.domain.models.parameters import InputParameters
@@ -329,6 +330,7 @@ class TestLoopBuilderItemLimit:
         assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
 
     def test_over_limit_raises_with_actionable_message(self, tmp_path: Path) -> None:
+        """Covers LOOP-04."""
         path = tmp_path / "loop.txt"
         path.write_text(
             "\n".join(f"item-{i}" for i in range(LoopBuilder.MAX_LOOP_ITEMS + 1)),
@@ -344,6 +346,7 @@ class TestLoopBuilderItemLimit:
         assert "split" in msg.lower() or "batch" in msg.lower()
 
     def test_exactly_at_limit_is_accepted(self, tmp_path: Path) -> None:
+        """Covers LOOP-03."""
         path = tmp_path / "loop.txt"
         path.write_text(
             "\n".join(f"item-{i}" for i in range(LoopBuilder.MAX_LOOP_ITEMS)),
@@ -355,7 +358,7 @@ class TestLoopBuilderItemLimit:
         assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
 
     def test_empty_lines_do_not_count_toward_limit(self, tmp_path: Path) -> None:
-        """read_stripped_lines_from_file drops blank lines before the check."""
+        """read_stripped_lines_from_file drops blank lines before the check. Covers LOOP-02."""
         path = tmp_path / "loop.txt"
         # 50 real items + many blank lines must still pass.
         lines = [f"item-{i}" for i in range(LoopBuilder.MAX_LOOP_ITEMS)]
@@ -371,6 +374,7 @@ class TestLoopBuilderItemLimit:
         assert len(loop.lines) == LoopBuilder.MAX_LOOP_ITEMS
 
     def test_jsonl_items_are_subject_to_the_same_limit(self, tmp_path: Path) -> None:
+        """Covers LOOP-05."""
         path = tmp_path / "loop.jsonl"
         path.write_text(
             "\n".join(f'{{"id": {i}}}' for i in range(LoopBuilder.MAX_LOOP_ITEMS + 1)),

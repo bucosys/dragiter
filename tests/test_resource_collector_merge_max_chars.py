@@ -29,6 +29,7 @@ class _AcceptAllChecker:
 
 
 def test_resource_toml_pack_limit_chars_is_stored(tmp_path: Path) -> None:
+    """Covers MATL-01."""
     source = tmp_path / "note.md"
     source.write_text("# hi\n", encoding="utf-8")
     resource_toml = tmp_path / "resource.toml"
@@ -66,6 +67,7 @@ def test_resource_toml_pack_limit_chars_is_stored(tmp_path: Path) -> None:
 
 
 def test_resource_toml_regex_patterns_list_is_stored(tmp_path: Path) -> None:
+    """Covers MATL-02."""
     source = tmp_path / "note.md"
     source.write_text("# hi\n", encoding="utf-8")
     resource_toml = tmp_path / "resource.toml"
@@ -103,6 +105,7 @@ def test_resource_toml_regex_patterns_list_is_stored(tmp_path: Path) -> None:
 
 
 def test_resource_toml_regex_pattern_key_is_rejected(tmp_path: Path) -> None:
+    """Covers MATL-03."""
     source = tmp_path / "note.md"
     source.write_text("# hi\n", encoding="utf-8")
     resource_toml = tmp_path / "resource.toml"

@@ -37,6 +37,8 @@ def test_functional_caddy_ca_bundle(tiny_example_dir):
       - Caddy running on https://localhost:8443
       - CA cert at ~/mtls-test/ca.crt (or adjust path below)
       - Ollama reachable behind the proxy
+
+    Covers EXEC-16.
     """
     ca_bundle = Path.home() / "ca-bundle-test" / "ca.crt"
 

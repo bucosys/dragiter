@@ -111,7 +111,7 @@ def test_sequential_skips_invalid_chunks(
     prompt_sequential: PromptTemplate,
     empty_loop: Loop,
 ) -> None:
-    """Only valid chunks must produce a ChatSession in sequential mode."""
+    """Only valid chunks must produce a ChatSession in sequential mode. Covers EXEC-01."""
     sessions = message_builder.run(
         material_mixed, prompt_sequential, empty_loop, _VerboseOff()
     )
@@ -127,7 +127,7 @@ def test_sequential_all_invalid_yields_empty(
     prompt_sequential: PromptTemplate,
     empty_loop: Loop,
 ) -> None:
-    """When every chunk is invalid, no ChatSession must be created."""
+    """When every chunk is invalid, no ChatSession must be created. Covers EXEC-02."""
     sessions = message_builder.run(
         material_all_invalid, prompt_sequential, empty_loop, _VerboseOff()
     )
@@ -140,7 +140,7 @@ def test_sequential_all_valid_keeps_all(
     prompt_sequential: PromptTemplate,
     empty_loop: Loop,
 ) -> None:
-    """All-valid material must still produce one session per chunk."""
+    """All-valid material must still produce one session per chunk. Covers EXEC-03."""
     sessions = message_builder.run(
         material_all_valid, prompt_sequential, empty_loop, _VerboseOff()
     )
@@ -158,7 +158,7 @@ def test_batched_injects_only_valid_chunks(
     prompt_batched: PromptTemplate,
     empty_loop: Loop,
 ) -> None:
-    """In batched mode only valid chunks appear as material messages."""
+    """In batched mode only valid chunks appear as material messages. Covers EXEC-04."""
     sessions = message_builder.run(
         material_mixed, prompt_batched, empty_loop, _VerboseOff()
     )
@@ -192,7 +192,7 @@ def test_batched_all_invalid_yields_no_material(
     When no valid chunks remain, the existing fallback in ``_create_chat_session``
     injects the raw material *template*.  That is intentional legacy behaviour.
     The important guarantee is that no concrete chunk (with filled placeholders
-    and real content) is present.
+    and real content) is present. Covers EXEC-05.
     """
     sessions = message_builder.run(
         material_all_invalid, prompt_batched, empty_loop, _VerboseOff()

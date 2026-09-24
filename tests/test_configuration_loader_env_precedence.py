@@ -112,7 +112,10 @@ def _base_url_item(loader: ConfigurationLoader):
 # ---------------------------------------------------------------------------
 
 def test_env_var_sets_unset_string_setting(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A matching env var is applied to an unset string setting."""
+    """A matching env var is applied to an unset string setting.
+
+    Covers CONF-03.
+    """
     loader = ConfigurationLoader()
     monkeypatch.setenv("DRAGITER_MODEL_NAME", "env-model")
 
@@ -124,7 +127,10 @@ def test_env_var_sets_unset_string_setting(monkeypatch: pytest.MonkeyPatch) -> N
 def test_env_var_does_not_override_already_set_setting(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Env vars must never win over a value that was already set (e.g. by the CLI)."""
+    """Env vars must never win over a value that was already set (e.g. by the CLI).
+
+    Covers CONF-01.
+    """
     loader = ConfigurationLoader()
     _model_name_item(loader).value_setting_object.set("cli-value", ValueOrigin.CLI)
     monkeypatch.setenv("DRAGITER_MODEL_NAME", "env-value")
@@ -137,7 +143,10 @@ def test_env_var_does_not_override_already_set_setting(
 def test_env_var_string_setting_value_is_stripped(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Leading/trailing whitespace from the env var value must be stripped."""
+    """Leading/trailing whitespace from the env var value must be stripped.
+
+    Covers CONF-05.
+    """
     loader = ConfigurationLoader()
     monkeypatch.setenv("DRAGITER_MODEL_NAME", "  padded-value  ")
 
@@ -172,6 +181,8 @@ def test_env_var_bool_setting_unified_truthy_values(
     After unification both ConfigurationLoader and LoggingConfigurator
     accept the same set of truthy values (case-insensitive):
     "true", "1", "yes".
+
+    Covers CONF-06.
     """
     loader = ConfigurationLoader()
     monkeypatch.setenv("DRAGITER_DEBUG", value)
@@ -195,6 +206,7 @@ def test_env_var_bool_setting_true_is_case_insensitive(
 def test_unrelated_env_var_does_not_affect_settings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Covers CONF-04."""
     loader = ConfigurationLoader()
     monkeypatch.setenv("SOME_UNRELATED_VAR", "whatever")
 
@@ -220,7 +232,10 @@ def test_env_var_uses_documented_uppercase_prefix(
 # ---------------------------------------------------------------------------
 
 def test_env_var_sets_unset_integer_setting(monkeypatch: pytest.MonkeyPatch) -> None:
-    """DRAGITER_MAX_CONTEXT_TOKENS must be parsed as int."""
+    """DRAGITER_MAX_CONTEXT_TOKENS must be parsed as int.
+
+    Covers CONF-07.
+    """
     loader = ConfigurationLoader()
     monkeypatch.setenv("DRAGITER_MAX_CONTEXT_TOKENS", "128000")
 
@@ -233,7 +248,10 @@ def test_env_var_sets_unset_integer_setting(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_env_var_sets_unset_float_setting(monkeypatch: pytest.MonkeyPatch) -> None:
-    """DRAGITER_CHARS_PER_TOKEN must be parsed as float."""
+    """DRAGITER_CHARS_PER_TOKEN must be parsed as float.
+
+    Covers CONF-08.
+    """
     loader = ConfigurationLoader()
     monkeypatch.setenv("DRAGITER_CHARS_PER_TOKEN", "3.8")
 
@@ -304,6 +322,8 @@ def test_env_var_dollar_expansion_for_string_setting(
     """
     Values that start with $ are expanded via os.path.expandvars before
     assignment. Useful for composing URLs or paths from other env vars.
+
+    Covers CONF-10.
     """
     loader = ConfigurationLoader()
     monkeypatch.setenv("LLM_HOST", "localhost:11434")
@@ -336,6 +356,8 @@ def test_env_var_dollar_expansion_for_integer_setting(
     """
     $ expansion runs before type conversion, so an intermediate env var
     holding a numeric string can feed an IntegerSetting.
+
+    Covers CONF-12.
     """
     loader = ConfigurationLoader()
     monkeypatch.setenv("MY_CONTEXT_LIMIT", "32000")
@@ -364,6 +386,8 @@ def test_env_var_unresolved_dollar_reference_is_kept_as_is(
     """
     If a $-reference cannot be resolved, expandvars leaves it unchanged
     and the raw string is assigned (for StringSetting).
+
+    Covers CONF-11.
     """
     loader = ConfigurationLoader()
     monkeypatch.setenv("DRAGITER_BASE_URL", "$THIS_VAR_DOES_NOT_EXIST/v1")
@@ -399,6 +423,7 @@ def _isolated_home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
 def test_cli_argument_wins_over_environment_variable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Covers CONF-01."""
     monkeypatch.setattr(sys, "argv", ["dragiter", "--model-name", "cli-value"])
     monkeypatch.setenv("DRAGITER_MODEL_NAME", "env-value")
 
@@ -411,6 +436,7 @@ def test_cli_argument_wins_over_environment_variable(
 def test_config_file_wins_over_environment_variable(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    """Covers CONF-02."""
     config_path = tmp_path / "test-config.toml"
     config_path.write_text('model_name = "config-file-value"\n')
 
@@ -426,6 +452,7 @@ def test_config_file_wins_over_environment_variable(
 def test_environment_variable_applies_when_nothing_else_is_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Covers CONF-03, CONF-18 (no -c, no default config file, run proceeds)."""
     monkeypatch.setattr(sys, "argv", ["dragiter"])
     monkeypatch.setenv("DRAGITER_MODEL_NAME", "env-only-value")
 

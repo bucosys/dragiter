@@ -65,6 +65,8 @@ def test_jsonl_survives_unicode_line_separators(tmp_path, evil_char, name):
     """
     A single activity record whose content contains a Unicode line separator
     must still produce exactly one physical JSONL line that round-trips.
+
+    Covers AUDT-01.
     """
     path = tmp_path / "activity.jsonl"
     original_content = f"before{evil_char}after 🚀 日本語"
@@ -94,7 +96,10 @@ def test_jsonl_survives_unicode_line_separators(tmp_path, evil_char, name):
 
 
 def test_jsonl_survives_all_line_separators_together(tmp_path):
-    """All three dangerous characters in one payload must stay on one line."""
+    """All three dangerous characters in one payload must stay on one line.
+
+    Covers AUDT-01.
+    """
     path = tmp_path / "activity.jsonl"
     original = "A\u0085B\u2028C\u2029D"
 
@@ -108,7 +113,10 @@ def test_jsonl_survives_all_line_separators_together(tmp_path):
 
 
 def test_jsonl_multiple_records_with_evil_content(tmp_path):
-    """Several records, each containing line separators, stay one-per-line."""
+    """Several records, each containing line separators, stay one-per-line.
+
+    Covers AUDT-02.
+    """
     path = tmp_path / "activity.jsonl"
 
     records = [
@@ -131,7 +139,10 @@ def test_jsonl_multiple_records_with_evil_content(tmp_path):
 
 
 def test_jsonl_append_preserves_previous_lines(tmp_path):
-    """Appending a second batch must not corrupt earlier lines."""
+    """Appending a second batch must not corrupt earlier lines.
+
+    Covers AUDT-03.
+    """
     path = tmp_path / "activity.jsonl"
 
     append_jsonl_to_file(path, [{"batch": 1, "content": "first\u0085line"}])
@@ -148,7 +159,10 @@ def test_jsonl_append_preserves_previous_lines(tmp_path):
 
 
 def test_jsonl_normal_unicode_still_readable(tmp_path):
-    """Ordinary Unicode (emoji, CJK, umlauts) must remain unescaped/readable."""
+    """Ordinary Unicode (emoji, CJK, umlauts) must remain unescaped/readable.
+
+    Covers AUDT-04.
+    """
     path = tmp_path / "activity.jsonl"
     original = "Hallo 🚀 日本語 ÄÖÜ"
 
@@ -168,6 +182,8 @@ def test_jsonl_physical_line_contains_no_raw_line_separators(tmp_path):
     """
     After writing, no physical line may contain a raw U+0085 / U+2028 / U+2029.
     They must appear only as escaped \\uXXXX sequences inside the JSON string.
+
+    Covers AUDT-05.
     """
     path = tmp_path / "activity.jsonl"
     payload = "x\u0085y\u2028z\u2029w"

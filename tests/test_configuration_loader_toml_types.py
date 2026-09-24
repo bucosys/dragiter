@@ -77,7 +77,10 @@ def _run_env_only(monkeypatch, env: dict) -> ConfigurationLoader:
 # ===========================================================================
 
 def test_A_toml_int_for_string_setting_is_rejected(monkeypatch, tmp_path):
-    """Native TOML integers are not coerced into StringSetting."""
+    """Native TOML integers are not coerced into StringSetting.
+
+    Covers CONF-13.
+    """
     with pytest.raises((ConfigurationLoaderError, TypeError)):
         _run_with_toml(monkeypatch, tmp_path, "api_key = 12345\n")
 
@@ -89,6 +92,7 @@ def test_A_toml_bool_for_string_setting_is_rejected(monkeypatch, tmp_path):
 
 
 def test_A_toml_normal_string_still_works(monkeypatch, tmp_path):
+    """Covers CONF-14."""
     settings = _run_with_toml(monkeypatch, tmp_path, 'api_key = "sk-secret"\n')
     api = next(s for s in settings if isinstance(s, ApiKeyStringSetting))
     assert api.value == "sk-secret"
@@ -143,6 +147,8 @@ def test_C_env_invalid_integer_raises(monkeypatch):
     """
     #C: DRAGITER_MAX_CONTEXT_TOKENS=abc must not be silently ignored
     and must not crash with an opaque error deep in the pipeline.
+
+    Covers CONF-09.
     """
     monkeypatch.setattr(sys, "argv", ["dragiter"])
     monkeypatch.setenv("DRAGITER_MAX_CONTEXT_TOKENS", "abc")
@@ -187,6 +193,8 @@ def test_D_toml_bool_false_is_set_to_false(monkeypatch, tmp_path):
     """
     #D: simulate = false must result in is_set=True and value=False.
     Previously the setting stayed unset because only truthy values were written.
+
+    Covers CONF-15.
     """
     settings = _run_with_toml(monkeypatch, tmp_path, "simulate = false\n")
     sim = next(s for s in settings if isinstance(s, SimulateBoolSetting))
@@ -253,7 +261,10 @@ def test_E_toml_string_false_does_not_become_true(monkeypatch, tmp_path):
 # ===========================================================================
 
 def test_toml_multiple_typed_values_together(monkeypatch, tmp_path):
-    """One config file with mixed types must apply all conversions correctly."""
+    """One config file with mixed types must apply all conversions correctly.
+
+    Covers CONF-16.
+    """
     body = """
 simulate = false
 verbose = true

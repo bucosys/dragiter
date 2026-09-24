@@ -87,6 +87,7 @@ def test_shipped_section_budget_is_below_longest_chapter() -> None:
 def test_section_budget_applies_overflow_pattern(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
+    """Covers CHNK-25."""
     tokenizer = MaterialTokenizer(SimpleTextFileReader())
     with caplog.at_level("DEBUG"):
         packed = tokenizer.run(_resources(), _ep())

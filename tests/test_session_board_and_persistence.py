@@ -72,6 +72,7 @@ def _session(name: str = "note.md") -> ChatSession:
 
 
 def test_chat_manager_board_facts_keep_inapplicable_window_none() -> None:
+    """SIMU-03."""
     material, loop, report, resources, prompt = _pipeline_deps()
     report.is_valid = None
     report.max_tokens_limit = None
@@ -140,6 +141,7 @@ def test_start_and_end_board_prefix_every_line() -> None:
 
 
 def test_start_board_marks_window_na_when_estimate_missing() -> None:
+    """SIMU-03."""
     stream = StringIO()
     board = StderrSessionBoard(stream, interactive=False)
     board.begin_run(
@@ -249,6 +251,7 @@ def test_chat_manager_persists_before_a_later_failure(tmp_path: Path) -> None:
 
 
 def test_mock_does_not_emit_stream_chunks() -> None:
+    """SIMU-05."""
     class _Probe:
         def __init__(self) -> None:
             self.chunks = 0

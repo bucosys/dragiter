@@ -153,6 +153,9 @@ def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:
       * exit code 0
       * at least one output file under -O
       * every output file is a role/content Markdown transcript
+
+    SIMU-01 (the live service is `_ForbiddenLiveService`, never actually
+    called), SIMU-02 (no assistant/reply row in the output).
     """
     output_dir = tiny_example_dir / "outputs" / "simulate_e2e"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -202,6 +205,8 @@ def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:
 def test_simulate_pipeline_with_activity_log(tiny_example_dir: Path) -> None:
     """
     Same pipeline plus activity JSONL — verifies the audit path is wired.
+
+    SIMU-04.
     """
     output_dir = tiny_example_dir / "outputs" / "simulate_e2e_activity"
     output_dir.mkdir(parents=True, exist_ok=True)

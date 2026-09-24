@@ -74,6 +74,7 @@ def _service_with_mocked_transport(monkeypatch: pytest.MonkeyPatch) -> OpenAISer
 def test_init_failure_is_labelled_as_initialisation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Covers EXEC-14."""
     transport = MagicMock()
     transport.create.side_effect = OSError("bad CA bundle")
     service = OpenAIServiceExt(transport_factory=transport)
@@ -87,6 +88,7 @@ def test_init_failure_is_labelled_as_initialisation(
 def test_unexpected_stream_error_is_not_labelled_as_initialisation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Covers EXEC-15."""
     service = _service_with_mocked_transport(monkeypatch)
 
     def consume(*_args: object, **_kwargs: object) -> ChatResult:
@@ -101,6 +103,7 @@ def test_unexpected_stream_error_is_not_labelled_as_initialisation(
 
 
 def test_process_query_retries_transient_503(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Covers EXEC-11."""
     service = _service_with_mocked_transport(monkeypatch)
     calls = {"n": 0}
     result = ChatResult()
@@ -120,6 +123,7 @@ def test_process_query_retries_transient_503(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_process_query_does_not_retry_504(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Covers EXEC-12."""
     service = _service_with_mocked_transport(monkeypatch)
     calls = {"n": 0}
 
@@ -138,6 +142,7 @@ def test_process_query_does_not_retry_504(monkeypatch: pytest.MonkeyPatch) -> No
 def test_process_query_stops_after_max_attempts_on_500(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Covers EXEC-13."""
     service = _service_with_mocked_transport(monkeypatch)
     calls = {"n": 0}
 
@@ -166,4 +171,5 @@ def test_process_query_stops_after_max_attempts_on_500(
     ],
 )
 def test_retry_policy_matches_adapter_loop(factory, expected: bool) -> None:
+    """Covers EXEC-09, EXEC-10."""
     assert CompletionRetryPolicy().is_retryable(factory()) is expected

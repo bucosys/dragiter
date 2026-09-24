@@ -39,6 +39,8 @@ def test_functional_caddy_mtls(tiny_example_dir):
       - ~/mtls-test/client.crt
       - ~/mtls-test/client.key
       - Ollama reachable behind the proxy
+
+    Covers EXEC-17.
     """
     mtls_dir = Path.home() / "mtls-test"
     ca_bundle = mtls_dir / "ca.crt"

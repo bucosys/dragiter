@@ -80,7 +80,7 @@ def _run(groups):
 def test_prompt_file_without_placeholder_does_not_read_stdin(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Smoke path: -p without {STDIN} must not touch stdin at all."""
+    """PRMT-03: -p without {STDIN} must not touch stdin at all (smoke path)."""
     monkeypatch.setattr(io_services.sys, "stdin", _BlockingStdin())
     template = _run(_groups(tmp_path, prompt_text=_PROMPT_WITHOUT_STDIN))
     assert template.first == "Use the following material:"
@@ -90,6 +90,7 @@ def test_prompt_file_without_placeholder_does_not_read_stdin(
 def test_placeholder_is_replaced_with_piped_stdin(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """PRMT-04: {STDIN} in task.first is replaced by piped stdin content."""
     monkeypatch.setattr(prompt_creator_mod, "read_stdin_content", lambda: "piped payload")
     template = _run(_groups(tmp_path, prompt_text=_PROMPT_WITH_STDIN))
     assert "piped payload" in template.first
@@ -99,6 +100,7 @@ def test_placeholder_is_replaced_with_piped_stdin(
 def test_placeholder_with_empty_stdin_becomes_empty_string(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """PRMT-05: {STDIN} with no stdin content becomes the empty string, not literal."""
     monkeypatch.setattr(prompt_creator_mod, "read_stdin_content", lambda: None)
     template = _run(_groups(tmp_path, prompt_text=_PROMPT_WITH_STDIN))
     assert template.first == "Preamble:\n\n---"
@@ -107,6 +109,7 @@ def test_placeholder_with_empty_stdin_becomes_empty_string(
 def test_task_flag_reads_stdin_as_first(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """PRMT-01: -t reads stdin into `first` and sets `synthesis` to the task text."""
     monkeypatch.setattr(prompt_creator_mod, "read_stdin_content", lambda: "from pipe")
     template = _run(_groups(tmp_path, task="Summarise this."))
     assert template.first == "from pipe"
@@ -116,6 +119,7 @@ def test_task_flag_reads_stdin_as_first(
 def test_task_flag_invokes_stdin_reader(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """PRMT-02: -t reads stdin exactly once."""
     called = {"n": 0}
 
     def _read() -> str:
@@ -130,6 +134,7 @@ def test_task_flag_invokes_stdin_reader(
 def test_prompt_file_without_placeholder_does_not_call_reader(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """PRMT-03: -p without {STDIN} must never invoke the stdin reader."""
     def _forbidden() -> str:
         raise AssertionError("read_stdin_content must not be called")
 

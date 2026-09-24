@@ -68,28 +68,33 @@ def _run(tmp_path: Path, files: dict[str, str], ep: ExecutionParameters, **kwarg
 
 
 def test_unset_limit_does_not_merge(tmp_path: Path) -> None:
+    """Covers CHNK-01."""
     material = _run(tmp_path, {"a.txt": "aaaa\nbbbb\n"}, _ep())
     assert len(material.chunks) == 2
 
 
 def test_zero_limit_does_not_merge(tmp_path: Path) -> None:
+    """Covers CHNK-02."""
     material = _run(tmp_path, {"a.txt": "aaaa\nbbbb\n"}, _ep(0))
     assert len(material.chunks) == 2
 
 
 def test_limit_packs_consecutive_lines_in_one_file(tmp_path: Path) -> None:
+    """Covers CHNK-03."""
     material = _run(tmp_path, {"a.txt": "aaaa\nbbbb\n"}, _ep(20))
     assert len(material.chunks) == 1
     assert material.chunks[0].content == "aaaa" + "\n\n" + "bbbb"
 
 
 def test_limit_does_not_cut_a_single_oversized_chunk(tmp_path: Path) -> None:
+    """Covers CHNK-04."""
     material = _run(tmp_path, {"a.txt": "abcdefghij\n"}, _ep(4))
     assert len(material.chunks) == 1
     assert material.chunks[0].content == "abcdefghij"
 
 
 def test_does_not_merge_across_files(tmp_path: Path) -> None:
+    """Covers CHNK-05."""
     material = _run(
         tmp_path,
         {"a.txt": "aaaa\n", "b.txt": "bbbb\n"},
@@ -101,6 +106,7 @@ def test_does_not_merge_across_files(tmp_path: Path) -> None:
 
 
 def test_section_limit_applies_when_ep_unset(tmp_path: Path) -> None:
+    """Covers CHNK-06."""
     material = _run(
         tmp_path,
         {"a.txt": "aaaa\nbbbb\n"},
@@ -111,6 +117,7 @@ def test_section_limit_applies_when_ep_unset(tmp_path: Path) -> None:
 
 
 def test_ep_zero_overrides_section_limit(tmp_path: Path) -> None:
+    """Covers CHNK-07."""
     material = _run(
         tmp_path,
         {"a.txt": "aaaa\nbbbb\n"},
@@ -121,6 +128,7 @@ def test_ep_zero_overrides_section_limit(tmp_path: Path) -> None:
 
 
 def test_ep_limit_overrides_section_limit(tmp_path: Path) -> None:
+    """Covers CHNK-08."""
     material = _run(
         tmp_path,
         {"a.txt": "aaaa\nbbbb\n"},
@@ -131,6 +139,7 @@ def test_ep_limit_overrides_section_limit(tmp_path: Path) -> None:
 
 
 def test_does_not_mix_valid_and_invalid(tmp_path: Path) -> None:
+    """Covers CHNK-09."""
     material = _run(
         tmp_path,
         {"a.txt": "keep\nDROP\nkeep\n"},
@@ -142,12 +151,14 @@ def test_does_not_mix_valid_and_invalid(tmp_path: Path) -> None:
 
 
 def test_renumbers_after_pack(tmp_path: Path) -> None:
+    """Covers CHNK-10."""
     material = _run(tmp_path, {"a.txt": "aaaa\nbbbb\n"}, _ep(20))
     assert material.chunks[0].num_id == 1
     assert material.chunks[0].section_num_id == 1
 
 
 def test_split_keeps_delimiter_without_capturing_group(tmp_path: Path) -> None:
+    """Covers CHNK-11."""
     material = _run(
         tmp_path,
         {"a.md": "# one\nbody-one\n# two\nbody-two\n"},
@@ -161,6 +172,7 @@ def test_split_keeps_delimiter_without_capturing_group(tmp_path: Path) -> None:
 
 
 def test_overflow_patterns_apply_only_when_over_limit(tmp_path: Path) -> None:
+    """Covers CHNK-12."""
     body = "# title\n\npara-one\n\npara-two"
     material = _run(
         tmp_path,
@@ -176,6 +188,7 @@ def test_overflow_patterns_apply_only_when_over_limit(tmp_path: Path) -> None:
 
 
 def test_overflow_patterns_are_skipped_without_limit(tmp_path: Path) -> None:
+    """Covers CHNK-13."""
     body = "# title\n\npara-one\n\npara-two"
     material = _run(
         tmp_path,
@@ -187,6 +200,7 @@ def test_overflow_patterns_are_skipped_without_limit(tmp_path: Path) -> None:
 
 
 def test_overflow_patterns_are_skipped_when_under_limit(tmp_path: Path) -> None:
+    """Covers CHNK-14."""
     body = "# title\n\npara-one\n\npara-two"
     material = _run(
         tmp_path,

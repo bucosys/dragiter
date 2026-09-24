@@ -109,11 +109,13 @@ def _timeout_error() -> openai.APITimeoutError:
     ],
 )
 def test_is_retryable_classifies_known_faults(factory, expected: bool) -> None:
+    """Covers EXEC-09, EXEC-10."""
     policy = CompletionRetryPolicy()
     assert policy.is_retryable(factory()) is expected
 
 
 def test_max_attempts_honours_setting() -> None:
+    """Covers EXEC-06, EXEC-07."""
     groups = blank_parameter_groups()
     aisp = groups["aisp"]
     policy = CompletionRetryPolicy()
@@ -125,6 +127,7 @@ def test_max_attempts_honours_setting() -> None:
 
 
 def test_wait_seconds_is_zero_on_first_attempt() -> None:
+    """Covers EXEC-08."""
     policy = CompletionRetryPolicy()
     assert policy.wait_seconds(1, retry_delay=5) == 0
     assert policy.wait_seconds(2, retry_delay=5) == 5
@@ -171,6 +174,7 @@ def _service_with_mocked_transport(monkeypatch: pytest.MonkeyPatch) -> OpenAISer
 
 
 def test_process_query_retries_transient_503(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Covers EXEC-11."""
     service = _service_with_mocked_transport(monkeypatch)
     calls = {"n": 0}
     result = ChatResult()
@@ -190,6 +194,7 @@ def test_process_query_retries_transient_503(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_process_query_does_not_retry_504(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Covers EXEC-12."""
     service = _service_with_mocked_transport(monkeypatch)
     calls = {"n": 0}
 
@@ -206,6 +211,7 @@ def test_process_query_does_not_retry_504(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def test_process_query_stops_after_max_attempts_on_500(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Covers EXEC-13."""
     service = _service_with_mocked_transport(monkeypatch)
     calls = {"n": 0}
 

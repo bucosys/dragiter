@@ -138,6 +138,8 @@ def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> 
     The live pipeline always injects a ContextValidationReport. The
     not-applicable estimator result must render as n/a and -- / --, not
     yes and 0 / 0.
+
+    SIMU-03.
     """
     groups = blank_parameter_groups()
     groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
@@ -226,6 +228,7 @@ def test_output_writer_prints_padded_markdown_table(capsys) -> None:
 
 
 def test_transcript_lists_payload_roles_then_assistant_briefing() -> None:
+    """SIMU-02."""
     text = format_simulation_transcript(
         [("system", "be brief"), ("user", "ask now")],
         "| DRAGITER         | simulate on      |",

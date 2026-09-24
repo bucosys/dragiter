@@ -61,6 +61,8 @@ class TestResourceCollectorPathEscape:
         """
         A symlink inside the base directory that resolves outside must not
         appear in the collected resources.
+
+        Covers MATL-04.
         """
         base = tmp_path / "project"
         base.mkdir()
@@ -96,6 +98,8 @@ class TestResourceCollectorPathEscape:
     def test_relative_parent_glob_cannot_escape_base(self, tmp_path: Path) -> None:
         """
         Glob patterns containing '..' must not pull in files outside base.
+
+        Covers MATL-05.
         """
         base = tmp_path / "project"
         base.mkdir()
@@ -124,7 +128,7 @@ class TestResourceCollectorPathEscape:
         assert secret.resolve() not in collected_paths
 
     def test_legitimate_nested_file_is_collected(self, tmp_path: Path) -> None:
-        """Sanity check: normal nested files inside base are still found."""
+        """Sanity check: normal nested files inside base are still found. Covers MATL-06."""
         base = tmp_path / "project"
         nested = base / "docs"
         nested.mkdir(parents=True)

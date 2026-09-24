@@ -70,6 +70,7 @@ def _run(
 
 
 def test_live_result_echoes_on_stdout_when_no_file_sink(tmp_path: Path, capsys) -> None:
+    """OUTP-08."""
     groups = blank_parameter_groups()
     _run(groups, tmp_path, simulate=False)
     captured = capsys.readouterr()
@@ -78,6 +79,7 @@ def test_live_result_echoes_on_stdout_when_no_file_sink(tmp_path: Path, capsys) 
 
 
 def test_live_result_not_echoed_when_output_file_is_set(tmp_path: Path, capsys) -> None:
+    """OUTP-09."""
     groups = blank_parameter_groups()
     target = tmp_path / "out.txt"
     groups["op"].output_file_path_setting.set(target, ValueOrigin.CLI)
@@ -90,6 +92,7 @@ def test_live_result_not_echoed_when_output_file_is_set(tmp_path: Path, capsys) 
 def test_live_result_not_echoed_when_output_directory_is_set(
     tmp_path: Path, capsys
 ) -> None:
+    """OUTP-10."""
     groups = blank_parameter_groups()
     groups["op"].output_directory_path_setting.set(tmp_path, ValueOrigin.CLI)
     _run(groups, tmp_path, simulate=False, filename_schema="{CHUNK_FILE_NAME}.txt")
@@ -111,6 +114,7 @@ def test_both_file_sinks_are_rejected(tmp_path: Path) -> None:
 
 
 def test_simulate_board_stays_on_stdout_without_file_sink(tmp_path: Path, capsys) -> None:
+    """OUTP-11."""
     groups = blank_parameter_groups()
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
     _run(groups, tmp_path, simulate=True)
@@ -122,6 +126,7 @@ def test_simulate_board_stays_on_stdout_without_file_sink(tmp_path: Path, capsys
 def test_simulate_board_not_echoed_when_output_file_is_set(
     tmp_path: Path, capsys
 ) -> None:
+    """OUTP-12."""
     groups = blank_parameter_groups()
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
     target = tmp_path / "sim.md"
@@ -149,6 +154,7 @@ class _FixedResultBoard:
 
 
 def test_output_writer_uses_injected_result_board(tmp_path: Path, capsys) -> None:
+    """OUTP-13."""
     groups = blank_parameter_groups()
     groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)

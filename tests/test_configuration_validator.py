@@ -65,7 +65,10 @@ def _minimal_valid(tmp_path: Path, *, simulate: bool = True) -> dict:
 
 class TestConfigurationValidator:
     def test_missing_prompt_and_task_raises(self, tmp_path: Path) -> None:
-        """Either a prompt file or a non-empty task is mandatory."""
+        """Either a prompt file or a non-empty task is mandatory.
+
+        Covers CONF-24.
+        """
         s = _blank_settings()
         s["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
         s["wp"].base_directory_path_setting.set(tmp_path, ValueOrigin.CLI)
@@ -78,6 +81,7 @@ class TestConfigurationValidator:
         assert "prompt" in msg.lower() or "mandatory" in msg.lower()
 
     def test_invalid_output_mode_raises(self, tmp_path: Path) -> None:
+        """Covers CONF-25."""
         s = _blank_settings()
         prompt = tmp_path / "prompt.toml"
         prompt.write_text("[system]\ninstruction = 'x'\n", encoding="utf-8")
@@ -97,6 +101,7 @@ class TestConfigurationValidator:
         )
 
     def test_retry_delay_out_of_range_raises(self, tmp_path: Path) -> None:
+        """Covers CONF-26."""
         s = _minimal_valid(tmp_path)
         s["aisp"].retry_delay_int_setting.set(21, ValueOrigin.CLI)  # hard upper bound is 20
 
@@ -107,6 +112,7 @@ class TestConfigurationValidator:
         assert "retry_delay" in msg.lower() or "20" in msg
 
     def test_chars_per_token_must_be_positive(self, tmp_path: Path) -> None:
+        """Covers CONF-27."""
         s = _minimal_valid(tmp_path)
         s["aisp"].chars_per_token_float_setting.set(0.0, ValueOrigin.CLI)
 
@@ -117,7 +123,10 @@ class TestConfigurationValidator:
         assert "chars_per_token" in msg.lower() or "0.0" in msg
 
     def test_simulate_mode_does_not_require_base_url(self, tmp_path: Path) -> None:
-        """In simulate mode the LLM endpoint is optional."""
+        """In simulate mode the LLM endpoint is optional.
+
+        Covers CONF-28.
+        """
         s = _minimal_valid(tmp_path, simulate=True)
         # deliberately leave base_url unset
 
@@ -127,6 +136,7 @@ class TestConfigurationValidator:
         assert s["op"].output_mode_string_setting.value == "x"
 
     def test_non_simulate_requires_base_url(self, tmp_path: Path) -> None:
+        """Covers CONF-29."""
         s = _blank_settings()
         prompt = tmp_path / "prompt.toml"
         prompt.write_text("[system]\ninstruction = 'x'\n", encoding="utf-8")
@@ -143,6 +153,7 @@ class TestConfigurationValidator:
         assert "base_url" in msg.lower() or "llm" in msg.lower()
 
     def test_client_key_without_cert_raises(self, tmp_path: Path) -> None:
+        """Covers CONF-30."""
         key = tmp_path / "client.key"
         key.write_text("dummy-key", encoding="utf-8")
 
@@ -157,6 +168,7 @@ class TestConfigurationValidator:
         assert "client_key" in msg.lower() or "client_cert" in msg.lower()
 
     def test_pack_limit_chars_negative_raises(self, tmp_path: Path) -> None:
+        """Covers CONF-31."""
         s = _minimal_valid(tmp_path)
         s["ep"].pack_limit_chars_int_setting.set(-1, ValueOrigin.CLI)
 
@@ -175,6 +187,7 @@ class TestConfigurationValidator:
         assert result is None
 
     def test_max_chunks_zero_raises(self, tmp_path: Path) -> None:
+        """Covers CONF-32."""
         s = _minimal_valid(tmp_path)
         s["ep"].max_chunks_int_setting.set(0, ValueOrigin.CLI)
 

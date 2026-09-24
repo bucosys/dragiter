@@ -112,11 +112,13 @@ def _collect(tmp_path: Path, body: str):
 
 
 def test_absent_substitutions_leave_split_text_unchanged(tmp_path: Path) -> None:
+    """Covers CHNK-15."""
     material = _tokenize(tmp_path, "a    b\n")
     assert [chunk.content for chunk in material.chunks] == ["a    b"]
 
 
 def test_collapses_long_runs_of_spaces(tmp_path: Path) -> None:
+    """Covers CHNK-16."""
     material = _tokenize(
         tmp_path,
         "a    b\n",
@@ -126,6 +128,7 @@ def test_collapses_long_runs_of_spaces(tmp_path: Path) -> None:
 
 
 def test_empty_replacement_deletes_the_match(tmp_path: Path) -> None:
+    """Covers CHNK-17."""
     material = _tokenize(
         tmp_path,
         "a----b\n",
@@ -135,6 +138,7 @@ def test_empty_replacement_deletes_the_match(tmp_path: Path) -> None:
 
 
 def test_second_rule_sees_first_rule_result(tmp_path: Path) -> None:
+    """Covers CHNK-18."""
     material = _tokenize(
         tmp_path,
         "a----b\n",
@@ -147,6 +151,7 @@ def test_second_rule_sees_first_rule_result(tmp_path: Path) -> None:
 
 
 def test_backslash_one_in_replacement_is_literal(tmp_path: Path) -> None:
+    """Covers CHNK-19."""
     material = _tokenize(
         tmp_path,
         "ab\n",
@@ -156,6 +161,7 @@ def test_backslash_one_in_replacement_is_literal(tmp_path: Path) -> None:
 
 
 def test_whitespace_only_piece_is_discarded(tmp_path: Path) -> None:
+    """Covers CHNK-20."""
     material = _tokenize(
         tmp_path,
         "keep\nxxxx\n",
@@ -165,6 +171,7 @@ def test_whitespace_only_piece_is_discarded(tmp_path: Path) -> None:
 
 
 def test_invalid_pattern_names_section_and_index(tmp_path: Path) -> None:
+    """Covers CHNK-21."""
     with pytest.raises(
         MaterialTokenizerError,
         match=r"Invalid chunk_substitutions\[0\] in section 'sec01'",
@@ -177,6 +184,7 @@ def test_invalid_pattern_names_section_and_index(tmp_path: Path) -> None:
 
 
 def test_pack_budget_uses_substituted_length(tmp_path: Path) -> None:
+    """Covers CHNK-22."""
     # After the split strip, the first piece is 12 characters so it will not
     # pack with "cccc" at limit 12. Collapsing spaces leaves 3 characters.
     raw = "a          b\ncccc\n"
@@ -195,6 +203,7 @@ def test_pack_budget_uses_substituted_length(tmp_path: Path) -> None:
 
 
 def test_filters_see_substituted_text(tmp_path: Path) -> None:
+    """Covers CHNK-23."""
     material = _tokenize(
         tmp_path,
         "keep    x\n",
@@ -206,6 +215,7 @@ def test_filters_see_substituted_text(tmp_path: Path) -> None:
 
 
 def test_split_runs_on_raw_text_before_substitution(tmp_path: Path) -> None:
+    """Covers CHNK-24."""
     content = "intro    text\n# Title\nbody    here\n"
     material = _tokenize(
         tmp_path,
@@ -220,6 +230,7 @@ def test_split_runs_on_raw_text_before_substitution(tmp_path: Path) -> None:
 
 
 def test_collector_stores_and_logs_substitutions(tmp_path: Path) -> None:
+    """Covers MATL-07."""
     resources = _collect(
         tmp_path,
         "\n".join(
@@ -243,6 +254,7 @@ def test_collector_stores_and_logs_substitutions(tmp_path: Path) -> None:
 
 
 def test_collector_rejects_entry_without_pattern(tmp_path: Path) -> None:
+    """Covers MATL-08."""
     with pytest.raises(MaterialCollectorError, match="config01.*no pattern"):
         _collect(
             tmp_path,
@@ -259,6 +271,7 @@ def test_collector_rejects_entry_without_pattern(tmp_path: Path) -> None:
 
 
 def test_section_rejects_non_list_substitutions() -> None:
+    """Covers MATL-09."""
     with pytest.raises(ResourceSectionError, match="must be a list of tables"):
         ResourceSection(
             section_name="sec01",

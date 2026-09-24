@@ -47,9 +47,11 @@ inventory rather than a commitment (see "Settled"):
 - A worker result of `None` is not stored; workers without a product return `None`.
 - Types without a registered validator are stored unvalidated.
 - Parameters without annotation, or annotated `Any`, are not injected.
-- A parameter with a default whose type is not in the store receives its default
-  (used by `OutputWriter.run` for `context_report` and `resources`). This touches
-  ADR-0000, rules 2 and 4.
+- A parameter with a default whose type is not in the store receives its default.
+  As of 2026-09-25 no worker relies on this anymore (the `OutputWriter.run`
+  defaults for `context_report` and `resources` were removed; ADR-0000, rules 2
+  and 4); the broker still supports the mechanism for any future worker that
+  needs it.
 - There is no dependency graph; a wrong registration order surfaces as
   `MissingDependencyError` at run time.
 - Deep copies cost time and memory in exchange for isolation (ADR-0000, rule 6).
@@ -62,6 +64,5 @@ hand-written wiring is out of scope; reviews, human or AI, do not propose it. Ch
 concept requires a new ADR that supersedes this one.
 
 The implementation may be improved without a new ADR as long as the concept is kept,
-for example mandatory validators, a warning or error when a type in the store is
-replaced, or removing the defaults in `OutputWriter.run`. Such improvements update the
-inventory above.
+for example mandatory validators or a warning or error when a type in the store is
+replaced. Such improvements update the inventory above.

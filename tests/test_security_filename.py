@@ -47,6 +47,7 @@ from dragiter.infrastructure.io.filename_utils import (
 def test_sanitize_filename_blocks_traversal_and_illegal_chars(
     raw: str, expected_contains: str, must_not_contain: list[str]
 ):
+    """OUTP-04."""
     result = sanitize_filename(raw)
 
     # Must never contain path separators or parent references
@@ -62,6 +63,7 @@ def test_sanitize_filename_blocks_traversal_and_illegal_chars(
 
 
 def test_sanitize_filename_truncates_long_names():
+    """OUTP-05."""
     long_name = "a" * 300 + ".md"
     result = sanitize_filename(long_name, max_length=50)
     assert len(result) <= 50
@@ -69,6 +71,7 @@ def test_sanitize_filename_truncates_long_names():
 
 
 def test_sanitize_filename_fallback():
+    """OUTP-06."""
     assert sanitize_filename(None) == "output"
     assert sanitize_filename("") == "output"
     assert sanitize_filename("   ") == "output"
@@ -79,6 +82,7 @@ def test_sanitize_filename_fallback():
 # ---------------------------------------------------------------------------
 
 def test_ensure_path_within_directory_accepts_safe_path(tmp_path: Path):
+    """OUTP-07."""
     base = tmp_path / "out"
     base.mkdir()
     candidate = base / "report.md"
@@ -89,6 +93,7 @@ def test_ensure_path_within_directory_accepts_safe_path(tmp_path: Path):
 
 
 def test_ensure_path_within_directory_rejects_traversal(tmp_path: Path):
+    """OUTP-07."""
     base = tmp_path / "out"
     base.mkdir()
     # Attempt to escape via parent directory
@@ -99,6 +104,7 @@ def test_ensure_path_within_directory_rejects_traversal(tmp_path: Path):
 
 
 def test_ensure_path_within_directory_rejects_absolute_escape(tmp_path: Path):
+    """OUTP-07."""
     base = tmp_path / "out"
     base.mkdir()
     # Absolute path outside base
@@ -113,6 +119,7 @@ def test_ensure_path_within_directory_rejects_absolute_escape(tmp_path: Path):
 # ---------------------------------------------------------------------------
 
 def test_format_filename_sanitises_chunk_filename():
+    """OUTP-02."""
     writer = OutputWriter(MarkdownResultBoard(), RecordingCommitService())
     chunk = Chunk(
         num_id=1,
@@ -138,6 +145,7 @@ def test_format_filename_sanitises_chunk_filename():
 
 
 def test_format_filename_sanitises_loop_values():
+    """OUTP-03."""
     writer = OutputWriter(MarkdownResultBoard(), RecordingCommitService())
     loop_item = {
         "LOOP_ID": "../../../tmp/evil",
@@ -157,6 +165,7 @@ def test_format_filename_sanitises_loop_values():
 
 
 def test_format_filename_fallback_when_no_placeholders():
+    """OUTP-01."""
     writer = OutputWriter(MarkdownResultBoard(), RecordingCommitService())
     result = writer._format_filename(session_index=7, template="plain_name")
     assert result == "session_0007.md"

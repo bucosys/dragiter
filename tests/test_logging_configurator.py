@@ -67,7 +67,10 @@ def _run(
 
 
 def test_default_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
-    """No flags and no environment variables yield WARNING level and no file."""
+    """No flags and no environment variables yield WARNING level and no file.
+
+    Covers CONF-19.
+    """
     config = _run(monkeypatch, argv=["dragiter"])
 
     assert config.debug is False
@@ -85,6 +88,7 @@ def test_default_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_debug_flag_sets_debug_level(
     monkeypatch: pytest.MonkeyPatch, flag: str
 ) -> None:
+    """Covers CONF-20."""
     config = _run(monkeypatch, argv=["dragiter", flag])
 
     assert config.debug is True
@@ -96,6 +100,7 @@ def test_debug_flag_sets_debug_level(
 def test_verbose_flag_keeps_warning_level(
     monkeypatch: pytest.MonkeyPatch, flag: str
 ) -> None:
+    """Covers CONF-21."""
     config = _run(monkeypatch, argv=["dragiter", flag])
 
     assert config.debug is False
@@ -120,7 +125,10 @@ def test_debug_leaves_httpx2_unforced(
 def test_debug_takes_precedence_over_verbose(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """When both flags are present, debug wins and the level becomes DEBUG."""
+    """When both flags are present, debug wins and the level becomes DEBUG.
+
+    Covers CONF-22.
+    """
     config = _run(monkeypatch, argv=["dragiter", "--debug", "--verbose"])
 
     assert config.debug is True
@@ -201,6 +209,7 @@ def test_cli_debug_overrides_env_verbose(
 def test_absolute_log_file_from_cli(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    """Covers CONF-23."""
     log_path = tmp_path / "absolute.log"
     config = _run(
         monkeypatch,

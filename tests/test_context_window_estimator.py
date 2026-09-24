@@ -179,6 +179,8 @@ def test_run_returns_empty_report_when_required_settings_missing():
     The inapplicable branch must use None, not 0 / True. Boards treat an
     int peak or limit as a real count and True as window-yes; 0 / 0 / yes
     was the shipped lie.
+
+    Covers LIMT-01.
     """
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
@@ -197,7 +199,7 @@ def test_run_returns_empty_report_when_required_settings_missing():
 
 
 def test_run_returns_valid_report_within_limit():
-    """Total tokens comfortably under the limit -> valid report, no warnings."""
+    """Total tokens comfortably under the limit -> valid report, no warnings. Covers LIMT-02."""
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
     aisp, lp, ep = make_settings(max_context_tokens=1000, max_output_tokens=200)
@@ -220,6 +222,8 @@ def test_run_does_not_raise_in_verbose_mode():
     With verbose=True, run() takes the extra logging branch that used to
     call the undefined `debug(...)`. This must complete normally and return
     a valid report, not raise a NameError-turned-ContextWindowValidatorError.
+
+    Covers LIMT-03.
     """
     stub = StubPayloadEstimator(tokens=100)
     estimator = ContextWindowEstimator(stub)
@@ -241,6 +245,8 @@ def test_run_raises_when_limit_exceeded_and_not_simulating():
     Exceeding the limit outside simulation mode must raise a
     ContextWindowValidatorError whose message reflects the actual validation
     failure - never a leaked "name 'debug' is not defined".
+
+    Covers LIMT-04.
     """
     stub = StubPayloadEstimator(
         tokens=900
@@ -263,6 +269,8 @@ def test_run_collects_warning_instead_of_raising_when_simulating():
     In simulation mode, exceeding the limit must not raise - it should be
     reported as a warning on an is_valid=False report instead, so simulation
     runs never abort just because the payload would be too large.
+
+    Covers LIMT-05.
     """
     stub = StubPayloadEstimator(tokens=900)
     estimator = ContextWindowEstimator(stub)
@@ -285,6 +293,8 @@ def test_run_tracks_high_water_mark_across_multiple_sessions():
     total_tokens, per-session counts, and the high-water mark
     (max_session_tokens / max_session_index) must be computed correctly
     across several sessions of differing size.
+
+    Covers LIMT-06.
     """
     stub = StubPayloadEstimator(tokens=[50, 300, 120])
     estimator = ContextWindowEstimator(stub)
@@ -309,6 +319,8 @@ def test_run_wraps_unexpected_estimator_error():
     and re-raised as a ContextWindowValidatorError (documenting the module's
     existing broad-except wrapping behaviour), not propagate as a raw,
     unrelated exception type.
+
+    Covers LIMT-07.
     """
 
     class ExplodingPayloadEstimator:
