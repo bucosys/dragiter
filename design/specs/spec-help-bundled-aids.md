@@ -5,8 +5,8 @@
 | Document | `design/specs/spec-help-bundled-aids.md` |
 | Code | `HELP` |
 | Type | functional |
-| Version | 0.2 |
-| Status | draft — initial version, describes current code |
+| Version | 0.3 |
+| Status | draft — all criteria now covered by tests |
 | Created | 2026-09-24 |
 | Related | — |
 
@@ -91,43 +91,39 @@ Normative, testable. Given / when / then. Each criterion carries a stable identi
 `HELP-NN`, assigned once in sequence and never renumbered or reused. A criterion that
 is not implemented yet is marked *proposed* directly after its identifier.
 
-None of the criteria below have a dedicated test today (see Open questions) and are
-therefore all marked *proposed*, even though the behaviour they describe is already
-implemented.
+All eight criteria below are covered by `tests/test_bundled_aids.py`, added
+2026-09-25 (none had a dedicated test before that).
 
-- **HELP-01** *proposed* Given `dragiter` invoked with no arguments, when it runs, then
+- **HELP-01** Given `dragiter` invoked with no arguments, when it runs, then
   the banner is printed followed by the four-line usage synopsis, and the process exits
   `0` without touching configuration loading.
-- **HELP-02** *proposed* Given `dragiter --info` (or `-info`/`/info`, any argument
+- **HELP-02** Given `dragiter --info` (or `-info`/`/info`, any argument
   position, case-insensitive), when it runs, then the packaged `info.txt` is printed
   verbatim and the process exits with `show_help()`'s return code, before
   `LoggingConfigurator`/`ConfigurationLoader` run.
-- **HELP-03** *proposed* Given the packaged `info.txt` resource cannot be read, when
+- **HELP-03** Given the packaged `info.txt` resource cannot be read, when
   `--info` runs, then an `Error loading help: ...` line is printed and the process exits
   `1`, not a traceback.
-- **HELP-04** *proposed* Given `dragiter --help`, when it runs, then `argparse`'s
+- **HELP-04** Given `dragiter --help`, when it runs, then `argparse`'s
   generated help listing every registered flag is printed and the process exits `0`.
-- **HELP-05** *proposed* Given `dragiter-gen-docs` with no path argument, when it runs,
+- **HELP-05** Given `dragiter-gen-docs` with no path argument, when it runs,
   then the packaged `docs/` tree is copied to `./docs` under the current working
   directory.
-- **HELP-06** *proposed* Given `dragiter-gen-docs PATH`, when it runs, then the packaged
+- **HELP-06** Given `dragiter-gen-docs PATH`, when it runs, then the packaged
   `docs/` tree is copied to `PATH/docs`, merging into an existing directory rather than
   failing.
-- **HELP-07** *proposed* Given `dragiter-gen-examples [PATH]`, when it runs, then
+- **HELP-07** Given `dragiter-gen-examples [PATH]`, when it runs, then
   HELP-05/HELP-06 apply analogously for the packaged `examples/` tree.
-- **HELP-08** *proposed* Given a package build where the named resource
+- **HELP-08** Given a package build where the named resource
   (`docs`/`examples`) does not exist, when the corresponding export command runs, then a
   `❌`-prefixed message is printed to stderr and the process exits `1`.
 
 ## 7. Open questions
 
-- No test in `tests/` exercises `InfoPresenter` or `ResourceExporter` at all (confirmed:
-  no reference to either class anywhere under `tests/`). `tests/e2e/test_e2e_infrastructure.py`
-  only asserts that `--help` triggers `SystemExit(0)` through argparse; it does not touch
-  `--info`, the no-argument banner path, or either console-script entry point. All
-  HELP-NN criteria above are marked *proposed* purely for this reason — implementing
-  their tests (as `HELP-01`… without the mark) is the natural next step, not a code
-  change.
+- Resolved 2026-09-25: `tests/test_bundled_aids.py` now covers `InfoPresenter`,
+  `ResourceExporter` and the `cli.py` pre-selector (HELP-01–08), monkeypatching
+  `importlib.resources.files` since this dev checkout has no built `docs`/`examples`
+  package data of its own to exercise the happy paths against.
 - `dragiter --help` is `argparse`'s own mechanism, not `InfoPresenter`'s; whether HELP-04
   belongs in this spec (a functional guarantee: every flag has help text) or is better
   left entirely to `CONF` (which owns `ConfigurationLoader`/`_get_args`) is worth
@@ -139,3 +135,5 @@ implemented.
 - 0.2 (2026-09-25): initial version — describes the `--info`/no-argument pre-selector,
   `InfoPresenter` and `ResourceExporter` from current code. All criteria marked
   *proposed*: zero existing test coverage for this module.
+- 0.3 (2026-09-25): added `tests/test_bundled_aids.py`; HELP-01 through HELP-08 all
+  have real tests now, *proposed* dropped from all eight.

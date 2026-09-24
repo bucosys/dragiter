@@ -58,7 +58,7 @@ class LoopBuilder(Worker):
 
         except Exception as e:
             raise LoopBuilderError(
-                f"Failed to load loop data from {ip.prompt_file_path_setting.value}: {e}"
+                f"Failed to load loop data from {ip.loop_file_path_setting.value}: {e}"
             ) from e
 
 

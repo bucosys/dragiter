@@ -72,7 +72,7 @@ Each non-blank line is parsed as JSON:
 
 ## 5. Error cases
 
-- The loop file cannot be read (missing, unreadable) → wrapped in `LoopBuilderError`.
+- The loop file cannot be read (missing, unreadable) → wrapped in `LoopBuilderError`, naming the loop file's own path.
 - More than 50 non-blank lines → `LoopBuilderError`, Section 4.3.
 
 ## 6. Acceptance criteria
@@ -81,20 +81,24 @@ Normative, testable. Given / when / then. Each criterion carries a stable identi
 `LOOP-NN`, assigned once in sequence and never renumbered or reused. A criterion that
 is not implemented yet is marked *proposed* directly after its identifier.
 
-- **LOOP-01** *proposed* Given no loop file is set, when `LoopBuilder` runs, then it returns a `Loop` with an empty `lines` list and raises no error.
+- **LOOP-01** Given no loop file is set, when `LoopBuilder` runs, then it returns a `Loop` with an empty `lines` list and raises no error.
 - **LOOP-02** Given a loop file with blank lines interspersed among 50 non-blank lines, when `LoopBuilder` runs, then the blank lines are dropped and do not count toward the hard limit.
 - **LOOP-03** Given a loop file with exactly 50 non-blank lines, when `LoopBuilder` runs, then all 50 become entries and no error is raised.
 - **LOOP-04** Given a loop file with 51 or more non-blank lines, when `LoopBuilder` runs, then it aborts with `LoopBuilderError` naming the actual count and the hard limit (50), before any request is built.
 - **LOOP-05** Given a loop file with more than 50 valid JSONL objects, when `LoopBuilder` runs, then the same hard limit applies as for plain-text lines.
-- **LOOP-06** *proposed* Given a loop-file line that parses as a JSON object, when `LoopBuilder` runs, then that object's own keys become the entry, with `LOOP_NUM_ID` set to the line's 1-based position.
-- **LOOP-07** *proposed* Given a loop-file line that is not valid JSON, or is valid JSON that is not an object, when `LoopBuilder` runs, then the entry is `{"LOOP_CONTENT": line, "LOOP_NUM_ID": index}`.
+- **LOOP-06** Given a loop-file line that parses as a JSON object, when `LoopBuilder` runs, then that object's own keys become the entry, with `LOOP_NUM_ID` set to the line's 1-based position.
+- **LOOP-07** Given a loop-file line that is not valid JSON, or is valid JSON that is not an object, when `LoopBuilder` runs, then the entry is `{"LOOP_CONTENT": line, "LOOP_NUM_ID": index}`.
+- **LOOP-08** Given a loop file that cannot be read, when `LoopBuilder` runs, then the wrapping `LoopBuilderError` names the loop file's own path, not any other setting's path.
 
 ## 7. Open questions
 
-- LOOP-06 and LOOP-07 (the JSONL-object-vs-plain-line parsing itself, as opposed to just the item-count limit) have **no dedicated unit test anywhere** in the current suite — only indirect, incidental exercise through e2e pipeline runs and through fixtures that construct `Loop(...)` objects directly (bypassing `LoopBuilder` parsing entirely, e.g. in `tests/test_simulation_brief.py`, `tests/test_output_writer_stdout.py`, `tests/test_staging_workspace.py`). This is a genuine coverage gap, not just an ownership boundary of this pass.
-- `LoopBuilderError`'s generic failure message reads `f"Failed to load loop data from {ip.prompt_file_path_setting.value}: {e}"` — it names the **prompt** file path setting, not the loop file path setting (`ip.loop_file_path_setting.value`). This looks like a copy/paste bug: on a loop-file read failure the error would report the wrong path. Not codified as a criterion here since it does not look like intended behaviour.
+*None yet.*
 
 ## Change history
 
 - 0.1 (2026-09-24): skeleton created.
 - 0.2 (2026-09-25): initial version filled in from `loop_builder.py`, `loop.py`, and read-only review of `tests/test_circuit_breakers.py` (not owned by this pass).
+- 0.3 (2026-09-25): LOOP-01/06/07 covered by new `tests/test_loop_builder.py`; *proposed*
+  marks dropped. Fixed the `LoopBuilderError` copy-paste bug (it named
+  `prompt_file_path_setting` instead of `loop_file_path_setting`) and added LOOP-08 as a
+  regression criterion.

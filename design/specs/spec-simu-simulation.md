@@ -57,7 +57,7 @@ flag (SIMU-01).
 ### 4.2 What the mock service returns
 
 `MockAIService.process_query` (`infrastructure/llm/mockai_service.py`) requires a
-non-empty `input_chat_message_list` (else `MockAIServiceError`, SIMU-06 *proposed*) and
+non-empty `input_chat_message_list` (else `MockAIServiceError`, SIMU-06) and
 returns a `ChatResult` whose `output_chat_message.content` is a JSON object describing
 the request it received — `model`, `input_message_count`, an optional
 `estimated_input_tokens` (only when a payload estimator and `chars_per_token` are both
@@ -96,7 +96,7 @@ not `commit` (`STAG`, technical).
 ## 5. Error cases
 
 - No input messages on a session handed to the mock service: `MockAIServiceError`
-  (SIMU-06 *proposed* — implemented, not yet covered by an owned test).
+  (SIMU-06).
 - All other error handling for a simulate run (workspace creation, discard) is `STAG`'s.
 
 ## 6. Acceptance criteria
@@ -118,7 +118,7 @@ is not implemented yet is marked *proposed* directly after its identifier.
   describing the run.
 - **SIMU-05** Given `MockAIService` processes a session, when it is asked to stream,
   then no stream-chunk callback is ever invoked.
-- **SIMU-06** *proposed* Given a chat session with no input messages, when the mock
+- **SIMU-06** Given a chat session with no input messages, when the mock
   service processes it, then it raises `MockAIServiceError` instead of returning an
   empty reply.
 
@@ -135,3 +135,5 @@ is not implemented yet is marked *proposed* directly after its identifier.
   acceptance criteria SIMU-01 to SIMU-06 added, derived from
   `application/pipeline/chat_manager.py`, `infrastructure/llm/mockai_service.py` and
   `application/pipeline/output_writer.py`.
+- 0.3 (2026-09-25): SIMU-06 covered by new `tests/test_mockai_service.py`; *proposed*
+  mark dropped.

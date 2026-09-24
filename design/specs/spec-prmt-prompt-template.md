@@ -82,16 +82,16 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - **PRMT-03** Given a prompt file without `-t` and without `{STDIN}` in `task.first`, when `PromptCreator` runs, then stdin is never read.
 - **PRMT-04** Given a prompt file with `{STDIN}` in `task.first` and non-empty piped stdin, when `PromptCreator` runs, then `first` has the placeholder replaced by that content.
 - **PRMT-05** Given a prompt file with `{STDIN}` in `task.first` and no stdin content, when `PromptCreator` runs, then `first` has the placeholder replaced by the empty string, not left literal.
-- **PRMT-06** *proposed* Given `-p FILE` whose `[behaviour]`/`[outcome]` tables omit some or all keys, when `PromptCreator` runs, then the omitted fields take the built-in defaults (`temperature=0.0`, `sequential_processing=False`, `output_filename_schema="dragiter-out.txt"`, `output_delimiter="\n"`).
-- **PRMT-07** *proposed* Given `-p FILE` and a matching CLI flag (`--sequential`, `--output-delimiter`, `--output-filename-schema`, `--temperature`) explicitly set, when `PromptCreator` runs, then the CLI value overrides the file's value for that field only.
-- **PRMT-08** *proposed* Given `material` contains a placeholder outside the `CHUNK_*` vocabulary, when a chat message is built from a chunk, then formatting raises `KeyError` instead of leaving the placeholder literal.
+- **PRMT-06** Given `-p FILE` whose `[behaviour]`/`[outcome]` tables omit some or all keys, when `PromptCreator` runs, then the omitted fields take the built-in defaults (`temperature=0.0`, `sequential_processing=False`, `output_filename_schema="dragiter-out.txt"`, `output_delimiter="\n"`).
+- **PRMT-07** Given `-p FILE` and a matching CLI flag (`--sequential`, `--output-delimiter`, `--output-filename-schema`, `--temperature`) explicitly set, when `PromptCreator` runs, then the CLI value overrides the file's value for that field only.
+- **PRMT-08** Given `material` contains a placeholder outside the `CHUNK_*` vocabulary, when a chat message is built from a chunk, then formatting raises `KeyError` instead of leaving the placeholder literal.
 
 ## 7. Open questions
 
-- PRMT-06 through PRMT-08 have no dedicated unit test in the current suite (only `tests/test_prompt_creator_stdin.py` is owned by this pass, and it covers stdin handling only) — a follow-up should add coverage and drop the *proposed* mark.
 - Whether an unknown `material` placeholder raising `KeyError` (PRMT-08) is the intended contract, or should instead behave like `synthesis` (leave unresolved placeholders literal), was not decided here — it is simply what the current code does.
 
 ## Change history
 
 - 0.1 (2026-09-24): skeleton created.
 - 0.2 (2026-09-25): initial version filled in from `prompt_creator.py`, `prompt_template.py` and `tests/test_prompt_creator_stdin.py`.
+- 0.3 (2026-09-25): PRMT-06/07/08 covered by `tests/test_prompt_creator.py`; *proposed* marks dropped.

@@ -460,3 +460,24 @@ def test_environment_variable_applies_when_nothing_else_is_set(
 
     model_setting = setting_of(settings, ModelNameStringSetting)
     assert model_setting.value == "env-only-value"
+
+
+def test_cli_config_path_wins_over_config_file_env_var(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """-c PATH is used regardless of $DRAGITER_CONFIG_FILE pointing elsewhere.
+
+    Covers CONF-17.
+    """
+    cli_config = tmp_path / "cli-config.toml"
+    cli_config.write_text('model_name = "from-cli-config"\n')
+    env_config = tmp_path / "env-config.toml"
+    env_config.write_text('model_name = "from-env-config"\n')
+
+    monkeypatch.setattr(sys, "argv", ["dragiter", "-c", str(cli_config)])
+    monkeypatch.setenv("DRAGITER_CONFIG_FILE", str(env_config))
+
+    settings = ConfigurationLoader().run()
+
+    model_setting = setting_of(settings, ModelNameStringSetting)
+    assert model_setting.value == "from-cli-config"

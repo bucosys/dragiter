@@ -197,10 +197,9 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - **CONF-16** Given a config file with several differently-typed keys in one document,
   when the loader runs, then every value is converted to its own setting's type
   correctly in a single pass.
-- **CONF-17** *proposed* Given `-c PATH` on the CLI, when the loader resolves the config
+- **CONF-17** Given `-c PATH` on the CLI, when the loader resolves the config
   path, then `PATH` is used regardless of `$DRAGITER_CONFIG_FILE` or the default user
-  config location. No existing test sets both `-c` and `$DRAGITER_CONFIG_FILE` to
-  different files to prove the precedence between them.
+  config location.
 - **CONF-18** Given no `-c` and no `$DRAGITER_CONFIG_FILE`, when
   `~/.config/dragiter/config.toml` does not exist, then the loader proceeds without a
   config file (CLI/env/defaults only) instead of raising.
@@ -260,3 +259,5 @@ is not implemented yet is marked *proposed* directly after its identifier.
   rules, and `ConfigurationValidator`'s mandatory/range/cross-field checks, derived
   from `configuration_loader.py`, `configuration_validator.py`, `settings.py` and
   `logging_configuration.py`.
+- 0.3 (2026-09-25): CONF-17 covered by a new test in
+  `tests/test_configuration_loader_env_precedence.py`; *proposed* mark dropped.

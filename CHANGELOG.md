@@ -55,6 +55,11 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   ``LIMT``, ``SIMU``, ``OUTP``, ``AUDT``, ``CONF`` and ``HELP`` specifications,
   written from the current code and cross-referenced from existing tests.
   A few criteria without a test yet stay ``*proposed*``.
+- Tests closing 25 of those proposed criteria: ``tests/test_activity_logger.py``,
+  ``tests/test_bundled_aids.py``, ``tests/test_loop_builder.py``,
+  ``tests/test_mockai_service.py`` and ``tests/test_prompt_creator.py``.
+  ``AUDT``'s missing ``origin`` field and unused ``ChecksumGenerator`` stay
+  open questions, not test gaps.
 
 ### Changed
 - Staging specification moved to ``design/specs/spec-stag-staging.md``
@@ -102,6 +107,10 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   ``OutputWriter.run`` and on ``ResultBoardService.run_board`` /
   ``session_board`` (and their dead None-handling in
   ``MarkdownResultBoard``). No caller ever passed ``None``.
+
+### Fixed
+- ``LoopBuilderError``'s read-failure message named the prompt file
+  setting instead of the loop file setting (``LOOP-08``).
 
 ## [2026.9.13] - 2026-09-13
 

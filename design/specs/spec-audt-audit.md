@@ -141,32 +141,32 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - **AUDT-05** Given content with U+0085/U+2028/U+2029 mixed with harmless ASCII records
   in the same call, when appended, then only the dangerous characters are escaped and no
   physical line contains a raw occurrence of any of them.
-- **AUDT-06** *proposed* Given a fresh `BufferedActivityLogger`/`FileActivityLogger`,
+- **AUDT-06** Given a fresh `BufferedActivityLogger`/`FileActivityLogger`,
   when it is constructed, then its buffer contains exactly one seed record with keys
   `TS`, `RT` and `initial_status_message`.
-- **AUDT-07** *proposed* Given an `ActivityProvider` result produced by a pipeline
+- **AUDT-07** Given an `ActivityProvider` result produced by a pipeline
   worker, when `ApplicationManager.provide()` stores it, then `write_activity` is called
   with that exact object, without the worker itself referencing the logger.
-- **AUDT-08** *proposed* Given a run without `-a`/`--activity-file`, when the buffer
+- **AUDT-08** Given a run without `-a`/`--activity-file`, when the buffer
   first observes a record containing the key `"activity_file"` with value `None`, then
   the entire buffer (including the seed record and everything logged so far) is
   discarded and no activity file is ever created for the rest of the run.
-- **AUDT-09** *proposed* Given a run with `-a PATH`, when the buffer first observes a
+- **AUDT-09** Given a run with `-a PATH`, when the buffer first observes a
   record containing `"activity_file": PATH`, then every record accumulated so far,
   including the seed record, is written to `PATH` as JSONL in one call, and the buffer is
   empty afterwards.
-- **AUDT-10** *proposed* Given an activity file already resolved to a real path, when a
+- **AUDT-10** Given an activity file already resolved to a real path, when a
   further `write_activity` or `write_exception` call happens, then its record(s) are
   appended to the same file immediately, without re-checking or re-reading earlier ones.
-- **AUDT-11** *proposed* Given an `AIServiceParameters` instance with `api_key_string_setting`
+- **AUDT-11** Given an `AIServiceParameters` instance with `api_key_string_setting`
   set, when its activity record is produced, then the emitted value for that key is the
   literal string `"***MASKED***"`, never the real key.
-- **AUDT-12** *proposed* Given any other, non-key-named setting (e.g. `model_name`),
+- **AUDT-12** Given any other, non-key-named setting (e.g. `model_name`),
   when its activity record is produced, then the real value is emitted unmasked.
-- **AUDT-13** *proposed* Given an exception with a live traceback, when
+- **AUDT-13** Given an exception with a live traceback, when
   `write_exception` runs, then the record's `filename`/`lineno`/`location` match the
   traceback's last frame, and `type`/`message`/`module` match the exception.
-- **AUDT-14** *proposed* Given an exception without a traceback (`e.__traceback__` is
+- **AUDT-14** Given an exception without a traceback (`e.__traceback__` is
   falsy), when `write_exception` runs, then `filename`/`lineno`/`location` are `None`
   instead of raising.
 
@@ -185,9 +185,8 @@ is not implemented yet is marked *proposed* directly after its identifier.
   (`ApplicationManager` per-object checksums on store writes?) or should be removed as
   dead wiring — see `ADR-0002`'s inventory.
 - `BufferedActivityLogger`, `FileActivityLogger`, the masking rule and the exception
-  record have zero dedicated unit tests today; only the lower-level `append_jsonl_to_file`
-  primitive (AUDT-01–05) is covered. AUDT-06–14 are marked *proposed* for this reason,
-  not because the behaviour is unimplemented.
+  record are now covered by `tests/test_activity_logger.py` (AUDT-06–14), alongside the
+  lower-level `append_jsonl_to_file` primitive (AUDT-01–05).
 
 ## Change history
 
@@ -195,3 +194,5 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - 0.2 (2026-09-25): initial version — describes `ActivityProvider`/`ActivityLogger`,
   buffering, file-sync gating, masking and the exception record from current code;
   flags the missing origin field and the unused `ChecksumGenerator` as open questions.
+- 0.2 (2026-09-25): added `tests/test_activity_logger.py`; AUDT-06–14 no longer
+  *proposed*. Origin field and `ChecksumGenerator` open questions unchanged.
