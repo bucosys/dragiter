@@ -51,14 +51,10 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 - Port ``OutputCommitService`` (``commit`` / ``discard``).
 - ``PersistenceService.open`` returns a run-scoped ``ResultSink``.
   ``NullPersistenceService`` is a test double only.
-- Initial specification bodies for ``MATL``, ``CHNK``, ``PRMT``, ``LOOP``,
-  ``EXEC``, ``LIMT``, ``SIMU``, ``OUTP``, ``AUDT``, ``CONF`` and ``HELP``,
-  written from the current implementation and tests (Purpose, Scope, Terms,
-  Behaviour, Error cases, acceptance criteria). Criteria are cross-referenced
-  from the tests that already prove them; a few with no existing test are
-  marked ``*proposed*`` (notably most of ``HELP``, and ``LOOP-01``/``06``/``07``).
-  ``scripts/check-spec-coverage.sh`` passes except the pre-existing,
-  already-tracked ``STAG-18`` gap.
+- Initial bodies for the ``MATL``, ``CHNK``, ``PRMT``, ``LOOP``, ``EXEC``,
+  ``LIMT``, ``SIMU``, ``OUTP``, ``AUDT``, ``CONF`` and ``HELP`` specifications,
+  written from the current code and cross-referenced from existing tests.
+  A few criteria without a test yet stay ``*proposed*``.
 
 ### Changed
 - Staging specification moved to ``design/specs/spec-stag-staging.md``
@@ -91,6 +87,8 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   `docs/window-starting-values.md` (nav updated). The page lists
   shipped slugs and alternatives in one table; cloud rows share
   the first-cut figures, not vendor maxima.
+- ADR-0002's inventory note corrected: the ``OutputWriter.run`` defaults
+  it described have since been removed.
 
 ### Removed
 - Combined ``-o`` + ``-O`` in one run (two workspaces, commit
