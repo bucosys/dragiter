@@ -47,3 +47,4 @@ is not implemented yet is marked *proposed* directly after its identifier.
 ## Change history
 
 - 0.1 (2026-09-24): skeleton created.
+- 0.1 (2026-09-25): internal cleanup — OutputWriter/ResultBoardService now require real ContextValidationReport/Resources instances (no behavior change).

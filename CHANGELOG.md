@@ -92,6 +92,10 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   ``OutputWriter._write_to_directory_with_staging``.
 - ``application/pipeline/application.py``.
 - Implicit ``None`` fallbacks on ``ChatManager.__init__``.
+- Implicit ``None`` fallbacks for ``context_report`` and ``resources`` on
+  ``OutputWriter.run`` and on ``ResultBoardService.run_board`` /
+  ``session_board`` (and their dead None-handling in
+  ``MarkdownResultBoard``). No caller ever passed ``None``.
 
 ## [2026.9.13] - 2026-09-13
 
