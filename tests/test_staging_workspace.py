@@ -2,10 +2,10 @@
 # SPDX-FileCopyrightText: 2026 Michael Buchold
 
 """
-Staging workspace and commit, ``dragiter_ap_staging_v2.md`` v2.1.
+Staging workspace and commit, ``design/specs/spec-stag-staging.md``.
 
-Tests are grouped by the validation phases of Appendix B (P, G, X, L, I);
-each test names the acceptance criteria of Section 10 it covers.
+Tests are grouped by the validation phases of STAG Appendix B (P, G, X, L, I);
+each test names the acceptance criteria (``STAG-NN``) it covers.
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ PID = os.getpid()
 
 
 # --------------------------------------------------------------------------- #
-# Fixtures (Appendix B, "Shared fixtures")
+# Fixtures (STAG Appendix B, "Shared fixtures")
 # --------------------------------------------------------------------------- #
 
 
@@ -148,7 +148,7 @@ def _shard_names(run: WorkspaceRun) -> list[str]:
 
 
 def test_p1_missing_dir_aborts_without_workspace(env: Env) -> None:
-    """Criterion 1."""
+    """STAG-01."""
     missing = env.dir / "missing"
     with pytest.raises(WorkspaceError, match="missing or not a directory"):
         _persist(env, _groups(directory=missing), _prompt(), ["A"])
@@ -157,7 +157,7 @@ def test_p1_missing_dir_aborts_without_workspace(env: Env) -> None:
 
 
 def test_p2_dir_is_a_file_aborts(env: Env) -> None:
-    """Criterion 1."""
+    """STAG-01."""
     not_a_dir = env.dir / "plain"
     not_a_dir.write_text("x", encoding="utf-8")
     with pytest.raises(WorkspaceError):
@@ -166,7 +166,7 @@ def test_p2_dir_is_a_file_aborts(env: Env) -> None:
 
 
 def test_p3_missing_file_parent_aborts(env: Env) -> None:
-    """Criterion 3."""
+    """STAG-03."""
     target = env.dir / "nope" / "report.md"
     with pytest.raises(WorkspaceError):
         _persist(env, _groups(file=target), _prompt(), ["A"])
@@ -174,7 +174,7 @@ def test_p3_missing_file_parent_aborts(env: Env) -> None:
 
 
 def test_p4_unusable_tmpdir_aborts_stdout(env: Env, tmp_path: Path) -> None:
-    """Criterion 33: a set but unusable $TMPDIR is not silently replaced."""
+    """STAG-33: a set but unusable $TMPDIR is not silently replaced."""
     unusable = tmp_path / "no-such-tmp"
     user_temp = user_temp_directory({"TMPDIR": str(unusable)})
     assert user_temp == unusable
@@ -186,7 +186,7 @@ def test_p4_unusable_tmpdir_aborts_stdout(env: Env, tmp_path: Path) -> None:
 
 
 def test_p1_p3_validator_rejects_missing_sink_parents(env: Env) -> None:
-    """Criteria 1 and 3, enforced at parametrisation."""
+    """STAG-01 and STAG-03, enforced at parametrisation."""
     groups = _groups(directory=env.dir / "missing")
     groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
     groups["ip"].task_string_setting.set("do it", ValueOrigin.CLI)
@@ -196,8 +196,8 @@ def test_p1_p3_validator_rejects_missing_sink_parents(env: Env) -> None:
         )
 
 
-def test_criterion_6_o_and_big_o_are_mutually_exclusive(env: Env) -> None:
-    """Criterion 6: refused at parametrisation, before any path check."""
+def test_stag_06_o_and_big_o_are_mutually_exclusive(env: Env) -> None:
+    """STAG-06: refused at parametrisation, before any path check."""
     groups = _groups(directory=env.dir / "missing", file=env.cwd / "missing" / "x.md")
     with pytest.raises(ConfigurationValidatorError, match="mutually exclusive") as info:
         ConfigurationValidator().run(
@@ -214,7 +214,7 @@ def test_criterion_6_o_and_big_o_are_mutually_exclusive(env: Env) -> None:
 
 
 def test_g1_directory_sink(env: Env) -> None:
-    """Criteria 2, 5, 7, 9, 20."""
+    """STAG-02, STAG-05, STAG-07, STAG-09, STAG-20."""
     groups = _groups("w", directory=env.dir)
     prompt = _prompt()
     run = _persist(env, groups, prompt, ["A", "B"])
@@ -232,7 +232,7 @@ def test_g1_directory_sink(env: Env) -> None:
 
 
 def test_g2_file_sink(env: Env) -> None:
-    """Criteria 4, 11, 12, 15, 24."""
+    """STAG-04, STAG-11, STAG-12, STAG-15, STAG-24."""
     groups = _groups("w", file=env.file)
     prompt = _prompt()
     run = _persist(env, groups, prompt, ["A", "B"])
@@ -255,7 +255,7 @@ def test_g2_file_sink(env: Env) -> None:
 
 
 def test_g3_stdout_sink(env: Env) -> None:
-    """Criteria 14, 30, 31, 32, 34."""
+    """STAG-14, STAG-30, STAG-31, STAG-32, STAG-34."""
     groups = _groups("x")
     prompt = _prompt()
     run = _persist(env, groups, prompt, ["A", "B"])
@@ -272,17 +272,17 @@ def test_g3_stdout_sink(env: Env) -> None:
 
 
 def test_tmpdir_is_used_as_user_temp(tmp_path: Path) -> None:
-    """Criterion 32."""
+    """STAG-32."""
     assert user_temp_directory({"TMPDIR": str(tmp_path)}) == tmp_path
 
 
 # --------------------------------------------------------------------------- #
-# Persist details (Section 6)
+# Persist details (STAG Section 6)
 # --------------------------------------------------------------------------- #
 
 
 def test_empty_completion_still_produces_shard(env: Env) -> None:
-    """Criterion 8."""
+    """STAG-08."""
     run = _persist(env, _groups(file=env.file), _prompt(), ["", "A"])
     shards = list_shards(run.path)
     assert [p.name for p in shards] == ["res000001", "res000002"]
@@ -290,14 +290,14 @@ def test_empty_completion_still_produces_shard(env: Env) -> None:
 
 
 def test_shard_content_is_unchanged(env: Env) -> None:
-    """Criterion 7: exactly the completion text, no stripping, no newline added."""
+    """STAG-07: exactly the completion text, no stripping, no newline added."""
     text = "  lead\r\ntrail  \n"
     run = _persist(env, _groups(directory=env.dir), _prompt(), [text])
     assert list_shards(run.path)[0].read_bytes() == text.encode("utf-8")
 
 
 def test_shard_number_overflow_is_an_error() -> None:
-    """Section 6.1: no silent widening."""
+    """STAG Section 6.1: no silent widening."""
     assert shard_name(999_999) == "res999999"
     with pytest.raises(WorkspaceError):
         shard_name(1_000_000)
@@ -330,7 +330,7 @@ def test_x2_existing_planned_name_with_x_aborts(env: Env) -> None:
 
 @pytest.mark.parametrize("mode", ["x", "w", "a"])
 def test_x3_duplicate_planned_names_abort_in_every_mode(env: Env, mode: str) -> None:
-    """Criterion 28."""
+    """STAG-28."""
     groups = _groups(mode, directory=env.dir)
     sessions = [_session("same.md", 1), _session("same.md", 2)]
     with pytest.raises(WorkspaceConflictError):
@@ -339,7 +339,7 @@ def test_x3_duplicate_planned_names_abort_in_every_mode(env: Env, mode: str) -> 
 
 
 def test_x4_target_appearing_before_commit_blocks_x(env: Env) -> None:
-    """Criterion 19 and Section 9."""
+    """STAG-19 and STAG Section 9."""
     groups = _groups("x", directory=env.dir)
     prompt = _prompt()
     run = _persist(env, groups, prompt, ["A", "B"])
@@ -356,7 +356,7 @@ def test_x4_target_appearing_before_commit_blocks_x(env: Env) -> None:
 
 
 def test_x5_second_rename_failure_stops_the_commit(env: Env) -> None:
-    """Criterion 21."""
+    """STAG-21."""
     groups = _groups("w", directory=env.dir)
     prompt = _prompt()
     run = _persist(env, groups, prompt, ["A", "B"])
@@ -371,7 +371,7 @@ def test_x5_second_rename_failure_stops_the_commit(env: Env) -> None:
 
 
 def test_x6_file_x_missing_target_is_renamed(env: Env) -> None:
-    """Criterion 22."""
+    """STAG-22."""
     groups = _groups("x", file=env.file)
     prompt = _prompt()
     _persist(env, groups, prompt, ["A"])
@@ -381,7 +381,7 @@ def test_x6_file_x_missing_target_is_renamed(env: Env) -> None:
 
 
 def test_x7_file_x_existing_target_at_commit_keeps_workspace(env: Env) -> None:
-    """Criterion 23."""
+    """STAG-23."""
     groups = _groups("x", file=env.file)
     prompt = _prompt()
     run = _persist(env, groups, prompt, ["A"])
@@ -395,7 +395,7 @@ def test_x7_file_x_existing_target_at_commit_keeps_workspace(env: Env) -> None:
 
 
 def test_stdout_write_failure_keeps_workspace(env: Env) -> None:
-    """Criterion 36."""
+    """STAG-36."""
 
     class _Broken(StringIO):
         def write(self, text: str) -> int:
@@ -411,7 +411,7 @@ def test_stdout_write_failure_keeps_workspace(env: Env) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Append (Section 7.3)
+# Append (STAG Section 7.3)
 # --------------------------------------------------------------------------- #
 
 
@@ -421,7 +421,7 @@ def test_stdout_write_failure_keeps_workspace(env: Env) -> None:
     ids=["missing", "empty", "non-empty"],
 )
 def test_file_append_delimiter_rule(env: Env, before: str | None, expected: str) -> None:
-    """Criterion 25."""
+    """STAG-25."""
     if before is not None:
         env.file.write_text(before, encoding="utf-8")
     groups = _groups("a", file=env.file)
@@ -446,7 +446,7 @@ def test_l1_file_skips_empty_shard(env: Env) -> None:
 
 
 def test_l2_file_only_empty_creates_nothing(env: Env) -> None:
-    """Criteria 13 and Section 7.8."""
+    """STAG-13 and STAG Section 7.8."""
     groups = _groups("w", file=env.file)
     prompt = _prompt()
     run = _persist(env, groups, prompt, [""])
@@ -457,7 +457,7 @@ def test_l2_file_only_empty_creates_nothing(env: Env) -> None:
 
 
 def test_l3_stdout_only_empty_prints_nothing(env: Env) -> None:
-    """Criterion 35."""
+    """STAG-35."""
     groups = _groups("x")
     prompt = _prompt()
     _persist(env, groups, prompt, [""])
@@ -468,7 +468,7 @@ def test_l3_stdout_only_empty_prints_nothing(env: Env) -> None:
 
 
 def test_l4_directory_keeps_empty_slot(env: Env) -> None:
-    """Criterion 16."""
+    """STAG-16."""
     groups = _groups("w", directory=env.dir)
     prompt = _prompt()
     _persist(env, groups, prompt, ["A", ""])
@@ -478,7 +478,7 @@ def test_l4_directory_keeps_empty_slot(env: Env) -> None:
 
 
 def test_l5_directory_append_empty_leaves_target(env: Env) -> None:
-    """Criterion 17."""
+    """STAG-17."""
     target = env.dir / "s1.md.txt"
     target.write_text("old", encoding="utf-8")
     groups = _groups("a", directory=env.dir)
@@ -494,7 +494,7 @@ def test_l5_directory_append_empty_leaves_target(env: Env) -> None:
 
 
 def test_i4_foreign_workspace_survives_cleanup(env: Env) -> None:
-    """Criterion 29."""
+    """STAG-29."""
     foreign = env.dir / f"{DIR_STAGING_PREFIX}1"
     foreign.mkdir()
     groups = _groups("w", directory=env.dir)
@@ -507,7 +507,7 @@ def test_i4_foreign_workspace_survives_cleanup(env: Env) -> None:
 def test_i5_timestamp_skips_early_check_and_uses_shard_mtime(
     env: Env, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Criteria 10, 26, 27."""
+    """STAG-10, STAG-26, STAG-27."""
     (env.dir / "keep.txt").write_text("x", encoding="utf-8")
     groups = _groups("x", directory=env.dir)
     prompt = _prompt("out_{TIMESTAMP}.txt")

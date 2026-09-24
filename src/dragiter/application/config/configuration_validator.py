@@ -43,7 +43,7 @@ class ConfigurationValidator:
         try:
             CVF = ConfigurationValidatorFinding  # shorthand
 
-            # Staging profile v2.1, Section 1 / criterion 6: -o and -O are mutually
+            # STAG Section 1 / STAG-06: -o and -O are mutually
             # exclusive. Refuse at once, before any path is validated.
             if op.output_file_path_setting.is_set and op.output_directory_path_setting.is_set:
                 raise ConfigurationValidatorError(
@@ -140,7 +140,7 @@ class ConfigurationValidator:
                 ]
             )
 
-            # stage IIa: sink parents (staging profile v2.1, Section 5.1).
+            # stage IIa: sink parents (STAG Section 5.1).
             # dragiter never creates DIR or FILE.parent.
             sink_parents = []
             if op.output_directory_path_setting.is_set:

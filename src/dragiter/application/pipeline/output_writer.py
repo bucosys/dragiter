@@ -35,9 +35,9 @@ class OutputWriter:
     Final pipeline step.
 
     Live runs: the persisted completions are committed from the run workspace
-    (staging profile v2.1, Section 7) by the injected OutputCommitService.
+    (STAG Section 7) by the injected OutputCommitService.
     Simulate runs: the result boards are written instead and the workspace is
-    discarded (simulate boards are outside the staging profile, Section 2.2).
+    discarded (simulate boards are outside the staging profile, STAG Section 2.2).
     """
 
     def __init__(

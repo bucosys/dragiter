@@ -1,6 +1,6 @@
 # dragiter Technical Reference
 
-**Version:** derived from source (2026.9.13)  
+**Version:** derived from source (2026.9.26)  
 **Language:** British English  
 **Scope:** Configuration, file formats, CLI, defaults, output behaviour and activity log  
 **Sources:** Source code (`src/dragiter/`), in particular `PromptCreator`, `OpenAIServiceExt` and example TOML files under `examples/`

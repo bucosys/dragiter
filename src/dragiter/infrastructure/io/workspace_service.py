@@ -4,8 +4,8 @@
 """
 Run workspace, shard persist, Assembly and commit.
 
-Implements ``dragiter_ap_staging_v2.md`` (v2.1). Section numbers in comments
-refer to that profile.
+Implements ``design/specs/spec-stag-staging.md``. ``STAG Section N`` refers to a
+section of that specification, ``STAG-NN`` to one of its acceptance criteria.
 """
 
 from __future__ import annotations
@@ -41,18 +41,18 @@ from dragiter.infrastructure.io.io_services import write_or_append_lines_to_uniq
 
 logger = logging.getLogger(__name__)
 
-# Section 5.2: one prefix per sink, never a shared workspace.
+# STAG Section 5.2: one prefix per sink, never a shared workspace.
 DIR_STAGING_PREFIX = ".tmp_staging_dir_"
 FILE_STAGING_PREFIX = ".tmp_staging_file_"
 STDOUT_STAGING_PREFIX = ".tmp_staging_stdout_"
 
-# Section 6.1: res<N>, zero-padded, fixed width, no automatic widening.
+# STAG Section 6.1: res<N>, zero-padded, fixed width, no automatic widening.
 SHARD_PREFIX = "res"
 SHARD_DIGITS = 6
 SHARD_LIMIT = 10**SHARD_DIGITS - 1
 _SHARD_RE = re.compile(rf"^{SHARD_PREFIX}\d{{{SHARD_DIGITS}}}$")
 
-# Section 7.9: Assembly result for stdout-only.
+# STAG Section 7.9: Assembly result for stdout-only.
 STDOUT_CONTENT_NAME = "stdout.txt"
 
 EXCLUSIVE_RUNTIME_NOTICE = (
@@ -66,11 +66,11 @@ class WorkspaceError(PersistenceError):
 
 
 class WorkspaceConflictError(PersistenceConflictError):
-    """Raised by the early check (Section 8), before any completion call."""
+    """Raised by the early check (STAG Section 8), before any completion call."""
 
 
 class WorkspaceCommitError(OutputCommitError):
-    """Raised on preflight or transfer failure (Section 7). The workspace stays."""
+    """Raised on preflight or transfer failure (STAG Section 7). The workspace stays."""
 
 
 class SinkKind(enum.Enum):
@@ -92,10 +92,10 @@ class WorkspaceLocation:
 
 def user_temp_directory(environ: Mapping[str, str]) -> Path:
     """
-    Resolve the user's default temp directory (Section 3, "User temp").
+    Resolve the user's default temp directory (STAG Section 3, "User temp").
 
     A set ``$TMPDIR`` is taken as given, even if unusable: the stdout sink then
-    aborts before the first completion (criterion 33, step P4) instead of
+    aborts before the first completion (STAG-33, step P4) instead of
     silently falling back elsewhere. Without ``$TMPDIR`` the platform default
     applies.
     """
@@ -106,7 +106,7 @@ def user_temp_directory(environ: Mapping[str, str]) -> Path:
 
 
 class WorkspaceLayout:
-    """Maps the output parameters of a run to its one workspace (Section 5)."""
+    """Maps the output parameters of a run to its one workspace (STAG Section 5)."""
 
     def __init__(self, pid: int, user_temp: Path) -> None:
         self._pid = pid
@@ -116,7 +116,7 @@ class WorkspaceLayout:
         file_set = op.output_file_path_setting.is_set
         dir_set = op.output_directory_path_setting.is_set
         if file_set and dir_set:
-            # Section 1: mutually exclusive. The validator rejects this first;
+            # STAG Section 1: mutually exclusive. The validator rejects this first;
             # repeated here so no workspace can ever be derived from it.
             raise WorkspaceError("-o and -O are mutually exclusive; use only one of them.")
         if dir_set:
@@ -144,7 +144,7 @@ class WorkspaceLayout:
 
     @staticmethod
     def check_parent(location: WorkspaceLocation) -> None:
-        """Section 5.1: the parent must exist, be a directory and be writable."""
+        """STAG Section 5.1: the parent must exist, be a directory and be writable."""
         parent = location.parent
         role = "user temp" if location.sink is SinkKind.STDOUT else f"{location.sink.value} parent"
         if not parent.is_dir():
@@ -186,7 +186,7 @@ def _planned_directory_names(
 
 
 # --------------------------------------------------------------------------- #
-# Persist (Section 6)
+# Persist (STAG Section 6)
 # --------------------------------------------------------------------------- #
 
 
@@ -202,7 +202,7 @@ class WorkspaceRun:
         return self._path
 
     def persist(self, index: int, session: ChatSession, result: ChatResult) -> None:
-        # Sink-agnostic by design (Section 6): no delimiter, no filtering,
+        # Sink-agnostic by design (STAG Section 6): no delimiter, no filtering,
         # no final name. The shard number is workspace-local, not *index*.
         number = self._count + 1
         shard = self._path / shard_name(number)
@@ -253,7 +253,7 @@ class WorkspacePersistenceService:
         schema: str,
         sessions: list[ChatSession],
     ) -> None:
-        """Section 8. Runs before the workspace exists."""
+        """STAG Section 8. Runs before the workspace exists."""
         conflicts: list[Path] = []
 
         if location.sink is SinkKind.FILE:
@@ -281,13 +281,13 @@ class WorkspacePersistenceService:
 
 
 # --------------------------------------------------------------------------- #
-# Assembly and commit (Section 7)
+# Assembly and commit (STAG Section 7)
 # --------------------------------------------------------------------------- #
 
 
 def assemble(workspace: Path, content_name: str, delimiter: str) -> Path | None:
     """
-    Section 7.0: merge all non-empty shards into *content_name* inside *workspace*.
+    STAG Section 7.0: merge all non-empty shards into *content_name* inside *workspace*.
 
     Returns None (and creates nothing) when every shard is empty (0 bytes).
     Shards stay in place.
@@ -306,7 +306,7 @@ def assemble(workspace: Path, content_name: str, delimiter: str) -> Path | None:
 
 
 def _append_block(source: Path, target: Path, delimiter: str) -> None:
-    """Section 7.3: -m a."""
+    """STAG Section 7.3: -m a."""
     block = source.read_bytes()
     if not block.decode("utf-8").strip():
         return
@@ -353,7 +353,7 @@ class WorkspaceCommitService:
             case SinkKind.STDOUT:
                 self._commit_stdout(location, delimiter)
 
-        # Sections 7.4 / 7.9: only this run's own workspace, only on success.
+        # STAG Sections 7.4 / 7.9: only this run's own workspace, only on success.
         self._remove(workspace)
 
     def discard(self, op: OutputParameters) -> None:
@@ -380,7 +380,7 @@ class WorkspaceCommitService:
 
         moves: list[tuple[Path, Path]] = []
         for index, (shard, session) in enumerate(zip(shards, sessions, strict=True), start=1):
-            # Section 6.3 / 7.5: {TIMESTAMP} is the shard's mtime, not the commit clock.
+            # STAG Sections 6.3 / 7.5: {TIMESTAMP} is the shard's mtime, not the commit clock.
             timestamp = format_timestamp_ns(shard.stat().st_mtime_ns)
             name = format_output_filename(
                 session.chunk, session.loop_item, index, schema, timestamp=timestamp
@@ -406,7 +406,7 @@ class WorkspaceCommitService:
         target = location.target
         assembled = self._assemble(workspace, target.name, delimiter, str(target))
         if assembled is None:
-            return  # Section 7.8: FILE is neither created nor modified.
+            return  # STAG Section 7.8: FILE is neither created nor modified.
         if mode == "x":
             self._preflight_exclusive([target], workspace)
         self._transfer(assembled, target, mode, delimiter, workspace)
@@ -417,7 +417,7 @@ class WorkspaceCommitService:
         workspace = location.path
         assembled = self._assemble(workspace, STDOUT_CONTENT_NAME, delimiter, "stdout")
         if assembled is None:
-            return  # Section 7.9: nothing from the replies goes to stdout.
+            return  # STAG Section 7.9: nothing from the replies goes to stdout.
         try:
             self._stdout.write(assembled.read_bytes().decode("utf-8"))
             self._stdout.flush()
@@ -439,7 +439,7 @@ class WorkspaceCommitService:
 
     @staticmethod
     def _preflight_exclusive(targets: list[Path], workspace: Path) -> None:
-        """Section 7.1: any existing target aborts before the first rename."""
+        """STAG Section 7.1: any existing target aborts before the first rename."""
         existing = [target for target in targets if target.exists()]
         if existing:
             shown = ", ".join(str(path) for path in existing)
@@ -449,7 +449,7 @@ class WorkspaceCommitService:
 
     @staticmethod
     def _transfer(source: Path, target: Path, mode: str, delimiter: str, workspace: Path) -> None:
-        """One file per mode (Sections 7.1-7.3). The first failure stops the commit."""
+        """One file per mode (STAG Sections 7.1–7.3). The first failure stops the commit."""
         try:
             if mode == "a":
                 _append_block(source, target, delimiter)
@@ -474,7 +474,7 @@ class WorkspaceCommitService:
 
 
 # --------------------------------------------------------------------------- #
-# Simulate boards (outside the staging profile, Section 2.2)
+# Simulate boards (outside the staging profile, STAG Section 2.2)
 # --------------------------------------------------------------------------- #
 
 

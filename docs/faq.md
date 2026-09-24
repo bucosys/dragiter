@@ -1,6 +1,6 @@
 # dragiter FAQ
 
-**Version:** derived from source (2026.9.13)  
+**Version:** derived from source (2026.9.26)  
 **Language:** British English  
 **Audience:** power users and the maintainer  
 **Scope:** Recurring support questions. Not a second manual and not a second reference.  

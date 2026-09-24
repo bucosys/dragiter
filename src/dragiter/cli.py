@@ -75,7 +75,7 @@ def main():
         app = ApplicationManager(BasicChecksumGenerator(), FileActivityLogger())
 
         # One layout for both ends of the staging pipeline: ChatManager persists
-        # into it, OutputWriter commits out of it (staging profile v2.1).
+        # into it, OutputWriter commits out of it (STAG).
         workspace_layout = WorkspaceLayout(
             pid=os.getpid(), user_temp=user_temp_directory(os.environ)
         )

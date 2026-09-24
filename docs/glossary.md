@@ -1,6 +1,6 @@
 # dragiter Glossary
 
-**Version:** derived from source (2026.9.13)  
+**Version:** derived from source (2026.9.26)  
 **Language:** British English  
 **Audience:** readers of the Manual, the Technical Reference and the FAQ  
 **Scope:** Product words. Not a procedure guide and not a flag list.  

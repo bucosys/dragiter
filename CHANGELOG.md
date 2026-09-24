@@ -7,8 +7,23 @@ uses [Calendar Versioning](https://calver.org/)
 in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 
 ## [Unreleased]
-
 ### Added
+- ``design/`` for architecture decision records (``design/adr/``) and
+  specifications (``design/specs/``), versioned with the source code.
+  Shipped in the sdist, not in the wheel. ``design/README.md`` defines
+  naming, identifiers, functional and technical specifications, the
+  register of four-letter codes and the workflow.
+- ADR-0001 (one ``ValueSetting`` subclass per configuration property)
+  and ADR-0002 (type-keyed worker broker ``ApplicationManager``),
+  recorded retrospectively. ADR-0000 moved into ``design/adr/``.
+- Skeletons of the functional specifications ``MATL``, ``CHNK``,
+  ``PRMT``, ``LOOP``, ``EXEC``, ``OUTP``, ``LIMT``, ``SIMU``, ``AUDT``,
+  ``CONF`` and ``HELP`` (drafts, no criteria yet).
+- ``scripts/check-spec-coverage.sh``: checks the register, file names,
+  header fields and criterion identifiers, and that every acceptance
+  criterion is referenced by a test. Runs with the Bash 3.2 of macOS.
+- CI job ``spec-coverage`` in stage ``test``, with ``allow_failure``
+  until ``STAG-18`` has a test.
 - One run workspace per sink, created after validation and the early
   check, before the first persist: ``DIR/.tmp_staging_dir_<PID>/`` for
   ``-O``, ``FILE.parent/.tmp_staging_file_<PID>/`` for ``-o``,
@@ -38,6 +53,12 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   ``NullPersistenceService`` is a test double only.
 
 ### Changed
+- Staging specification moved to ``design/specs/spec-stag-staging.md``
+  (v2.2, editorial only, type technical). Acceptance criteria carry
+  stable identifiers ``STAG-01`` to ``STAG-36``.
+- Source comments and test docstrings refer to ``STAG-NN`` and
+  ``STAG Section N`` instead of file versions and bare numbers.
+  ``test_criterion_6_…`` renamed to ``test_stag_06_…``.
 - ``-m a``: target missing or empty → new block with no leading
   delimiter; target non-empty → ``output_delimiter`` then the block.
   An empty new block does not touch the target.
