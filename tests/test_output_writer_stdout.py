@@ -15,9 +15,11 @@ from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.domain.models.chat_results import ChatResult, ChatResults
 from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatSessions
 from dragiter.domain.models.chunk import Chunk
+from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate
+from dragiter.domain.models.resources import Resources
 from dragiter.domain.models.settings import ValueOrigin
 from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.io.workspace_service import (
@@ -62,6 +64,8 @@ def _run(
         groups["aisp"],
         Material([chunk]),
         Loop([{"LOOP_CONTENT": "ask", "LOOP_NUM_ID": 1}]),
+        ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
+        Resources(),
     )
 
 
@@ -169,6 +173,8 @@ def test_output_writer_uses_injected_result_board(tmp_path: Path, capsys) -> Non
         groups["aisp"],
         Material([chunk]),
         Loop([{"LOOP_CONTENT": "ask", "LOOP_NUM_ID": 1}]),
+        ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
+        Resources(),
     )
     captured = capsys.readouterr()
     assert "FIXED-RUN-BOARD" in captured.out

@@ -70,8 +70,8 @@ class OutputWriter:
         aisp: AIServiceParameters,
         material: Material,
         loop: Loop,
-        context_report: ContextValidationReport = None,
-        resources: Resources = None,
+        context_report: ContextValidationReport,
+        resources: Resources,
     ) -> ApplicationResult:
         try:
             if not self._is_simulation(ep, chat_results):
@@ -107,8 +107,8 @@ class OutputWriter:
         aisp: AIServiceParameters,
         material: Material,
         loop: Loop,
-        context_report: ContextValidationReport | None,
-        resources: Resources | None,
+        context_report: ContextValidationReport,
+        resources: Resources,
     ) -> None:
         open_mode: str = op.output_mode_string_setting.value
         delimiter = prompt.output_delimiter or ""

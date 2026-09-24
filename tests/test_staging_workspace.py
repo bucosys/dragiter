@@ -556,6 +556,8 @@ def test_workers_share_one_workspace_via_layout(env: Env) -> None:
         NullSessionBoard(),
         WorkspacePersistenceService(env.layout),
     )
+    context_report = ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0)
+    resources = Resources()
     results = manager.run(
         groups["aisp"],
         groups["lp"],
@@ -564,8 +566,8 @@ def test_workers_share_one_workspace_via_layout(env: Env) -> None:
         groups["op"],
         Material([]),
         Loop(),
-        ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
-        Resources(),
+        context_report,
+        resources,
         prompt,
     )
     assert (env.dir / f"{DIR_STAGING_PREFIX}{PID}").is_dir()
@@ -581,6 +583,8 @@ def test_workers_share_one_workspace_via_layout(env: Env) -> None:
         groups["aisp"],
         Material([]),
         Loop(),
+        context_report,
+        resources,
     )
     assert (env.dir / "s1.md.txt").read_text(encoding="utf-8") == "S1.MD"
     assert (env.dir / "s2.md.txt").read_text(encoding="utf-8") == "S2.MD"
@@ -604,5 +608,7 @@ def test_simulate_run_discards_workspace(env: Env) -> None:
         groups["aisp"],
         Material([]),
         Loop(),
+        ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
+        Resources(),
     )
     assert env.staging_dirs(env.user_temp) == []

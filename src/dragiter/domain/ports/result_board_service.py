@@ -30,9 +30,9 @@ class ResultBoardService(Protocol):
         aisp: AIServiceParameters,
         material: Material,
         loop: Loop,
-        context_report: ContextValidationReport | None,
+        context_report: ContextValidationReport,
         prompt: PromptTemplate,
-        resources: Resources | None,
+        resources: Resources,
         *,
         frame: bool = True,
     ) -> str:
@@ -46,10 +46,10 @@ class ResultBoardService(Protocol):
         sequential: bool,
         valid_chunks: int,
         loop_count: int,
-        context_report: ContextValidationReport | None,
+        context_report: ContextValidationReport,
         batched_chars: int,
         ep: ExecutionParameters,
-        resources: Resources | None,
+        resources: Resources,
     ) -> str:
         """Render the per-session board."""
 

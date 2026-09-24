@@ -13,6 +13,7 @@ from dragiter.domain.models.context_validation_report import ContextValidationRe
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate
+from dragiter.domain.models.resources import Resources
 from dragiter.domain.models.settings import ValueOrigin
 from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.cli.simulation_brief import (
@@ -172,6 +173,7 @@ def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> 
             max_tokens_limit=None,
             max_session_tokens=None,
         ),
+        Resources(),
     )
 
     captured = capsys.readouterr().out
@@ -213,6 +215,8 @@ def test_output_writer_prints_padded_markdown_table(capsys) -> None:
         groups["aisp"],
         Material([chunk]),
         Loop([{"LOOP_CONTENT": "ask", "LOOP_NUM_ID": 1}]),
+        ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
+        Resources(),
     )
 
     captured = capsys.readouterr().out
@@ -264,6 +268,8 @@ def test_output_writer_writes_transcript_to_output_directory(tmp_path, capsys) -
         groups["aisp"],
         Material([chunk]),
         Loop([{"LOOP_CONTENT": "question", "LOOP_NUM_ID": 1}]),
+        ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
+        Resources(),
     )
 
     written = list(tmp_path.glob("*.md"))
@@ -335,6 +341,8 @@ def test_output_writer_writes_transcript_to_output_file(tmp_path, capsys) -> Non
                 {"LOOP_CONTENT": "question two", "LOOP_NUM_ID": 2},
             ]
         ),
+        ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
+        Resources(),
     )
 
     body = output_file.read_text(encoding="utf-8")

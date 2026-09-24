@@ -38,9 +38,9 @@ class MarkdownResultBoard:
         aisp: AIServiceParameters,
         material: Material,
         loop: Loop,
-        context_report: ContextValidationReport | None,
+        context_report: ContextValidationReport,
         prompt: PromptTemplate,
-        resources: Resources | None,
+        resources: Resources,
         *,
         frame: bool = True,
     ) -> str:
@@ -50,9 +50,11 @@ class MarkdownResultBoard:
             ep.pack_limit_chars_int_setting.value,
             self._section_pack_limits(resources, None),
         )
-        peak_session = None
-        if context_report is not None and context_report.max_session_index >= 0:
-            peak_session = context_report.max_session_index + 1
+        peak_session = (
+            context_report.max_session_index + 1
+            if context_report.max_session_index >= 0
+            else None
+        )
         small_chunks, oversize_chunks = MaterialTokenizer.count_size_flags(
             chunks, pack_limit
         )
@@ -68,17 +70,11 @@ class MarkdownResultBoard:
                 sequential=prompt.sequential_processing,
                 pack_limit_chars=pack_limit,
                 pack_from=pack_from,
-                peak_tokens=(
-                    None if context_report is None else context_report.max_session_tokens
-                ),
-                token_limit=(
-                    None if context_report is None else context_report.max_tokens_limit
-                ),
+                peak_tokens=context_report.max_session_tokens,
+                token_limit=context_report.max_tokens_limit,
                 peak_session=peak_session,
-                window_ok=None if context_report is None else context_report.is_valid,
-                warning_count=(
-                    0 if context_report is None else len(context_report.simulation_warnings)
-                ),
+                window_ok=context_report.is_valid,
+                warning_count=len(context_report.simulation_warnings),
                 small_chunks=small_chunks,
                 oversize_chunks=oversize_chunks,
                 output_dir=(
@@ -104,10 +100,10 @@ class MarkdownResultBoard:
         sequential: bool,
         valid_chunks: int,
         loop_count: int,
-        context_report: ContextValidationReport | None,
+        context_report: ContextValidationReport,
         batched_chars: int,
         ep: ExecutionParameters,
-        resources: Resources | None,
+        resources: Resources,
     ) -> str:
         chunk = chat_session.chunk
         loop_item = chat_session.loop_item or {}
@@ -143,11 +139,9 @@ class MarkdownResultBoard:
             loop_label = f"{loop_num} / {loop_count}"
             raw_line = loop_item.get("LOOP_ID") or loop_item.get("LOOP_CONTENT") or ""
             loop_line = " ".join(str(raw_line).split()) or "none"
-        tokens = None
-        if context_report is not None:
-            tokens = context_report.session_token_counts.get(session_index - 1)
-            if tokens is None:
-                tokens = context_report.session_input_token_counts.get(session_index - 1)
+        tokens = context_report.session_token_counts.get(session_index - 1)
+        if tokens is None:
+            tokens = context_report.session_input_token_counts.get(session_index - 1)
         return format_simulation_session_brief(
             SimulationSessionBrief(
                 session_index=session_index,
@@ -179,11 +173,9 @@ class MarkdownResultBoard:
 
     @staticmethod
     def _section_pack_limits(
-        resources: Resources | None,
+        resources: Resources,
         chunk: Chunk | None,
     ) -> list[int | None]:
-        if resources is None:
-            return []
         sections = resources.resource_sections
         if chunk is not None:
             return [
