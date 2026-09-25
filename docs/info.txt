@@ -39,7 +39,13 @@ DESCRIPTION
 OPTIONS
        General Flags
            -d, --debug                Enable debug logging
-           -s, --simulate             Simulation mode (no real API calls)
+           -s, --simulate             Simulation mode (no real API
+                                      calls). With neither -o nor -O,
+                                      stdout now prints the aggregate
+                                      run board plus every session's
+                                      own board and its complete
+                                      outgoing request — the same
+                                      content -o writes to a file
            -v, --verbose              stderr run board. Does not raise
                                       the log level (use -d). Start:
                                       model, mode, pack, window,
@@ -112,10 +118,15 @@ OPTIONS
            -m, --output-mode MODE     File open mode: x = exclusive
                                       (default), w = overwrite, a = append
            -o, --output-file PATH     Write all results to a single file
-                                      (do not also echo on stdout)
+                                      (do not also echo on stdout).
+                                      Mutually exclusive with -O
            -O, --output-directory DIR Write results into the given
                                       directory (do not also echo on
-                                      stdout)
+                                      stdout). Mutually exclusive with
+                                      -o. Neither -o's parent directory
+                                      nor -O's target directory is ever
+                                      created automatically; it must
+                                      already exist and be writable
            --output-delimiter TEXT    Text inserted between multiple
                                       results
            --output-filename-schema   Filename template for -O (supports
@@ -186,10 +197,15 @@ FILES
               DRAGITER_CONFIG_FILE is set).
 
 SEE ALSO
-       Full documentation (Tutorial, How-to guides, Explanation and
-       Technical Reference) can be extracted with:
+       Full documentation (Tutorial, How-to guides, Explanation,
+       Technical Reference, FAQ, Glossary and the context-window
+       starting values) can be extracted with:
 
            dragiter-gen-docs .
+
+       This extracts the whole docs/ folder, including docs/faq.md,
+       docs/glossary.md and docs/window-starting-values.md alongside
+       docs/manual.md and docs/reference.md.
 
 REPORTING BUGS
        dragiter is a small, community-driven tool. Bug reports are of

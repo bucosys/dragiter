@@ -60,8 +60,8 @@ yet is written in place and marked *proposed* directly after its identifier, e.g
    sits where the behaviour is decided, not on every line that takes part in it.
 5. **References in tests are mandatory.** Every test names the criteria it covers in its
    docstring. Every criterion that is neither *proposed* nor *withdrawn* has at least one test.
-6. **Check before committing.** `scripts/check-spec-coverage.sh`, `pytest`, `ruff check`
-   and `mypy` pass.
+6. **Check before committing.** `scripts/check-spec-coverage.sh`, `pytest` and `ruff check`
+   pass.
 
 ## Register of codes
 

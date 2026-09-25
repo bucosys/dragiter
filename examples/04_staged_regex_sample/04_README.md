@@ -25,26 +25,43 @@ several chapters split on `###`, neighbours pack, `small / over` shows
 leftover pieces above 500, and the session count is no longer 21.
 Counts change if you edit the profile.
 
+A simulate run now writes the run board **and**, for every session, that
+session's board followed by its complete outgoing request — the same
+content whether the sink is `-o`, `-O` or plain stdout. Plain stdout is
+consequently much longer than a summary board alone; prefer `-O out` (see
+Step 1) if you just want a manageable read.
+
 ## Step 1. Work from the example directory
 
 The resource glob is only the profile file name. If that file is not in
 the process working directory (or in `-b`), dragiter loads **no chunks**.
-The simulate file then looks like `session_0001.md`, mode `batched`,
-`file none`, and raw `{CHUNK_*}` placeholders.
+The simulate file then falls back to the name `session_0001.md`, and its
+content is the board for that session (`mode batched`, `file none`) followed
+by the outgoing request with raw, unsubstituted `{CHUNK_*}` placeholders.
 
     cd examples/04_staged_regex_sample
     ls 04_dragiter_requirements_profile.md 04_prompt_staged_regex.toml 04_resource_staged_regex.toml
 
 From elsewhere, pass the example directory as the base:
 
+    mkdir -p out
     dragiter -b examples/04_staged_regex_sample \
       -p examples/04_staged_regex_sample/04_prompt_staged_regex.toml \
       -r examples/04_staged_regex_sample/04_resource_staged_regex.toml \
       -s -O out
 
+`-O`'s target directory is never created automatically, so `mkdir -p out`
+must run first.
+
 Confirm the prompt file starts with `You are a ruthless technical editor`
 and contains `sequential_processing = true`. An older copy still says
 `precise analyst` and stays batched.
+
+Running the same `-s -O out` (or any `-s -o FILE`) command a second time
+now fails: simulate commits its output through the same mechanism as a
+live run, and the default output mode `x` (exclusive create) refuses to
+overwrite an existing target. Pass `-m w` to repeat a run into the same
+target.
 
 ## Step 2. Prove the split before spending tokens
 

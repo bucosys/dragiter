@@ -4,7 +4,7 @@
 **Language:** British English  
 **Audience:** power users and the maintainer  
 **Scope:** Recurring support questions. Not a second manual and not a second reference.  
-**Sources:** `docs/manual.md`, `docs/reference.md`, `docs/info.txt`, `CHANGELOG.md`, `README.md`, example READMEs, and the 2026.9.13 tree
+**Sources:** `docs/manual.md`, `docs/reference.md`, `docs/info.txt`, `CHANGELOG.md`, `README.md`, example READMEs, and the 2026.9.26 tree
 
 This document answers questions that keep coming back. Complete procedures live in the [Manual](manual.md). Exact flags, schemas, ranges and activity-log records live in the [Technical Reference](reference.md). When those two disagree with this page, name the file and the version and treat this page as uncertain.
 
@@ -26,7 +26,7 @@ Each question is a self-contained `###` block in this order:
 
 Keep one concern per question. If a topic grows past a screen, split it into a new `###` with a new title instead of editing the old title. Do not introduce admonition syntax, tabbed fences or other Material extras — `mkdocs.yml` currently enables only `search` and `privacy`.
 
-To publish on the site, copy this file next to `manual.md` / `reference.md` (CI already copies `docs/*.md` into `web/`) and add one nav entry in `mkdocs.yml`:
+This file is already published on the site next to `manual.md` / `reference.md`: `.gitlab-ci.yml` copies `docs/*.md` into `web/`, and `mkdocs.yml` already carries its nav entry:
 
 ```yaml
 nav:
@@ -60,7 +60,7 @@ If it is unclear, send `dragiter --version` and the exact command line.
 
 It is a CLI. Configuration precedence is CLI, then TOML (`-c` / `DRAGITER_CONFIG_FILE` / `~/.config/dragiter/config.toml`), then `DRAGITER_*` environment variables, then defaults. From 2026.9.9 the singular resource key `regex_pattern` is rejected. Standard input is read only with `-t` / `--task` or the placeholder `{STDIN}`. Results appear on stdout only when neither `-o` nor `-O` is set. `-v` writes the run board to stderr. `-s` simulates with no network and no tokens.
 
-Typical pitfall: documenting flags or breaking changes that are not in the 2026.9.13 sources.
+Typical pitfall: documenting flags or breaking changes that are not in the 2026.9.26 sources.
 
 See README Compatibility and Reference §1.
 
@@ -81,7 +81,7 @@ python3 --version
 
 Typical pitfall: an environment that already pinned openai 1.x will import, then fail when the CLI constructs the streaming client. Tests are not inside the wheel; they live in the sdist.
 
-See README Installation, Reference §1a, and `pyproject.toml` of 2026.9.13.
+See README Installation, Reference §1a, and `pyproject.toml` of 2026.9.26.
 
 If it is unclear, send `pip show dragiter openai httpx2` and `python3 --version`.
 
@@ -125,28 +125,28 @@ If it is unclear, send `pytest -q` output and whether Ollama is listening on por
 
 ### What is the first command that should always be run?
 
-Simulate. `-s` makes no API call and spends no tokens. With neither `-o` nor `-O`, stdout prints the run board only (sessions as request count, mode, chunks, loops, pack budget and origin, small/over, window). Payload transcripts are not echoed there.
+Simulate. `-s` makes no API call and spends no tokens. With neither `-o` nor `-O`, stdout now prints full detail: the aggregate run board (sessions as request count, mode, chunks, loops, pack budget and origin, small/over, window), followed by every session's own board and its complete outgoing request (role/content payload table) — the same content `-o` writes to a file. `ChatManager` builds this content and persists it as an ordinary shard for every session (plus one leading aggregate-board shard for `-o`/stdout-only); `OutputWriter` then commits it the same way for stdout, `-o` and live runs alike.
 
 ```bash
 dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
-Typical pitfall: expecting the assembled prompt on stdout in `-s`. That transcript appears in `-o` / `-O` files (session board, blank line, role/content). Shell redirection of stdout is not treated as a file sink.
+Typical pitfall: expecting stdout-only to show *just* the aggregate board, as it used to. It does not any more — treat a stdout-only simulate run as a full transcript dump, and use `-O` when a directory of separate files is wanted instead. Shell redirection of stdout is not treated as a file sink.
 
-See Manual Tutorial §2, Reference §9 (Simulate boards), and README Quick Start.
+See Manual Tutorial §2, Reference §9 (Simulate boards), `design/specs/spec-simu-simulation.md` §4.3, and README Quick Start.
 
 If it is unclear, send the simulate board text and whether `-o` or `-O` was set.
 
 ### The terminal looks frozen on a local model. Is it dead?
 
-Usually not. Live calls stream with an unlimited read timeout. Use `-v`. Verbose writes a labelled board on stderr: a start block (prefix `▷`: model, mode, sessions, chunks/files, pack, window, peak, output), one request line per call with a pulse mark `◴◷◶◵` advancing at most every ten seconds from the stream loop, then a closing block. With `-o` or `-O`, completions also land in the typed staging workspace beside the target. Pair long local runs with `--tcp-keep-alive`.
+Usually not. Live calls stream with an unlimited read timeout. Use `-v`. Verbose writes a labelled board on stderr: a start block (prefix `▷`: model, mode, sessions, chunks/files, pack, window, peak, output), one request line per call with a pulse mark `◷◶◵◴` advancing at most every ten seconds from the stream loop, then a closing block (prefix `□`). With `-o` or `-O`, completions also land in the typed staging workspace beside the target. Pair long local runs with `--tcp-keep-alive`.
 
 ```bash
 dragiter -v --tcp-keep-alive -c config-ollama.toml \
   -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
-Typical pitfall: the closing-block glyph disagrees between sources. CHANGELOG 2026.9.13 writes `■`; `docs/reference.md` writes `□`. Treat the family `▷` / pulse / box as the contract; do not fail a ticket on the exact closer. `-v` never writes onto the result sink. With `-d` the board is mixed into the debug stream.
+Typical pitfall: `-v` never writes onto the result sink. With `-d` the board is mixed into the debug stream. The closing-block glyph is `□` (`END_MARK`, U+25A1 WHITE SQUARE, `stderr_session_board.py`) — an older CHANGELOG entry printed it as `■`, but the shipped code and `docs/reference.md` agree on `□`.
 
 See Manual Tutorial §3, Reference §1a, and CHANGELOG 2026.9.13.
 
@@ -349,7 +349,7 @@ If it is unclear, send `wc -l` of the loop file and the `Loop` activity record.
 Stdout is the default result sink. Once `output_file` (`-o`) or `output_directory` (`-O`) is set from any configuration source, file routing replaces that sink. Live replies and the simulate run board are written only to the requested file(s). Redirection of stdout is not inspected; `isatty()` cannot distinguish a user pipe from CI capture.
 
 ```bash
-dragiter -s -p prompt.toml -r resource.toml            # board on stdout
+dragiter -s -p prompt.toml -r resource.toml            # board + every session's request on stdout
 dragiter -s -p prompt.toml -r resource.toml -O out     # files; stdout quiet
 dragiter -p prompt.toml -r resource.toml -o all.md -m a
 ```
@@ -362,7 +362,7 @@ If it is unclear, send whether `-o` / `-O` / `DRAGITER_OUTPUT_*` was set, plus t
 
 ### What do -m x|w|a and -O staging do?
 
-`output_mode` default is `x` (exclusive create; fails if the file exists), `w` overwrite, `a` append. `output_delimiter` is inserted between multiple results in the same file and between existing bytes and a new `-m a` block. `-o` stages in `.tmp_staging_file_<PID><suffix>` beside the file. `-O` stages in `.tmp_staging_dir_<PID>/` inside the target. `-m` is applied only at commit. `-m x` is rejected before the first completion when names are known. On a later write conflict the process aborts and leaves the workspace.
+`output_mode` default is `x` (exclusive create; fails if the file exists), `w` overwrite, `a` append. `output_delimiter` is inserted between multiple results in the same file and between existing bytes and a new `-m a` block. `-o` stages in a plain directory named exactly `.tmp_staging_file_<PID>` (no suffix) beside the file. `-O` stages in `.tmp_staging_dir_<PID>/` inside the target. `-m` is applied only at commit. `-m x` is rejected before the first completion when names are known. On a later write conflict the process aborts and leaves the workspace.
 
 ```bash
 dragiter -p audit_prompt.toml -r legacy_code_resource.toml -O ./audit_results -m x
@@ -376,15 +376,16 @@ If it is unclear, send the target directory listing including hidden staging fol
 
 ### What replaced .dragiter-partial/?
 
-`.dragiter-partial/` is gone. Mid-run drafts live in `.tmp_staging_file_<PID><suffix>` next to `-o`, or in `.tmp_staging_dir_<PID>/` inside `-O`. Without those flags nothing is stored between completions.
+`.dragiter-partial/` is gone. Mid-run drafts live in `.tmp_staging_file_<PID>/` next to `-o`, or in `.tmp_staging_dir_<PID>/` inside `-O`. Stdout-only also stages, in `.tmp_staging_stdout_<PID>/` under the user's default temp directory (`$TMPDIR` if set and usable, otherwise the platform default) — never the current working directory. So even with neither `-o` nor `-O`, something is stored between completions; only the location differs.
 
 ```bash
 ls -la .tmp_staging_file_* .tmp_staging_dir_*
+ls -la "${TMPDIR:-/tmp}"/.tmp_staging_stdout_*
 ```
 
-Typical pitfall: treating the workspace as the final routed output. Final commit still goes through `-o` / `-O` after the last completion.
+Typical pitfall: treating the workspace as the final routed output. Final commit still goes through `-o` / `-O` / stdout after the last completion.
 
-See Reference §1a and CHANGELOG Unreleased.
+See Reference §1a and CHANGELOG 2026.9.26.
 
 If it is unclear, send the workspace listing and the failing attempt message (`Attempt n/m`).
 
@@ -397,12 +398,12 @@ If it is unclear, send the workspace listing and the failing attempt message (`A
 Window facts stay `n/a` / `--` until `chars_per_token`, `max_context_tokens` and `max_output_tokens` are all set. From 2026.9.13 the estimator records `is_valid`, `max_session_tokens` and `max_tokens_limit` as `None` when the trio is incomplete — not `yes` and `0 / 0`. Token estimation is characters divided by `chars_per_token`. The session-board `tokens` column is not `chars / chars_per_token`; it is estimated input of every message in the session plus reserved `max_output_tokens`. That same total feeds `peak / limit`. Estimated input alone is written to the activity file as `estimated_input_tokens`. Requests over the remaining budget (`max_context_tokens` − `max_output_tokens`) are refused before the network call.
 
 ```toml
-chars_per_token = 4.0
+chars_per_token = 3.8
 max_context_tokens = 32000
 max_output_tokens = 4000
 ```
 
-Typical pitfall: setting only two of the three values and believing the window is enforced. Conventional `4.0` is documented in examples; it is not a validator default.
+Typical pitfall: setting only two of the three values and believing the window is enforced. Conventional `3.8` is documented in the shipped `examples/*/config-*.toml` files and in `docs/window-starting-values.md`; it is not a validator default.
 
 See Manual “How to keep requests inside the window”, Reference §2 / §9 / §11, and CHANGELOG 2026.9.13 Fixed.
 
@@ -410,7 +411,7 @@ If it is unclear, send the three settings with their origin (CLI / TOML / enviro
 
 ### What are the hard limits?
 
-100 MB per input file (`SimpleTextFileReader`). Maximum chunks 200, or `max_chunks` if set (minimum 1) in `MaterialTokenizer`. Maximum 50 loop items in `LoopBuilder`. Soft warnings (run continues) when a chunk is fewer than 50 or more than 20 000 characters. A run that would exceed the chunk cap aborts unless `--max-chunks` / `max_chunks` / `DRAGITER_MAX_CHUNKS` raises it.
+100 MB per input file (`SimpleTextFileReader`). Maximum chunks 200, or `max_chunks` if set (minimum 1) in `MaterialTokenizer`. Maximum 50 loop items in `LoopBuilder`. A soft warning (run continues) fires for a final chunk shorter than 50 characters (`small` on the run board); a final chunk longer than the effective pack budget is counted as `over` — there is no fixed character threshold such as 20,000 for this, since `over` is measured against `pack_limit_chars`, not a constant. When pack is `off` or `mixed`, `over` is always 0. A run that would exceed the chunk cap aborts unless `--max-chunks` / `max_chunks` / `DRAGITER_MAX_CHUNKS` raises it.
 
 ```bash
 dragiter -s --max-chunks 1 -p 04_prompt_staged_regex.toml -r 04_resource_staged_regex.toml
@@ -513,16 +514,14 @@ When shipped files disagree, name both and stay uncertain. Do not silently pick 
 
 | Topic | What the files say |
 |---|---|
-| Verbose closer glyph | CHANGELOG 2026.9.13: closing block prefix `■`. `docs/reference.md` §1a: prefix `□`. |
-| `APITimeoutError` retry | CLI path (`OpenAIServiceExt`, 2026.8.31+): not retried. Legacy `OpenAIService` (2026.8.20 note): was retried. The CLI does not wire the legacy adapter. |
-| `chars_per_token` default | Examples document `4.0` as conventional. The validator has no hard-coded numeric default. An incomplete trio ⇒ `window n/a`. |
+| `APITimeoutError` retry | CLI path (`OpenAIServiceExt`, 2026.8.31+): not retried. A 2026.8.20 CHANGELOG note says the legacy non-streaming `OpenAIService` used to retry it; that module has since been deleted from the tree entirely (it was already unwired before removal), so the note is history only. |
 | Activity start banner version | Reference §10 sample still shows `dragiter(2026.7.26)` in the illustrative JSON. Treat as an example record, not the running version. |
 
 ---
 
 ## 12. Maintainer map
 
-Use this table when the FAQ answer is not enough and the tree must be opened. Paths are relative to the 2026.9.13 layout.
+Use this table when the FAQ answer is not enough and the tree must be opened. Paths are relative to the 2026.9.26 layout.
 
 | Symptom | First file to open |
 |---|---|
@@ -531,14 +530,14 @@ Use this table when the FAQ answer is not enough and the tree must be opened. Pa
 | `regex_pattern` abort, globs | `src/dragiter/application/pipeline/resource_collector.py` |
 | Staged split, pack, cap | `MaterialTokenizer` (application pipeline) |
 | `{STDIN}` / `-t` | `PromptCreator`; `tests/test_prompt_creator_stdin.py` |
-| Stdout versus `-o`/`-O` | `output_writer.py`; `tests/test_output_writer_stdout.py` |
-| `-O` staging | `workspace_service.py`; `output_writer.py` |
-| Streaming, heartbeat, partials | `src/dragiter/infrastructure/llm/openai_service_ext.py` |
+| What a simulate or live session's content is (board, request) | `src/dragiter/application/pipeline/chat_manager.py`; `tests/test_output_writer_stdout.py` |
+| Sink routing, staging workspace, Assembly and commit for stdout / `-o` / `-O` | `src/dragiter/infrastructure/io/workspace_service.py`; `tests/test_staging_workspace.py` |
+| Streaming, heartbeat | `src/dragiter/infrastructure/llm/openai_service_ext.py` (streaming only; there is no partial-results mechanism any more) |
 | Retry classification | `src/dragiter/infrastructure/llm/openai_runtime.py` |
 | Window `n/a` versus `0/0` | `ContextWindowEstimator`; CHANGELOG 2026.9.13 |
 | Activity JSONL and masking | `file_activity_logger.py` / `value_settings_activity_provider.py` |
 
-The non-streaming `OpenAIService` remains in the tree and still uses classic `httpx`. It is not the CLI default. Its retry rules differ. Do not diagnose live CLI runs against that class.
+The legacy, non-streaming `OpenAIService` adapter has been deleted from the tree (it was dead code, never wired into the CLI). `httpx` (not `httpx2`) is now a development-only dependency, kept for two test files that build request/response doubles against `openai_service_ext.py`'s retry logic.
 
 ---
 

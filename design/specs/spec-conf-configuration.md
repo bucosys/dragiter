@@ -5,7 +5,7 @@
 | Document | `design/specs/spec-conf-configuration.md` |
 | Code | `CONF` |
 | Type | functional |
-| Version | 0.2 |
+| Version | 0.4 |
 | Status | draft — initial version, describes current code |
 | Created | 2026-09-24 |
 | Related | `ADR-0001`, `AUDT` |

@@ -273,10 +273,10 @@ Directory writes stage then rename.
 
 An existing target in mode `x` fails the run.
 
-#### REQ-OUT-002 — Partial live results are kept
+#### REQ-OUT-002 — A simulate run commits like a live run
 
-Each successful live completion is also written under
-`.dragiter-partial/` so a later failure does not discard earlier replies.
+A simulate run stages and commits its output through the same mechanism
+a live run uses; nothing is discarded once the run completes.
 
 ---
 

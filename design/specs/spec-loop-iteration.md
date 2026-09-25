@@ -5,7 +5,7 @@
 | Document | `design/specs/spec-loop-iteration.md` |
 | Code | `LOOP` |
 | Type | functional |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | draft — initial version, describes current code |
 | Created | 2026-09-24 |
 | Related | `PRMT`, `EXEC` |

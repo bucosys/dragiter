@@ -1,5 +1,12 @@
 # ADR-0000: Golden Rules for Parameter & Dependency Design (Short Form)
 
+| Field | Value |
+|---|---|
+| Status | accepted — settled |
+| Decided | initial design, before the ADR process |
+| Recorded | 2026-09-24 (retrospectively) |
+| Scope | whole codebase — general rules for dependency and parameter design, not confined to one module |
+
 1. No null-object fallback. Custom-class parameters always get a real instance.
 2. No defaults for required dependencies. Missing param = call error, not fallback.
 3. Validate, don't decide. Reject invalid input; never substitute a default.

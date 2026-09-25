@@ -5,7 +5,7 @@
 | Document | `design/specs/spec-audt-audit.md` |
 | Code | `AUDT` |
 | Type | functional |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | draft — initial version, describes current code |
 | Created | 2026-09-24 |
 | Related | `CONF` |
@@ -194,5 +194,5 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - 0.2 (2026-09-25): initial version — describes `ActivityProvider`/`ActivityLogger`,
   buffering, file-sync gating, masking and the exception record from current code;
   flags the missing origin field and the unused `ChecksumGenerator` as open questions.
-- 0.2 (2026-09-25): added `tests/test_activity_logger.py`; AUDT-06–14 no longer
+- 0.3 (2026-09-25): added `tests/test_activity_logger.py`; AUDT-06–14 no longer
   *proposed*. Origin field and `ChecksumGenerator` open questions unchanged.

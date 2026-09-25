@@ -20,6 +20,12 @@ You might add output parameters like
 
     dragiter -s -p 03_prompt_marketing.toml -r 03_resource_marketing.toml -l 03_loop_target_groups.jsonl -o 03_output.txt -a 03_activity.txt
 
+Simulate now commits its output through the same mechanism as a live run,
+so running this command a second time with the same `-o 03_output.txt`
+target fails: the default output mode `x` (exclusive create) refuses to
+overwrite an existing file. Add `-m w` if you want to repeat the run into
+the same target.
+
 ## Step 2 - Processing with Ollama
 
 Once you confirm the simulation output looks correct, run the actual process by removing the -s flag:

@@ -41,13 +41,14 @@ Before spending API credits or waiting for a local model, verify that file routi
 dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
-The `-s` flag prevents any network or model calls. When neither `-o` nor `-O` is
-set, stdout prints the run board (sessions as request count, mode,
-chunks, loops, effective pack budget and its origin, small/over, window). Each file under `-O` starts with a
+The `-s` flag prevents any network or model calls. Each file under `-O` starts with a
 session board (session index, file, chunk, section, valid, chars, tokens, pack, pack from, loop index), then a
-blank line, then the role/content transcript of that query. A single `-o` file prints the run board once, then
-one session board plus transcript per session. With `-o` or `-O`, the console
-stays quiet.
+`***` rule, then the role/content transcript of that query - one file per session, with no leading aggregate
+board. A single `-o` file prints the run board (sessions as request count, mode, chunks, loops, effective pack
+budget and its origin, small/over, window) once, then one session board plus transcript per session, each
+section joined by the configured `output_delimiter`. When neither `-o` nor `-O` is set, stdout now shows exactly
+that same content - the run board followed by every session's board and transcript, not the board alone. With
+`-o` or `-O`, the console stays quiet.
 
 ### 3. Run against a local Ollama instance
 
@@ -61,7 +62,10 @@ The `-v` (verbose) flag is recommended for local models. They can take considera
 services; without it the terminal appears frozen. Verbose mode writes a short
 board on stderr (start block, one request line per call with ◴◷◶◵ on the
 left, closing block). It does not print onto stdout. Completions are also
-copied into `.dragiter-partial/` as they finish.
+staged in a hidden workspace as they finish, removed once the run commits;
+this run sets neither `-o` nor `-O`, so it stages inside the user's temp
+directory (`.tmp_staging_stdout_<PID>/`) rather than beside a file or
+directory target.
 
 ### 4. Optional: make the configuration permanent
 
@@ -328,8 +332,12 @@ Using the material above, answer the following question:
 temperature = 0.0
 
 [outcome]
-output_filename_schema = "result.txt"
+output_filename_schema = "{CHUNK_FILE_NAME}.txt"
 ```
+
+A schema without a recognised `CHUNK_`, `LOOP_` or `TIMESTAMP` placeholder is
+silently ignored, and generated files fall back to `session_<NNNN>.md`
+instead - keep at least one real placeholder if you want meaningful names.
 
 ### How to iterate over many items (loop files)
 
@@ -372,7 +380,7 @@ When multiple results land in the same file, the value of `output_delimiter` is 
 
 Three related settings govern token estimation:
 
-- `chars_per_token` - average characters per token (commonly 4.0 for European languages),
+- `chars_per_token` - average characters per token (3.8 in every shipped example configuration; there is no runtime default, so it must be set explicitly),
 - `max_context_tokens` - the model’s total context window (input + output),
 - `max_output_tokens` - the portion reserved for the model’s reply.
 
@@ -412,9 +420,10 @@ converters, etc.
 
 Configure a resource file that selects `*.c` / `*.h` files and splits them at function boundaries. Write a prompt that
 casts the model as a senior security auditor and asks for buffer-overflow and memory-management findings formatted as a
-Markdown table. Then:
+Markdown table. dragiter never creates the `-O` target directory, so create it first. Then:
 
 ```bash
+mkdir -p ./audit_results
 dragiter -p audit_prompt.toml -r legacy_code_resource.toml -O ./audit_results
 ```
 
@@ -439,6 +448,7 @@ Create a JSONL loop file whose objects contain `language`, `region` and `tone`. 
 placeholders into the synthesis instruction. Run:
 
 ```bash
+mkdir -p ./campaigns
 dragiter -p localized_prompt.toml -r master_manual.toml -l target_markets.jsonl \
          -O ./campaigns
 ```
@@ -511,8 +521,10 @@ In addition to the configurable context-window checks, dragiter enforces three h
 These circuit breakers prevent accidental combinatorial explosion and protect both memory and API budgets. When a limit
 is exceeded the process aborts with a clear error message. The usual remedy is to split the work into smaller batches.
 
-Soft warnings are also issued when individual chunks fall outside a sensible size range (fewer than 50 or more than 20
-000 characters); the run continues, but the warnings should prompt a review of the chunking regular expression.
+Soft warnings are also issued when individual chunks fall outside a sensible size range: fewer than 50 characters, or -
+when packing is enabled - above the effective pack budget (`pack_limit_chars`). There is no fixed upper-character
+threshold; the run continues either way, but the warnings should prompt a review of the chunking regular expression or
+the pack budget.
 
 Full details appear in the Technical Reference.
 

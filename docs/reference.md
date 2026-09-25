@@ -66,13 +66,14 @@ The CLI wires `OpenAIServiceExt` (`src/dragiter/infrastructure/llm/openai_servic
 - Install range: `openai>=3.0.0,<4.0.0` and `httpx2>=2.7.0,<3.0.0`. openai 1.x / 2.x do
   **not** export `DefaultHttpx2Client` and do not install `httpx2`. The upper
   bounds keep a future openai 4.x from dropping that client under a live install.
-- The non-streaming `OpenAIService` remains in the tree and still uses classic
-  `httpx`; it is not the CLI default.
+- The legacy non-streaming `openai_service.py` adapter has been removed from the
+  tree; `OpenAIServiceExt` is the only LLM adapter the CLI wires. `httpx` (not
+  `httpx2`) is now a development-only dependency, kept solely for test doubles.
 
 With `-v` / `--verbose` dragiter writes a labelled board on **stderr**:
 a start block (prefix `▷` on every line: model, mode, sessions, chunks/files, pack, window, peak, output), one request line per
 completion, and a closing block (prefix `□` on every line). The request
-line carries a single pulse mark on the left (`◴◷◶◵`, one cell, same
+line carries a single pulse mark on the left (`◷◶◵◴`, one cell, same
 family as `▷` and `□`). The mark advances from
 the streaming `for chunk in stream:` loop, at most every ten seconds;
 there is no thread. The board is never written to stdout. `-d` /
@@ -80,10 +81,17 @@ there is no thread. The board is never written to stdout. `-d` /
 board is mixed into the debug stream. Without `-d`, `httpx2` request
 lines stay off.
 
-Each successful completion is also written immediately to
-`.dragiter-partial/` so a later failed call does not drop earlier
-replies. The folder is created beside `-O`, beside `-o`, or in the
-current working directory.
+Each successful completion is also persisted immediately as a shard inside this
+run's staging workspace (not the final sink), so a later failed call does not
+drop earlier replies. There is no `.dragiter-partial/` directory; the workspace
+is one of three sink-specific, PID-suffixed directories:
+
+- `.tmp_staging_dir_<PID>/` — inside the `-O` directory
+- `.tmp_staging_file_<PID>/` — beside (never inside) the `-o` file
+- `.tmp_staging_stdout_<PID>/` — inside the user's temp directory, when neither
+  `-o` nor `-O` is set (never the current working directory)
+
+See §9 ("Directory output staging") for the full staging, Assembly and commit rules.
 
 Payload dumps stay on DEBUG.
 
@@ -165,17 +173,23 @@ All settings that appear in the configuration loader are listed below.
 | `output_file`            | `-o`      | path   | (none)                    | Write all output to a single file; suppress stdout echo        |
 | `output_directory`       | `-O`      | path   | (none)                    | Write outputs into this directory; suppress stdout echo        |
 
-\* The example configuration files document `chars_per_token = 4.0` as the conventional default used for estimation when
+\* The example configuration files document `chars_per_token = 3.8` as the conventional default used for estimation when
 the setting is left unset.
 
-### Mandatory settings (when not in simulation mode)
+### Mandatory settings
 
-- `base_url` must be set (CLI, config file or environment).
-- Either a `prompt_file` (`-p`) **or** a direct `task` (`-t`) must be supplied.
+- Either a `prompt_file` (`-p`) **or** a direct `task` (`-t`) must be supplied,
+  **regardless of simulation mode**. A `task` that is set but blank (empty after
+  stripping) is also rejected.
+- `base_url` must be set (CLI, config file or environment) **unless** simulation
+  mode (`-s`) is active — `base_url` is the only one of these settings gated by
+  `simulate`.
 - When a loop is used, a `resource_file` is normally required as well.
 
 ### Validation rules (from the validator)
 
+- `output_file` (`-o`) and `output_directory` (`-O`) are mutually exclusive;
+  setting both is rejected before any other check runs.
 - `output_mode` must be one of `a`, `w`, `x`.
 - `retry_delay` (when set) must be between 0 and 20 inclusive.
 - `max_retry` (when set) must be between 0 and 9 inclusive. The adapter
@@ -185,6 +199,8 @@ the setting is left unset.
 - `pack_limit_chars` (when set) must be ≥ 0. `0` disables packing.
 - `max_chunks` (when set) must be ≥ 1. Unset uses 200.
 - Paths that are required must be readable (or writable for output paths).
+- The sink parent — the `-O` directory itself, or the `-o` file's parent
+  directory — must already exist and be writable. dragiter never creates it.
 - `client_key_file` without `client_cert_file` is rejected.
 - `base_url` is optional in simulation mode.
 
@@ -199,8 +215,11 @@ excessive memory consumption and runaway API costs.
 | Maximum total chunks | 200, or `max_chunks` if set   | `MaterialTokenizer`    | Raises an error and aborts processing   |
 | Maximum loop items   | 50                            | `LoopBuilder`          | Raises `LoopBuilderError` and aborts    |
 
-In addition the `MaterialTokenizer` emits warnings (but continues) when an individual chunk is unusually small (< 50
-characters) or unusually large (> 20 000 characters). These warnings help detect poorly chosen regular expressions.
+In addition the `MaterialTokenizer` emits warnings (but continues) when a final chunk is unusually small: fewer than
+`WARN_MIN_CHARS` (50) characters. There is no fixed-size warning for large chunks. Instead, a chunk is flagged
+"oversize" when it is larger than the **effective pack budget** (the resolved `pack_limit_chars`, from CLI/config or
+a resource section — see §6 and §9's `pack` / `pack from` cells); when no pack budget is set, the oversize count is
+always zero. These warnings help detect poorly chosen regular expressions or an unset pack budget.
 
 The limits are intentional design decisions. When a limit is hit the recommended action is to split the input (smaller
 files, fewer loop entries, or a tighter chunking regex) and run dragiter multiple times.
@@ -273,16 +292,19 @@ base_url = "http://localhost:11434/v1"
 model_name = "qwen3:8b"
 tcp_keep_alive = true
 
-# Optional advanced settings
-# chars_per_token = 3.8
-# max_context_tokens = 32000
-# max_output_tokens = 4000
+# Working window: input budget is max_context_tokens minus max_output_tokens.
+# chars_per_token is an estimate (characters / n, truncated), not a vendor tokenizer.
+chars_per_token = 3.8
+max_context_tokens = 4096
+max_output_tokens = 1024
+
+# Optional advanced settings (uncomment and adjust as needed)
 # retry_delay = 5
 # max_retry = 3
-# pack_limit_chars = 4000
 ```
 
-The same keys appear in `config-google.toml` and `config-grok.toml` with different endpoint values.
+The same keys appear in `config-claude.toml`, `config-google.toml` and `config-grok.toml`, with different endpoint
+and window values per provider (see `docs/window-starting-values.md` for the authoritative starting figures).
 
 All keys are flat (no nested tables are required for the main configuration).
 
@@ -388,11 +410,11 @@ Observed structure from `examples/01_md_sample/01_resource_md.toml`:
 ```toml
 [config01]
 glob_patterns = ["**/*_engine.md", "**/*_thought.md"]
-regex_patterns = ['^#+\s+.*$']
+regex_patterns = ['(^#+\s+.*$)']
 
 [config02]
 glob_patterns = ["**/*_automata.txt"]
-regex_patterns = ['^\d+\.\s+.*$']
+regex_patterns = ['(^\d+\.\s+.*$)']
 ```
 
 Each table name becomes a **section name**.  
@@ -485,6 +507,8 @@ dragiter [options]
   --temperature FLOAT
   --retry-delay INT
   --max-retry INT
+  --pack-limit-chars INT
+  --max-chunks INT
   --ca-bundle-file PATH
   --client-cert-file PATH
   --client-key-file PATH
@@ -492,9 +516,16 @@ dragiter [options]
   --sequential-processing
   --output-delimiter TEXT
   --output-filename-schema TEXT
+  -h, --help
   --info
   --version
 ```
+
+`-h`/`--help` prints argparse's own short usage summary; `--info` prints the full man-page-style
+information page. `--info` is also recognised as `-info` or `/info` (matched case-insensitively,
+anywhere in the argument list). Running dragiter with **no** arguments at all prints the banner and
+the usage summary, then exits (`cli.py`'s pre-selector in `main()`, checked before configuration
+loading starts).
 
 Additional entry points:
 
@@ -521,11 +552,19 @@ read the written file.
 ### Filename generation
 
 When an `output_filename_schema` is supplied, the following placeholders are substituted (see
-`OutputWriter._format_filename`):
+`format_output_filename` in `src/dragiter/infrastructure/io/filename_utils.py`):
 
 - Chunk-related: `CHUNK_NUM_ID`, `CHUNK_FILE_NAME`, `CHUNK_SECTION_NAME`, `CHUNK_SECTION_NUM_ID`
-- Loop-related: any key present in the current loop dictionary (especially `LOOP_NUM_ID`, `LOOP_CONTENT`)
-- A high-resolution sortable timestamp can be generated internally (`YYYYMMDD_HHMMSS_nnnnnnnnn`)
+- Loop-related: any key present in the current loop dictionary (especially `LOOP_NUM_ID`, `LOOP_ID`,
+  `LOOP_CONTENT`)
+- `TIMESTAMP` - formatted `YYYYMMDD_HHMMSS_nnnnnnnnn` (`format_timestamp_ns`). This is **not** generated
+  by an internal clock: it is derived from the real filesystem `st_mtime_ns` of the shard being committed,
+  read at commit time. Using `{TIMESTAMP}` in an `output_mode x` schema defers the exclusive-create name
+  check from before the first completion to the commit itself (a notice is printed to stderr).
+
+If a schema contains none of `CHUNK_`, `LOOP_` or `TIMESTAMP`, it is discarded outright and the fallback name
+is used instead: `session_<NNNN>.md` (zero-padded to four digits) when a session index is available, otherwise
+`output.md`. The same fallback also applies if formatting the schema against the known placeholders fails.
 
 Filenames are sanitised before being written.
 
@@ -545,18 +584,49 @@ When multiple results are written to the same file, the value of `output_delimit
 
 ### Directory output staging
 
-When writing to multiple files using `--output-directory` (`-O`), dragiter employs a secure 
-staging mechanism. All results are initially written to a hidden temporary staging 
-directory (`.tmp_staging_<PID>`) within the target path. Only after all completions
-have been successfully processed are the files atomically committed to their final 
-destination. If a write conflict occurs (such as an existing file under exclusive mode `-m x`), the process aborts to prevent data corruption, whilst leaving all generated results safely preserved inside the staging directory for easy recovery.
+`-o` and `-O` are mutually exclusive. This is validated twice: once by the configuration validator
+(rejected outright before any path or completion is touched), and again when the run's workspace is
+located (`WorkspaceLayout.locate`) — so no workspace can ever be derived from an invalid combination.
+
+Every run writes to exactly one hidden, PID-suffixed staging workspace before anything is committed
+to its real sink (`src/dragiter/infrastructure/io/workspace_service.py`):
+
+| Sink            | Workspace                                   | Location                                    |
+|-----------------|----------------------------------------------|----------------------------------------------|
+| `-O` (directory) | `.tmp_staging_dir_<PID>/`                    | inside the target `-O` directory              |
+| `-o` (file)      | `.tmp_staging_file_<PID>/`                   | beside (never inside) the target `-o` file    |
+| neither (stdout) | `.tmp_staging_stdout_<PID>/`                 | inside the user's temp directory (`$TMPDIR` if set, else the platform default) — never the current working directory |
+
+Each sink's parent (the `-O` directory, or the `-o` file's parent) must already exist and be writable;
+dragiter never creates it. Each completion is persisted into the workspace as its own numbered shard
+(`res000001`, `res000002`, …) as soon as it arrives, so a later failed call does not drop earlier replies.
+
+Only after every session has completed does dragiter commit:
+
+- **`-O`**: each shard is renamed to its own final filename (from `output_filename_schema`), one file
+  per session. Under `output_mode x`, any existing target aborts the whole commit before the first
+  rename.
+- **`-o` and stdout-only**: this is an **Assembly** step, not a plain concatenation. Non-empty shards
+  are joined, in sequence, with the real `output_delimiter`; empty shards are dropped entirely; and if
+  *every* shard is empty, the target file (or stdout) is **not created or modified at all**. The
+  assembled result is then written under the chosen `output_mode` (`x`/`w`/`a`).
+
+If a write conflict occurs (such as an existing file under exclusive mode `-m x`), the commit aborts to
+prevent data corruption, leaving the shards intact inside the staging workspace for recovery. The
+workspace is removed only after a successful commit.
 
 ### Simulate boards
 
-Stdout in simulate mode prints a four-column run board **only when neither
-`-o` nor `-O` is set**. `-O` files start with a
-session board; `-o` writes the run board once and then one session board plus
-transcript per session.
+`ChatManager` builds and persists simulate content as ordinary shards, the same way it persists live
+replies, so the commit path (§9 "Directory output staging") does not distinguish stdout from `-o`.
+Consequently, when neither `-o` nor `-O` is set, **stdout now shows the same content `-o` would have
+written to a file**: the four-column run board once, followed by one session board plus that session's
+complete outgoing request, for every session — not the run board alone. `-O` files each start with a
+session board followed by that session's request; no aggregate run board is written under `-O`.
+
+Within a single shard, `***` (a Markdown thematic break) still separates the session board from the
+request. Between shards — i.e. between the run board and the first session, and between sessions —
+Assembly joins with the real, configured `output_delimiter`, not a hardcoded separator.
 
 `sessions` is the number of chat requests. Sequential mode multiplies valid
 chunks by loop lines (or by one when no loop file is present).
@@ -568,8 +638,10 @@ positive section budget applies, `mixed` when section budgets differ, and
 
 `window`, `peak / limit` and `peak at / warns` stay `--` / `n/a` until
 `chars_per_token`, `max_context_tokens` and `max_output_tokens` are all set.
-`replies / stdout` is the result count plus the word `brief` (the console
-shows the run board, not the payloads).
+`replies / stdout` is always the result count plus the fixed word `brief` — that
+cell describes the run board itself, not what else is committed to the sink; per
+the stdout-only behaviour above, the full session boards and requests still follow
+the run board on stdout.
 
 The session board lists session index, file, chunk, section, valid (`yes` /
 `no`), chars, tokens, pack, pack from, loop index and loop count.
@@ -613,7 +685,7 @@ Every record is enhanced with two envelope fields:
 {
   "TS": "2026-08-11T19:00:00.123456+00:00",
   "RT": "ActivityLogger",
-  "initial_status_message": "dragiter(2026.7.26) process started"
+  "initial_status_message": "dragiter(2026.9.26) process started"
 }
 ```
 
@@ -623,7 +695,7 @@ Every record is enhanced with two envelope fields:
 {
   "TS": "...",
   "RT": "ApplicationResult",
-  "final_status_message": "dragiter(2026.7.26) process finished with SUCCESS"
+  "final_status_message": "dragiter(2026.9.26) process finished with SUCCESS"
 }
 ```
 
@@ -668,7 +740,7 @@ Example:
   "model_name": "qwen3:8b",
   "max_context_tokens": 32000,
   "max_output_tokens": 4000,
-  "chars_per_token": 4.0,
+  "chars_per_token": 3.8,
   "temperature": 0.0,
   "retry_delay": 5,
   "max_retry": 3
@@ -843,7 +915,7 @@ Exact presence and cardinality depend on the pipeline path taken (simulation mod
 
 Token-related values (`chars_per_token`, `max_context_tokens`, `max_output_tokens`) have no hard-coded numeric default
 inside the validator; the example configuration files document the conventional values used for estimation
-(`chars_per_token = 4.0`).
+(`chars_per_token = 3.8`).
 
 ### PromptCreator hard-coded defaults
 
@@ -870,20 +942,23 @@ and section 5.
 - Parameter groups: `src/dragiter/domain/models/parameters.py`
 - Streaming LLM adapter: `src/dragiter/infrastructure/llm/openai_service_ext.py`
 - Retry policy and HTTP transport factory: `src/dragiter/infrastructure/llm/openai_runtime.py`
-- Legacy non-streaming adapter: `src/dragiter/infrastructure/llm/openai_service.py` (not wired by the CLI; its retry rules differ)
 
 **File formats**
 
 - Prompt model: `src/dragiter/domain/models/prompt_template.py`
 - Resource model: `src/dragiter/domain/models/resources.py`
-- Output writing: `src/dragiter/application/pipeline/output_writer.py`
+- Output writing (commit trigger): `src/dragiter/application/pipeline/output_writer.py`
+- Run workspace, staging, Assembly and commit: `src/dragiter/infrastructure/io/workspace_service.py`
+- Filename schema formatting and sanitisation: `src/dragiter/infrastructure/io/filename_utils.py`
+- Simulate result board (run board, session board, payload table): `src/dragiter/infrastructure/cli/markdown_result_board.py`
+- Simulate board rendering helpers: `src/dragiter/infrastructure/cli/simulation_brief.py`
 
 **Activity log**
 
-- ActivityProvider protocol: `../src/dragiter/domain/common/activity_provider.py`
+- ActivityProvider protocol: `src/dragiter/domain/common/activity_provider.py`
 - ActivityLogger protocol: `src/dragiter/domain/ports/activity_logger.py`
-- Buffered logger: `../src/dragiter/infrastructure/logging/buffered_activity_logger.py`
-- File logger: `../src/dragiter/infrastructure/logging/file_activity_logger.py`
+- Buffered logger: `src/dragiter/infrastructure/logging/buffered_activity_logger.py`
+- File logger: `src/dragiter/infrastructure/logging/file_activity_logger.py`
 - JSONL writer: `src/dragiter/infrastructure/io/io_services.py` → `append_jsonl_to_file`
 - Value-settings masking: `src/dragiter/domain/models/value_settings_activity_provider.py`
 - Domain producers:

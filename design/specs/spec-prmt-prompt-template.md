@@ -5,7 +5,7 @@
 | Document | `design/specs/spec-prmt-prompt-template.md` |
 | Code | `PRMT` |
 | Type | functional |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | draft — initial version, describes current code |
 | Created | 2026-09-24 |
 | Related | `MATL`, `CHNK`, `LOOP` |

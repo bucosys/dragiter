@@ -40,6 +40,18 @@ Requires Python ≥ 3.11.
 
 ## Compatibility
 
+**2026.9.26 changes output routing.** `-o` and `-O` are now mutually
+exclusive (previously both could be set together); the validator rejects the
+combination outright. The scratch copies kept while a run is in progress no
+longer live under `.dragiter-partial/` - that directory is gone. Each run
+now stages its completions in a hidden, sink-specific workspace instead:
+`.tmp_staging_dir_<PID>/` inside `-O`'s directory, `.tmp_staging_file_<PID>/`
+beside `-o`'s file, or `.tmp_staging_stdout_<PID>/` inside the user's temp
+directory for stdout-only runs. Simulate output also changed shape: with
+neither `-o` nor `-O` set, stdout now prints the same content `-o` writes to
+a file (run board plus every session's board and complete request), not the
+run board alone - see the Quick Start section below.
+
 **2026.9.9 is a breaking release for resource files.** The singular TOML key
 `regex_pattern` is no longer accepted. A section that still sets it aborts
 collection and names the section. Use `regex_patterns` as a list of strings:
@@ -66,10 +78,12 @@ dragiter -s -p 01_prompt_md.toml -r 01_resource_md.toml -l 01_loop_md.txt
 ```
 
 No network calls, no tokens spent. With neither `-o` nor `-O`, stdout prints
-the run board only (sessions, pack, window, routing). Payload transcripts
-are not echoed there. Add `-O out` (or `-o file.md`) to write session boards
-and transcripts to files; stdout then stays quiet. Shell redirection of
-stdout is not treated as a file sink.
+the aggregate run board (sessions, pack, window, routing) followed by every
+session's board and complete outgoing request - the same content `-o` would
+write to a file. Sections are joined with the configured `output_delimiter`;
+within one section the board and the request stay separated by `***`. Add
+`-O out` (or `-o file.md`) to write that content to files instead; stdout
+then stays quiet. Shell redirection of stdout is not treated as a file sink.
 
 ### 3. Run against a local Ollama instance
 
@@ -92,6 +106,9 @@ dragiter-gen-docs .
 - `docs/manual.md` - Tutorial, How-to guides and Explanations
 - `docs/reference.md` - Complete technical reference (flags, schemas, placeholders, defaults, activity log)
 - `docs/info.txt` - Concise man-page summary (`dragiter --info`)
+- `docs/faq.md` - Frequently asked questions and troubleshooting
+- `docs/glossary.md` - Definitions of terms used across the documentation
+- `docs/window-starting-values.md` - Starting values for `chars_per_token`, `max_context_tokens` and `max_output_tokens` per provider
 
 ## Configuration in brief
 
@@ -116,9 +133,10 @@ A value set by a higher-priority source cannot be overridden by a lower one.
 - Activity tracing to JSONL for auditing
 - Retry logic with configurable delay and maximum attempts (transient 5xx and connection drops; 504 / gateway timeout / runner crash are terminal)
 - Optional mutual TLS (client certificate + key)
-- Results (and the simulate run board) on stdout only when neither `-o` nor `-O` is set; file routing replaces that sink
+- Results on stdout only when neither `-o` nor `-O` is set; simulate output there matches `-o`'s shape exactly (run board plus every session's board and request); file routing replaces that sink
+- `-o` and `-O` are mutually exclusive
 - Output modes: exclusive create (`x`), overwrite (`w`), append (`a`)
-- Verbose stderr run board; per-session scratch files under `.dragiter-partial/`
+- Verbose stderr run board; every run stages its completions in a hidden workspace until commit - `.tmp_staging_dir_<PID>/` inside `-O`'s directory, `.tmp_staging_file_<PID>/` beside `-o`'s file, or `.tmp_staging_stdout_<PID>/` inside the user's temp directory for stdout-only
 
 ## Tool Chaining (the Unix way)
 
@@ -139,6 +157,9 @@ The same pattern works with database exports, log files or any other tool that c
 
 This project would still be an elegant collection of unfinished ideas without the tireless pair-programming assistance
 of Grok and Gemini. Their code reviews and occasional refusal to let dubious design pass were invaluable.
+
+Special thanks to Claude Code (Anthropic) for pair-programming, specification, testing and documentation work that
+would otherwise have taken weeks.
 
 Equal thanks are due to the broader Python community, whose libraries and documentation remain the foundation of tools
 like this one.

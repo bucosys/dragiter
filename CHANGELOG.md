@@ -8,6 +8,11 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
 Entries are short and written in British English.
 
 ## [Unreleased]
+
+## [2026.9.26] - 2026-09-26
+
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.9.26](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.26)
+
 ### Added
 - ``design/`` for architecture decision records (``design/adr/``) and
   specifications (``design/specs/``), versioned with the source code.
@@ -23,8 +28,8 @@ Entries are short and written in British English.
 - ``scripts/check-spec-coverage.sh``: checks the register, file names,
   header fields and criterion identifiers, and that every acceptance
   criterion is referenced by a test. Runs with the Bash 3.2 of macOS.
-- CI job ``spec-coverage`` in stage ``test``, with ``allow_failure``
-  until ``STAG-18`` has a test.
+- CI job ``spec-coverage`` in stage ``test``, running
+  ``scripts/check-spec-coverage.sh``.
 - One run workspace per sink, created after validation and the early
   check, before the first persist: ``DIR/.tmp_staging_dir_<PID>/`` for
   ``-O``, ``FILE.parent/.tmp_staging_file_<PID>/`` for ``-o``,
@@ -43,9 +48,10 @@ Entries are short and written in British English.
   against planned ``-O`` names. A schema that contains ``TIMESTAMP``
   skips that early check; exclusive create still runs at commit.
   ``{TIMESTAMP}`` on ``-O`` is the shard's filesystem mtime.
-- ``ResultBoardService`` with default adapter ``MarkdownResultBoard``
-  for post-run simulate boards. The live stderr board remains
-  ``SessionBoardService`` on ``ChatManager``.
+- ``ResultBoardService`` with default adapter ``MarkdownResultBoard``,
+  injected into ``ChatManager`` (which builds the simulate board and
+  request before persisting). The live stderr board remains
+  ``SessionBoardService``.
 - Composition root in ``cli.py`` constructs both LLM adapters, both
   session boards, ``WorkspacePersistenceService`` and
   ``WorkspaceCommitService`` before ``ApplicationManager.run``.
@@ -55,12 +61,11 @@ Entries are short and written in British English.
 - Initial bodies for the ``MATL``, ``CHNK``, ``PRMT``, ``LOOP``, ``EXEC``,
   ``LIMT``, ``SIMU``, ``OUTP``, ``AUDT``, ``CONF`` and ``HELP`` specifications,
   written from the current code and cross-referenced from existing tests.
-  A few criteria without a test yet stay ``*proposed*``.
-- Tests closing 25 of those proposed criteria: ``tests/test_activity_logger.py``,
-  ``tests/test_bundled_aids.py``, ``tests/test_loop_builder.py``,
-  ``tests/test_mockai_service.py`` and ``tests/test_prompt_creator.py``.
-  ``AUDT``'s missing ``origin`` field and unused ``ChecksumGenerator`` stay
-  open questions, not test gaps.
+- Tests closing all 25 criteria initially left ``*proposed*``:
+  ``tests/test_activity_logger.py``, ``tests/test_bundled_aids.py``,
+  ``tests/test_loop_builder.py``, ``tests/test_mockai_service.py`` and
+  ``tests/test_prompt_creator.py``. ``AUDT``'s missing ``origin`` field and
+  unused ``ChecksumGenerator`` stay open questions, not test gaps.
 
 ### Changed
 - Staging specification moved to ``design/specs/spec-stag-staging.md``
@@ -106,8 +111,8 @@ Entries are short and written in British English.
 - ``STAG``/``SIMU``/``OUTP`` specs updated to match the live/simulate
   unification (``STAG`` v2.3, ``SIMU`` v0.4, ``OUTP`` v0.3); ``OUTP-13``
   withdrawn in favour of ``SIMU-09``.
-- ``STAG-18`` (the ``-O -m x`` happy path) now has a test; CI's
-  ``spec-coverage`` job no longer needs ``allow_failure``.
+- ``STAG-18`` (the ``-O -m x`` happy path) now has a test, closing
+  ``check-spec-coverage.sh``'s last gap.
 
 ### Removed
 - Combined ``-o`` + ``-O`` in one run (two workspaces, commit
@@ -125,6 +130,10 @@ Entries are short and written in British English.
   ``_format_filename``; ``MockAIService``'s JSON reply content and its
   unused ``payload_estimator`` parameter; ``commit_assembled_output``
   and ``sortable_timestamp``.
+- Dead, unwired ``OpenAIService`` adapter (``infrastructure/llm/openai_service.py``).
+  ``httpx`` moved from a runtime dependency to a dev-only one — it was
+  needed only by that adapter and by tests building ``httpx.Request``/
+  ``Response`` doubles.
 
 ### Fixed
 - ``LoopBuilderError``'s read-failure message named the prompt file

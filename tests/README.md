@@ -37,7 +37,30 @@ pytest -q
 Most tests run without any network access or API keys.  
 Optional integration tests are skipped automatically when the required service or environment variable is missing.
 
+### Spec coverage
+
+Every test's docstring must name the specification criteria it covers (for example `STAG-13`, `CONF-04`). This is
+enforced by a mandatory pre-commit check:
+
+```bash
+bash scripts/check-spec-coverage.sh
+```
+
+It verifies, among other things, that every acceptance criterion in `design/specs/` that is neither `*proposed*` nor
+`*withdrawn*` has at least one test referencing it. See `design/README.md` for the full rule.
+
 ---
+
+## Local E2E pipeline and CLI tests
+
+These `tests/e2e/` tests need no network access and no API keys, so they always run:
+
+- `test_e2e_simulate_pipeline.py` — runs the full worker chain (config → resources → chunks →
+  loop → mock LLM → output) end to end without importing the live OpenAI adapters. The
+  highest-ROI integration check: unit tests can be green while the wiring between pipeline
+  workers is broken.
+- `test_e2e_infrastructure.py` — verifies the CLI entry point is reachable and that basic
+  flags, including simulate mode, are accepted without unhandled exceptions.
 
 ## Live cloud E2E tests (Grok, Gemini, Claude)
 
@@ -48,6 +71,10 @@ These tests make real API calls and are therefore skipped unless the correspondi
 | xAI Grok         | `GROK_API_KEY`                | Uses the official OpenAI-compatible endpoint                                                                                                  |
 | Google Gemini    | `GEMINI_API_KEY`              | Uses Google’s OpenAI-compatible endpoint                                                                                                      |
 | Anthropic Claude | `CLAUDE_API_KEY`              | Requires an **OpenAI-compatible proxy** (LiteLLM, OpenRouter, custom gateway, …). Anthropic’s native `/v1/messages` API is **not** supported. |
+
+`tests/e2e/test_grok_api_key.py` is a related, separate check: it is also skipped unless
+`GROK_API_KEY` is set, and specifically verifies that the key is picked up correctly when
+supplied via that environment variable.
 
 **Example (Linux / macOS):**
 

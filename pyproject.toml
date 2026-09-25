@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragiter"
-version = "2026.9.26pre2"
+version = "2026.9.26"
 description = "dragiter - Deterministic Context Iterator. A focused command-line tool for structured, reproducible LLM workflows."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
@@ -34,7 +34,6 @@ classifiers = [
 dependencies = [
     "openai>=3.0.0,<4.0.0",
     "httpx2>=2.7.0,<3.0.0",
-    "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]
@@ -43,6 +42,7 @@ dev = [
     "ruff>=0.16.3",
     "build",
     "twine",
+    "httpx>=0.27.0",  # test doubles only (httpx.Request/Response); not used at runtime
 ]
 
 [project.urls]

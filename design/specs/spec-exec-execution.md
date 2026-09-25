@@ -5,7 +5,7 @@
 | Document | `design/specs/spec-exec-execution.md` |
 | Code | `EXEC` |
 | Type | functional |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | draft — initial version, describes current code |
 | Created | 2026-09-24 |
 | Related | `LIMT`, `OUTP`, `CONF` |
@@ -199,13 +199,11 @@ is not implemented yet is marked *proposed* directly after its identifier.
   be added here (or cross-referenced) with those files as their test evidence.
 - The streaming heartbeat (`OpenAIServiceExt._log_progress`, one glyph at most every ten
   seconds when verbose and no progress listener is supplied) has no dedicated test yet.
-- The legacy, non-streaming `infrastructure/llm/openai_service.py` (`OpenAIService`) is
-  not wired into `cli.py` and has no test coverage — it appears to be dead code, out of
-  scope for this specification, which describes the adapter actually in production use
-  (`OpenAIServiceExt`).
-
 ## Change history
 
 - 0.1 (2026-09-24): skeleton created.
 - 0.2 (2026-09-25): initial version, derived from `message_builder.py`, `chat_manager.py`,
   `openai_service_ext.py`, `openai_runtime.py` and their tests.
+- 0.3 (2026-09-26): removed the open question about `infrastructure/llm/openai_service.py`
+  (`OpenAIService`) — confirmed dead (no imports, no inheritance, not wired into `cli.py`)
+  and deleted, along with the `httpx` runtime dependency it alone needed.
