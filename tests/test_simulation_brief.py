@@ -283,6 +283,8 @@ def test_transcript_lists_payload_roles_then_assistant_briefing() -> None:
 
 
 def test_output_writer_writes_transcript_to_output_directory(tmp_path, capsys) -> None:
+    """SIMU-08: files exist under -O afterwards, proving the run was committed,
+    not discarded."""
     groups = blank_parameter_groups()
     groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)

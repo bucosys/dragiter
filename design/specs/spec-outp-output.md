@@ -5,7 +5,7 @@
 | Document | `design/specs/spec-outp-output.md` |
 | Code | `OUTP` |
 | Type | functional |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | draft — initial version, describes current code |
 | Created | 2026-09-24 |
 | Related | `STAG` (technical; its criteria on output, e.g. STAG-06, stay there and are referred to by identifier) |
@@ -34,7 +34,6 @@ In scope:
   `STAG`'s, referenced here by identifier.
 - What appears on stdout for a live run and for a simulate run, depending on which
   sink is active.
-- Injecting a different `ResultBoardService` implementation for the result board.
 
 Out of scope: The internal staging and commit mechanism (see `STAG`, technical).
 Simulate-mode content itself, i.e. what the boards show (see `SIMU`).
@@ -48,7 +47,6 @@ Simulate-mode content itself, i.e. what the boards show (see `SIMU`).
 | Placeholder | A `{NAME}` token in the schema, resolved from the chunk, the loop entry, or the write timestamp. |
 | Fallback name | The name used when the schema contains none of the known placeholders: `session_<NNNN>.md` when a session index is known, otherwise `output.md`. |
 | Sanitised component | A placeholder value with path separators, `..`, control characters and reserved characters removed or replaced, then length-capped. |
-| Result board | The Markdown output produced for a simulate run (`ResultBoardService.run_board` / `session_board` / `payload_table`); the default implementation is `MarkdownResultBoard`. |
 
 ## 4. Behaviour
 
@@ -73,9 +71,9 @@ Simulate-mode content itself, i.e. what the boards show (see `SIMU`).
   exactly `LOOP_NUM_ID`) is coerced to an integer (falling back to the session index),
   numeric values pass through unchanged, everything else is sanitised as text.
   `LOOP_ID` defaults to `"unknown"` if the loop entry does not supply one.
-- `{TIMESTAMP}` is filled by the caller: the shard's filesystem mtime at commit
-  (`STAG-10`, `STAG-26`) for `-O`, or the write-time clock for simulate boards
-  (`OutputWriter._format_filename`, which never has a shard to date itself from).
+- `{TIMESTAMP}` is filled by the caller from the shard's filesystem mtime at
+  commit (`STAG-10`, `STAG-26`) — this applies uniformly to live and simulate
+  `-O` output now, since both persist real shards (see `SIMU`).
 - If the schema contains none of `CHUNK_`, `LOOP_`, `TIMESTAMP`, the fallback name is
   used instead of applying the template at all (OUTP-01).
 - Every resolved value passes through `sanitize_filename` before assembly, and the
@@ -91,11 +89,11 @@ sees at the target path once the run succeeds; `STAG Sections 7.1–7.3` define 
 how a rename, a replace or a delimiter-joined append is carried out and what happens
 on the first failure. `-m` has no effect on stdout-only (`STAG Section 7.9`).
 
-### 4.4 Result board injection
+### 4.4 Result board injection (moved)
 
-`OutputWriter` is constructed with a `ResultBoardService` (default `MarkdownResultBoard`);
-any implementer can be substituted at the composition root, replacing both the run
-board and the per-session board without changing `OutputWriter` itself (OUTP-13).
+Result board injection now happens at `ChatManager`'s construction, not
+`OutputWriter`'s — see `SIMU-09`. `OutputWriter` has no `ResultBoardService`
+dependency; it always commits whatever was persisted, live or simulate alike.
 
 ## 5. Error cases
 
@@ -148,15 +146,16 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - **OUTP-10** Given a live run and `-O DIR`, when the run completes, then nothing is
   echoed to stdout; the reply is only in the directory.
 - **OUTP-11** Given a simulate run and neither `-o` nor `-O`, when the run completes,
-  then the run board is printed to stdout.
-- **OUTP-12** Given a simulate run and `-o FILE`, when the run completes, then the run
-  board is written to `FILE` and nothing is printed to stdout.
+  then the run board, followed by every session's board and complete request, is
+  printed to stdout.
+- **OUTP-12** Given a simulate run and `-o FILE`, when the run completes, then the
+  full simulate output (run board plus every session's board and request) is
+  written to `FILE` and nothing is printed to stdout.
 
 ### Result board injection
 
-- **OUTP-13** Given a `ResultBoardService` implementation other than
-  `MarkdownResultBoard` is passed to `OutputWriter`, when a simulate run completes, then
-  the injected implementation's output appears instead of the default Markdown board.
+- **OUTP-13** *withdrawn* — the `ResultBoardService` dependency moved from
+  `OutputWriter` to `ChatManager`; see `SIMU-09`.
 
 ## 7. Open questions
 
@@ -175,3 +174,8 @@ is not implemented yet is marked *proposed* directly after its identifier.
   `application/pipeline/output_writer.py`, `infrastructure/io/filename_utils.py` and
   `domain/ports/result_board_service.py`. Deliberately excludes STAG's internal
   mechanics, referenced by identifier instead.
+- 0.3 (2026-09-25): rewritten for the live/simulate unification — `OutputWriter`
+  no longer holds a `ResultBoardService` or a simulate-specific filename helper;
+  OUTP-11/OUTP-12 reworded to match the fuller stdout/`-o` content; OUTP-13
+  withdrawn in favour of `SIMU-09` (result-board injection moved to
+  `ChatManager`).

@@ -103,6 +103,11 @@ Entries are short and written in British English.
   request, not just the aggregate board (matching ``-o``'s content).
 - ``-o``/stdout-only simulate sections now join with
   ``output_delimiter``, not a hardcoded ``***``.
+- ``STAG``/``SIMU``/``OUTP`` specs updated to match the live/simulate
+  unification (``STAG`` v2.3, ``SIMU`` v0.4, ``OUTP`` v0.3); ``OUTP-13``
+  withdrawn in favour of ``SIMU-09``.
+- ``STAG-18`` (the ``-O -m x`` happy path) now has a test; CI's
+  ``spec-coverage`` job no longer needs ``allow_failure``.
 
 ### Removed
 - Combined ``-o`` + ``-O`` in one run (two workspaces, commit

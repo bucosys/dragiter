@@ -21,7 +21,6 @@ spec-coverage:
   image: python:3.13-slim
   script:
     - bash scripts/check-spec-coverage.sh
-  allow_failure: true   # remove once STAG-18 has a test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"

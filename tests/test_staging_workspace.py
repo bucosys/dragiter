@@ -231,6 +231,19 @@ def test_g1_directory_sink(env: Env) -> None:
     assert env.staging_dirs(env.dir) == []
 
 
+def test_g1x_directory_sink_exclusive_create_succeeds(env: Env) -> None:
+    """STAG-18."""
+    groups = _groups("x", directory=env.dir)
+    prompt = _prompt()
+    run = _persist(env, groups, prompt, ["A", "B"])
+
+    _commit(env, groups, prompt, 2)
+    assert (env.dir / "s1.md.txt").read_text(encoding="utf-8") == "A"
+    assert (env.dir / "s2.md.txt").read_text(encoding="utf-8") == "B"
+    assert env.staging_dirs(env.dir) == []
+    assert not run.path.exists()
+
+
 def test_g2_file_sink(env: Env) -> None:
     """STAG-04, STAG-11, STAG-12, STAG-15, STAG-24."""
     groups = _groups("w", file=env.file)

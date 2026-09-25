@@ -143,7 +143,7 @@ def test_both_file_sinks_are_rejected(tmp_path: Path) -> None:
 
 
 def test_simulate_board_stays_on_stdout_without_file_sink(tmp_path: Path, capsys) -> None:
-    """OUTP-11."""
+    """OUTP-11, SIMU-07."""
     groups = blank_parameter_groups()
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
     _run_simulate(groups, tmp_path)
@@ -184,7 +184,7 @@ class _FixedResultBoard:
 
 
 def test_output_writer_uses_injected_result_board(tmp_path: Path, capsys) -> None:
-    """OUTP-13. Result-board injection lives on ChatManager, which builds the
+    """SIMU-09. Result-board injection lives on ChatManager, which builds the
     content OutputWriter later just commits."""
     groups = blank_parameter_groups()
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)

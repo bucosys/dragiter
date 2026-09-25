@@ -111,7 +111,8 @@ def test_simulate_pipeline_writes_mock_output(tiny_example_dir: Path) -> None:
       * every output file is a role/content Markdown transcript
 
     SIMU-01 (the live service is `_ForbiddenLiveService`, never actually
-    called), SIMU-02 (no assistant/reply row in the output).
+    called), SIMU-02 (no assistant/reply row in the output), SIMU-08 (files
+    exist under -O, proving the run was committed, not discarded).
     """
     output_dir = tiny_example_dir / "outputs" / "simulate_e2e"
     output_dir.mkdir(parents=True, exist_ok=True)

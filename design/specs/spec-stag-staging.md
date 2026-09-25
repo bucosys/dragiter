@@ -7,7 +7,7 @@
 | Type | technical |
 | Serves | `OUTP` |
 | Product | dragiter |
-| Version | 2.2 (supersedes v2.1, v2.0 and `dragiter_ap_staging.md`, v1.0) |
+| Version | 2.3 (supersedes v2.2, v2.1, v2.0 and `dragiter_ap_staging.md`, v1.0) |
 | Status | agreed target state (specification) |
 | Date | 2026-09-24 |
 | Read pin | `eb8097bcdbfd826777b06434fb9b39d11598916a` |
@@ -18,6 +18,10 @@
 This profile does not replace the source code. **This target state** governs all future work; the implementation is built against it, not adapted from the current mechanics. Read pin and staging commit only mark the baseline the implementation starts from.
 
 ---
+
+## Change history vs. v2.2
+
+- **Section 2.2 corrected.** "Simulate boards as content" is no longer out of scope — a simulate session's rendered board and request is persisted and committed through this exact mechanism, identically to a live reply. This document still does not care what a completion's content looks like (`SIMU`) — only that Persist and Commit treat it the same regardless of origin.
 
 ## Change history vs. v2.1
 
@@ -66,7 +70,9 @@ Not a purpose: OS temp as the parent of `-o`/`-O`, a shared workspace for multip
 
 ### 2.2 Out of scope
 
-- Packing staging, resource collection, simulate boards as content.
+- Packing staging, resource collection, and what a simulate session's own
+  content looks like (see `SIMU`) — but that content is persisted and
+  committed as an ordinary shard like any other completion.
 - Implementation shape (module boundaries, function names beyond the contracts named here). Implementation decisions belong in a separate design-notes document (see `dragiter_design_notes.md`).
 - Cleaning up foreign PIDs.
 - Shell redirection of stdout (`>`, `>>`, `|`) as a file sink.
