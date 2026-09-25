@@ -37,7 +37,6 @@ from dragiter.infrastructure.io.filename_utils import (
     format_timestamp_ns,
     schema_has_runtime_tokens,
 )
-from dragiter.infrastructure.io.io_services import write_or_append_lines_to_unique_file
 
 logger = logging.getLogger(__name__)
 
@@ -215,6 +214,16 @@ class WorkspaceRun:
             ) from exc
         self._count = number
 
+    def persist_prefix(self, content: str) -> None:
+        # Never call this for -O: _commit_directory requires len(shards) == len(sessions).
+        number = self._count + 1
+        shard = self._path / shard_name(number)
+        try:
+            _write_new_file(shard, content.encode("utf-8"))
+        except OSError as exc:
+            raise WorkspaceError(f"could not persist prefix shard {shard}: {exc}") from exc
+        self._count = number
+
 
 class WorkspacePersistenceService:
     """PersistenceService backed by one hidden workspace per run and sink."""
@@ -372,6 +381,8 @@ class WorkspaceCommitService:
         workspace = location.path
         directory = location.target
         shards = list_shards(workspace)
+        # This 1:1 requirement is exactly why persist_prefix() must never be
+        # called for -O: an extra prefix shard would trip this check.
         if len(shards) != len(sessions):
             raise WorkspaceCommitError(
                 f"{len(shards)} shards for {len(sessions)} sessions; "
@@ -471,25 +482,3 @@ class WorkspaceCommitService:
         except OSError as exc:
             # The sink is already complete; only the scratch copy is left over.
             logger.warning("Could not remove workspace %s: %s", workspace, exc)
-
-
-# --------------------------------------------------------------------------- #
-# Simulate boards (outside the staging profile, STAG Section 2.2)
-# --------------------------------------------------------------------------- #
-
-
-def commit_assembled_output(
-    path: Path, mode: str, body: str, delimiter: str, *, allow_empty: bool = False
-) -> None:
-    """Write a simulate board directly to one target, honouring -m."""
-    if not allow_empty and (body or "").strip() == "":
-        return
-    if mode == "a":
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if path.exists() and path.stat().st_size > 0:
-            text = path.read_text(encoding="utf-8") + delimiter + body
-        else:
-            text = body
-        write_or_append_lines_to_unique_file(path, "w", [text])
-        return
-    write_or_append_lines_to_unique_file(path, mode, [body])

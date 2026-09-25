@@ -243,6 +243,13 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - **CONF-32** Given `max_chunks` set to `0`, when validated, then it raises naming
   `max_chunks`; given a positive value, then validation passes.
 
+### Secrets in logs
+
+- **CONF-33** Given a CLI-supplied setting whose key contains `key` (e.g. `--api-key`),
+  when `ConfigurationLoader._get_args()` logs it at `DEBUG` level, then the logged value
+  is masked (`********`), never the real secret; a non-key setting logged the same way
+  still shows its real value.
+
 ## 7. Open questions
 
 - `max_retry` has a declared setting and CLI/env wiring but no range check in
@@ -261,3 +268,6 @@ is not implemented yet is marked *proposed* directly after its identifier.
   `logging_configuration.py`.
 - 0.3 (2026-09-25): CONF-17 covered by a new test in
   `tests/test_configuration_loader_env_precedence.py`; *proposed* mark dropped.
+- 0.4 (2026-09-25): fixed a real secret-leak found during a test-quality audit —
+  `_get_args()` logged a CLI-supplied API key in clear text at `DEBUG` level, bypassing
+  `APIStringSetting.__repr__`'s existing masking. New CONF-33, with a regression test.

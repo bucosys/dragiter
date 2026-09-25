@@ -542,9 +542,7 @@ class ConfigurationLoader(Worker):
             # very important: Use .value to prevent overwrinting class var !!
             item.value_setting_object.set(cmd_parsed_value, ValueOrigin.CLI)
 
-            # Masking sensitive data like API keys is a "pro" move
-            ### display_value = "********" if "key" in item.long_key else cmd_parsed_value
-            logger.debug(f"[{item.long_key}: {item.value_setting_object.value!r}]")
+            logger.debug(f"[{item.long_key}: {item.value_setting_object!r}]")
 
     def __repr__(self):
         # will be printed in logger

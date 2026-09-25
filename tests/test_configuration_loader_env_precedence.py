@@ -14,6 +14,7 @@ one of ``TRUE``, ``1`` or ``YES``.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 import sys
 
@@ -431,6 +432,25 @@ def test_cli_argument_wins_over_environment_variable(
 
     model_setting = setting_of(settings, ModelNameStringSetting)
     assert model_setting.value == "cli-value"
+
+
+def test_cli_api_key_is_masked_in_debug_log(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Covers CONF-33."""
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["dragiter", "--api-key", "sk-supersecret123", "--model-name", "gpt-visible"],
+    )
+    with caplog.at_level(logging.DEBUG):
+        ConfigurationLoader().run()
+
+    assert "sk-supersecret123" not in caplog.text
+    assert "********" in caplog.text
+    # A non-key setting must still be logged in full, proving this isn't just
+    # blanket-suppressed debug logging.
+    assert "gpt-visible" in caplog.text
 
 
 def test_config_file_wins_over_environment_variable(

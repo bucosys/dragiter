@@ -2,8 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Michael Buchold
 
 from dragiter.application.pipeline.material_tokenizer import MaterialTokenizer
-from dragiter.domain.models.chat_results import ChatResults
-from dragiter.domain.models.chat_sessions import ChatSession, ChatSessions
+from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.loop import Loop
@@ -31,8 +30,8 @@ class MarkdownResultBoard:
 
     def run_board(
         self,
-        chat_sessions: ChatSessions,
-        chat_results: ChatResults,
+        session_count: int,
+        result_count: int,
         op: OutputParameters,
         ep: ExecutionParameters,
         aisp: AIServiceParameters,
@@ -61,7 +60,7 @@ class MarkdownResultBoard:
         return format_simulation_brief(
             SimulationBrief(
                 model=aisp.model_name_string_setting.value or "",
-                sessions=len(chat_sessions.session_list),
+                sessions=session_count,
                 chunks=len(chunks),
                 valid_chunks=sum(1 for chunk in chunks if chunk.valid),
                 source_files=len({chunk.filename for chunk in chunks}),
@@ -87,7 +86,7 @@ class MarkdownResultBoard:
                     if op.output_file_path_setting.is_set
                     else None
                 ),
-                result_count=len(chat_results.chat_result_list),
+                result_count=result_count,
             ),
             frame=frame,
         )

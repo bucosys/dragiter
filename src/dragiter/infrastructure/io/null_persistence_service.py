@@ -25,3 +25,6 @@ class NullPersistenceService:
 
     def persist(self, index: int, session: ChatSession, result: ChatResult) -> None:
         return None
+
+    def persist_prefix(self, content: str) -> None:
+        return None

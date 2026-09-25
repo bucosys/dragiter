@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Calendar Versioning](https://calver.org/)
 in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
+Entries are short and written in British English.
 
 ## [Unreleased]
 ### Added
@@ -73,8 +74,8 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   An empty new block does not touch the target.
 - Live ``-o`` / ``-O`` bytes come from the workspace (after Assembly
   for ``-o``), not from the in-memory result list.
-- ``ChatManager`` takes five collaborators and no longer builds
-  boards, ``MockAIService`` or persistence inside ``run``.
+- ``ChatManager`` takes its collaborators (``MockAIService``, boards,
+  persistence) at construction instead of building them inside ``run``.
 - ``ApplicationManager`` takes ``ChecksumGenerator`` and
   ``ActivityLogger`` at construction.
 - Activity loggers and the checksum generator live under
@@ -94,6 +95,14 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   the first-cut figures, not vendor maxima.
 - ADR-0002's inventory note corrected: the ``OutputWriter.run`` defaults
   it described have since been removed.
+- Simulate runs now persist and commit through the same shard/commit path
+  as live runs, instead of building a separate board and discarding the
+  workspace. ``ChatManager`` builds the board content; ``OutputWriter``
+  no longer distinguishes live from simulate.
+- stdout-only simulate output now shows every session's board and
+  request, not just the aggregate board (matching ``-o``'s content).
+- ``-o``/stdout-only simulate sections now join with
+  ``output_delimiter``, not a hardcoded ``***``.
 
 ### Removed
 - Combined ``-o`` + ``-O`` in one run (two workspaces, commit
@@ -107,10 +116,16 @@ in the form `YYYY.M.D` (with optional pre-release suffixes such as `rc1`, `b1`).
   ``OutputWriter.run`` and on ``ResultBoardService.run_board`` /
   ``session_board`` (and their dead None-handling in
   ``MarkdownResultBoard``). No caller ever passed ``None``.
+- ``OutputWriter``'s live/simulate branch, ``_write_simulation`` and
+  ``_format_filename``; ``MockAIService``'s JSON reply content and its
+  unused ``payload_estimator`` parameter; ``commit_assembled_output``
+  and ``sortable_timestamp``.
 
 ### Fixed
 - ``LoopBuilderError``'s read-failure message named the prompt file
   setting instead of the loop file setting (``LOOP-08``).
+- ``ConfigurationLoader`` logged a CLI-supplied API key in clear text at
+  ``DEBUG`` level, bypassing ``APIStringSetting``'s masking (``CONF-33``).
 
 ## [2026.9.13] - 2026-09-13
 

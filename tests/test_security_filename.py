@@ -9,13 +9,11 @@ when they are interpolated into output_filename_schema.
 from pathlib import Path
 
 import pytest
-from support import RecordingCommitService
 
-from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.domain.models.chunk import Chunk
-from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.io.filename_utils import (
     ensure_path_within_directory,
+    format_output_filename,
     sanitize_filename,
 )
 
@@ -115,12 +113,11 @@ def test_ensure_path_within_directory_rejects_absolute_escape(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# Integration-style tests for OutputWriter._format_filename
+# Integration-style tests for format_output_filename
 # ---------------------------------------------------------------------------
 
 def test_format_filename_sanitises_chunk_filename():
     """OUTP-02."""
-    writer = OutputWriter(MarkdownResultBoard(), RecordingCommitService())
     chunk = Chunk(
         num_id=1,
         filename="../../etc/passwd",
@@ -130,10 +127,12 @@ def test_format_filename_sanitises_chunk_filename():
         content="dummy",
     )
 
-    result = writer._format_filename(
-        chunk=chunk,
-        session_index=1,
-        template="{CHUNK_FILE_NAME}_{CHUNK_NUM_ID:04d}.md",
+    result = format_output_filename(
+        chunk,
+        None,
+        1,
+        "{CHUNK_FILE_NAME}_{CHUNK_NUM_ID:04d}.md",
+        timestamp=None,
     )
 
     assert "/" not in result
@@ -146,16 +145,17 @@ def test_format_filename_sanitises_chunk_filename():
 
 def test_format_filename_sanitises_loop_values():
     """OUTP-03."""
-    writer = OutputWriter(MarkdownResultBoard(), RecordingCommitService())
     loop_item = {
         "LOOP_ID": "../../../tmp/evil",
         "platform": "Instagram/../secret",
     }
 
-    result = writer._format_filename(
-        loop_dict_item=loop_item,
-        session_index=1,
-        template="{LOOP_ID}_{platform}.md",
+    result = format_output_filename(
+        None,
+        loop_item,
+        1,
+        "{LOOP_ID}_{platform}.md",
+        timestamp=None,
     )
 
     assert "/" not in result
@@ -166,6 +166,5 @@ def test_format_filename_sanitises_loop_values():
 
 def test_format_filename_fallback_when_no_placeholders():
     """OUTP-01."""
-    writer = OutputWriter(MarkdownResultBoard(), RecordingCommitService())
-    result = writer._format_filename(session_index=7, template="plain_name")
+    result = format_output_filename(None, None, 7, "plain_name", timestamp=None)
     assert result == "session_0007.md"

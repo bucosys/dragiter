@@ -20,6 +20,7 @@ from dragiter.domain.models.material import Material
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.resources import Resources
 from dragiter.domain.models.settings import ValueOrigin
+from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.cli.null_session_board import NullSessionBoard
 from dragiter.infrastructure.cli.stderr_session_board import (
     END_MARK,
@@ -231,6 +232,7 @@ def test_chat_manager_persists_before_a_later_failure(tmp_path: Path) -> None:
         StderrSessionBoard(StringIO(), interactive=False),
         NullSessionBoard(),
         WorkspacePersistenceService(WorkspaceLayout(pid=os.getpid(), user_temp=tmp_path)),
+        MarkdownResultBoard(),
     )
     deps = _pipeline_deps()
     deps[4].output_filename_schema = "{CHUNK_FILE_NAME}"
@@ -283,6 +285,7 @@ def test_mock_does_not_emit_stream_chunks() -> None:
         verbose_board=probe,
         silent_board=probe,
         persistence=NullPersistenceService(),
+        result_board=MarkdownResultBoard(),
     )
     sessions = ChatSessions(session_list=[_session()])
     manager.run(
@@ -305,6 +308,7 @@ def test_chat_manager_rejects_missing_collaborator() -> None:
             NullSessionBoard(),
             None,  # type: ignore[arg-type]
             NullPersistenceService(),
+            MarkdownResultBoard(),
         )
 
 
@@ -318,6 +322,7 @@ def test_chat_manager_uses_silent_board_without_verbose(tmp_path: Path) -> None:
         StderrSessionBoard(stream, interactive=False),
         NullSessionBoard(),
         NullPersistenceService(),
+        MarkdownResultBoard(),
     )
     manager.run(
         groups["aisp"],

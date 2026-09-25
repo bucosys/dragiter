@@ -3,8 +3,7 @@
 
 from typing import Protocol, runtime_checkable
 
-from dragiter.domain.models.chat_results import ChatResults
-from dragiter.domain.models.chat_sessions import ChatSession, ChatSessions
+from dragiter.domain.models.chat_sessions import ChatSession
 from dragiter.domain.models.context_validation_report import ContextValidationReport
 from dragiter.domain.models.loop import Loop
 from dragiter.domain.models.material import Material
@@ -23,8 +22,8 @@ class ResultBoardService(Protocol):
 
     def run_board(
         self,
-        chat_sessions: ChatSessions,
-        chat_results: ChatResults,
+        session_count: int,
+        result_count: int,
         op: OutputParameters,
         ep: ExecutionParameters,
         aisp: AIServiceParameters,
@@ -36,7 +35,9 @@ class ResultBoardService(Protocol):
         *,
         frame: bool = True,
     ) -> str:
-        """Render the run-level board."""
+        """Render the run-level board. Built from counts, not live objects, so it
+        can be assembled before every session has actually run (ChatManager builds
+        it once, ahead of the session loop, for a simulate run's leading shard)."""
 
     def session_board(
         self,

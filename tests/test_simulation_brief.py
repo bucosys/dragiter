@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
-from support import RecordingCommitService, blank_parameter_groups
+import os
+import sys
 
+from support import blank_parameter_groups
+
+from dragiter.application.pipeline.chat_manager import ChatManager
 from dragiter.application.pipeline.output_writer import OutputWriter
-from dragiter.domain.models.chat_results import ChatResult, ChatResults
 from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatSessions
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.context_validation_report import ContextValidationReport
@@ -16,6 +19,7 @@ from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.models.resources import Resources
 from dragiter.domain.models.settings import ValueOrigin
 from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
+from dragiter.infrastructure.cli.null_session_board import NullSessionBoard
 from dragiter.infrastructure.cli.simulation_brief import (
     COLUMN_WIDTHS,
     SimulationBrief,
@@ -25,6 +29,49 @@ from dragiter.infrastructure.cli.simulation_brief import (
     format_simulation_transcript,
     resolve_pack_budget,
 )
+from dragiter.infrastructure.io.workspace_service import (
+    WorkspaceCommitService,
+    WorkspaceLayout,
+    WorkspacePersistenceService,
+)
+from dragiter.infrastructure.llm.mockai_service import MockAIService
+
+
+def _run_via_chat_manager(
+    tmp_path,
+    groups,
+    sessions: ChatSessions,
+    prompt: PromptTemplate,
+    material: Material,
+    loop: Loop,
+    context_report: ContextValidationReport,
+) -> None:
+    """Run the real ChatManager (it now builds simulate content) then commit,
+    exactly as cli.py wires the two workers together."""
+    layout = WorkspaceLayout(pid=os.getpid(), user_temp=tmp_path)
+    manager = ChatManager(
+        MockAIService(),
+        MockAIService(),
+        NullSessionBoard(),
+        NullSessionBoard(),
+        WorkspacePersistenceService(layout),
+        MarkdownResultBoard(),
+    )
+    manager.run(
+        groups["aisp"],
+        groups["lp"],
+        groups["ep"],
+        sessions,
+        groups["op"],
+        material,
+        loop,
+        context_report,
+        Resources(),
+        prompt,
+    )
+    OutputWriter(WorkspaceCommitService(layout, sys.stdout)).run(
+        sessions, groups["op"], prompt,
+    )
 
 
 def _sample() -> SimulationBrief:
@@ -133,7 +180,7 @@ def test_resolve_pack_budget_origins() -> None:
     assert resolve_pack_budget(False, None, [None, 0]) == (None, "off")
 
 
-def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> None:
+def test_output_writer_marks_window_na_when_estimator_not_applicable(tmp_path, capsys) -> None:
     """
     The live pipeline always injects a ContextValidationReport. The
     not-applicable estimator result must render as n/a and -- / --, not
@@ -157,16 +204,12 @@ def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> 
         input_chat_message_list=[ChatMessage(role="user", content="ask")],
         chunk=chunk,
     )
-    result = ChatResult()
-    result.output_chat_message.content = "mock-body"
 
-    OutputWriter(MarkdownResultBoard(), RecordingCommitService()).run(
+    _run_via_chat_manager(
+        tmp_path,
+        groups,
         ChatSessions([session]),
-        ChatResults([result]),
-        groups["op"],
         PromptTemplate("", "", "", "", 0.0, False, "", "\n\n"),
-        groups["ep"],
-        groups["aisp"],
         Material([chunk]),
         Loop(),
         ContextValidationReport(
@@ -175,7 +218,6 @@ def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> 
             max_tokens_limit=None,
             max_session_tokens=None,
         ),
-        Resources(),
     )
 
     captured = capsys.readouterr().out
@@ -187,7 +229,7 @@ def test_output_writer_marks_window_na_when_estimator_not_applicable(capsys) -> 
     assert "0 / 0" not in peak_line
 
 
-def test_output_writer_prints_padded_markdown_table(capsys) -> None:
+def test_output_writer_prints_padded_markdown_table(tmp_path, capsys) -> None:
     groups = blank_parameter_groups()
     groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
     groups["aisp"].model_name_string_setting.set("mock-model", ValueOrigin.CLI)
@@ -205,26 +247,23 @@ def test_output_writer_prints_padded_markdown_table(capsys) -> None:
         chunk=chunk,
         loop_item={"LOOP_CONTENT": "ask", "LOOP_NUM_ID": 1},
     )
-    result = ChatResult()
-    result.output_chat_message.content = '{"mock": true, "full_content": "secret prompt"}'
 
-    OutputWriter(MarkdownResultBoard(), RecordingCommitService()).run(
+    _run_via_chat_manager(
+        tmp_path,
+        groups,
         ChatSessions([session]),
-        ChatResults([result]),
-        groups["op"],
         PromptTemplate("", "", "", "", 0.0, False, "", "\n\n"),
-        groups["ep"],
-        groups["aisp"],
         Material([chunk]),
         Loop([{"LOOP_CONTENT": "ask", "LOOP_NUM_ID": 1}]),
         ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
-        Resources(),
     )
 
     captured = capsys.readouterr().out
     assert captured.lstrip().startswith("| -")
     assert "| DRAGITER" in captured
-    assert "secret prompt" not in captured
+    # The real outgoing request is always included now, never a mock JSON blob.
+    assert "ask" in captured
+    assert '"mock"' not in captured
 
 
 def test_transcript_lists_payload_roles_then_assistant_briefing() -> None:
@@ -259,20 +298,15 @@ def test_output_writer_writes_transcript_to_output_directory(tmp_path, capsys) -
         chunk=chunk,
         loop_item={"LOOP_CONTENT": "question", "LOOP_NUM_ID": 1},
     )
-    result = ChatResult()
-    result.output_chat_message.content = '{"mock": true, "full_content": "secret prompt"}'
 
-    OutputWriter(MarkdownResultBoard(), RecordingCommitService()).run(
+    _run_via_chat_manager(
+        tmp_path,
+        groups,
         ChatSessions([session]),
-        ChatResults([result]),
-        groups["op"],
         PromptTemplate("", "", "", "", 0.0, True, "{CHUNK_FILE_NAME}.md", "\n\n"),
-        groups["ep"],
-        groups["aisp"],
         Material([chunk]),
         Loop([{"LOOP_CONTENT": "question", "LOOP_NUM_ID": 1}]),
         ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
-        Resources(),
     )
 
     written = list(tmp_path.glob("*.md"))
@@ -286,7 +320,7 @@ def test_output_writer_writes_transcript_to_output_directory(tmp_path, capsys) -
     assert "| S " in body and "persona" in body
     assert "| U " in body and "question" in body
     assert "| A " not in body
-    assert "secret prompt" not in body
+    assert '"mock"' not in body
     assert "| DRAGITER" not in body
     captured = capsys.readouterr()
     assert captured.out == ""
@@ -321,22 +355,11 @@ def test_output_writer_writes_transcript_to_output_file(tmp_path, capsys) -> Non
             ),
         ]
     )
-    results = ChatResults(
-        [
-            ChatResult(finish_reason="mock"),
-            ChatResult(finish_reason="mock"),
-        ]
-    )
-    results.chat_result_list[0].output_chat_message.content = '{"mock": true, "full_content": "secret 1"}'
-    results.chat_result_list[1].output_chat_message.content = '{"mock": true, "full_content": "secret 2"}'
-
-    OutputWriter(MarkdownResultBoard(), RecordingCommitService()).run(
+    _run_via_chat_manager(
+        tmp_path,
+        groups,
         sessions,
-        results,
-        groups["op"],
         PromptTemplate("", "", "", "", 0.0, False, "", "\n---\n"),
-        groups["ep"],
-        groups["aisp"],
         Material([chunk]),
         Loop(
             [
@@ -345,7 +368,6 @@ def test_output_writer_writes_transcript_to_output_file(tmp_path, capsys) -> Non
             ]
         ),
         ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
-        Resources(),
     )
 
     body = output_file.read_text(encoding="utf-8")

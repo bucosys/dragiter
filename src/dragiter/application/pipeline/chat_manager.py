@@ -22,6 +22,7 @@ from dragiter.domain.ports.persistence_service import (
     PersistenceError,
     PersistenceService,
 )
+from dragiter.domain.ports.result_board_service import ResultBoardService
 from dragiter.domain.ports.session_board_service import SessionBoardService
 from dragiter.infrastructure.cli.simulation_brief import resolve_pack_budget
 
@@ -44,6 +45,7 @@ class ChatManager(Worker):
         verbose_board: SessionBoardService,
         silent_board: SessionBoardService,
         persistence: PersistenceService,
+        result_board: ResultBoardService,
     ) -> None:
         # Validate, never substitute (ADR-0000, rule 3). The Protocol check only
         # verifies method names (rule 13); signatures are covered by mypy.
@@ -52,11 +54,13 @@ class ChatManager(Worker):
         _require(verbose_board, SessionBoardService, "verbose_board")
         _require(silent_board, SessionBoardService, "silent_board")
         _require(persistence, PersistenceService, "persistence")
+        _require(result_board, ResultBoardService, "result_board")
         self._llm_service: LLMService = llm_service
         self._mock_service: LLMService = mock_service
         self._verbose_board: SessionBoardService = verbose_board
         self._silent_board: SessionBoardService = silent_board
         self._persistence: PersistenceService = persistence
+        self._result_board: ResultBoardService = result_board
 
     def run(
         self,
@@ -84,6 +88,29 @@ class ChatManager(Worker):
         try:
             sink = self._persistence.open(op, prompt_template, sessions)
 
+            # Simulate's -o/stdout output leads with one aggregate board shard.
+            # Never for -O: it requires exactly one shard per session (STAG Section 7).
+            if simulate and not op.output_directory_path_setting.is_set:
+                is_stdout_only = not op.output_file_path_setting.is_set
+                board_content = self._result_board.run_board(
+                    total,
+                    total,
+                    op,
+                    ep,
+                    aisp,
+                    material,
+                    loop,
+                    context_validation_report,
+                    prompt_template,
+                    resources,
+                    frame=is_stdout_only,
+                )
+                if not is_stdout_only:
+                    # -o: this shard used to be one of several sections joined
+                    # together; join() alone still applies that same framing.
+                    board_content = self._result_board.join(board_content)
+                sink.persist_prefix(board_content)
+
             board.begin_run(
                 model=aisp.model_name_string_setting.value,
                 sessions=total,
@@ -100,6 +127,10 @@ class ChatManager(Worker):
                 ),
             )
 
+            valid_chunks = sum(1 for chunk in material.chunks if chunk.valid)
+            loop_count = len(loop.lines)
+            batched_chars = sum(len(chunk.content) for chunk in material.chunks if chunk.valid)
+
             for index, session in enumerate(sessions, start=1):
                 board.begin_session(index, total, session)
                 try:
@@ -107,6 +138,25 @@ class ChatManager(Worker):
                 except Exception:
                     board.abandon_session()
                     raise
+                if simulate:
+                    # The mock reply itself is not user-facing content; what gets
+                    # persisted and eventually committed is the session's board
+                    # (stats) followed by its complete outgoing request.
+                    result.output_chat_message.content = self._result_board.join(
+                        self._result_board.session_board(
+                            session,
+                            index,
+                            total,
+                            prompt_template.sequential_processing,
+                            valid_chunks,
+                            loop_count,
+                            context_validation_report,
+                            batched_chars,
+                            ep,
+                            resources,
+                        ),
+                        self._result_board.payload_table(session),
+                    )
                 sink.persist(index, session, result)
                 board.end_session(result)
                 chat_result_list.append(result)

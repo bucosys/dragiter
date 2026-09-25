@@ -28,6 +28,15 @@ class ResultSink(Protocol):
         Raises PersistenceError if the shard cannot be written; the run aborts.
         """
 
+    def persist_prefix(self, content: str) -> None:
+        """
+        Store *content* as one shard ahead of any session shard, in call order.
+
+        For a once-per-run aggregate artefact only. Callers must never invoke this
+        for a sink with a 1:1 shard-to-session requirement (``-O``, STAG Section 7):
+        it would make the shard count exceed the session count and abort the commit.
+        """
+
 
 @runtime_checkable
 class PersistenceService(Protocol):

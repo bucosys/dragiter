@@ -14,7 +14,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 import re
-import time
 from typing import Any
 
 # Characters that are never allowed in a generated filename component.
@@ -92,11 +91,6 @@ def ensure_path_within_directory(candidate: Path, base_directory: Path) -> Path:
         ) from exc
 
     return resolved_candidate
-
-
-def sortable_timestamp() -> str:
-    """Return a lexicographically sortable UTC timestamp with nanoseconds."""
-    return format_timestamp_ns(time.time_ns())
 
 
 def format_timestamp_ns(ns: int) -> str:

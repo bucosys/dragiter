@@ -25,7 +25,7 @@ from dragiter.application.config.configuration_validator import (
 )
 from dragiter.application.pipeline.chat_manager import ChatManager
 from dragiter.application.pipeline.output_writer import OutputWriter
-from dragiter.domain.models.chat_results import ChatResult, ChatResults
+from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatMessage, ChatSession, ChatSessions
 from dragiter.domain.models.chunk import Chunk
 from dragiter.domain.models.context_validation_report import ContextValidationReport
@@ -555,10 +555,11 @@ def test_workers_share_one_workspace_via_layout(env: Env) -> None:
         StderrSessionBoard(StringIO(), interactive=False),
         NullSessionBoard(),
         WorkspacePersistenceService(env.layout),
+        MarkdownResultBoard(),
     )
     context_report = ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0)
     resources = Resources()
-    results = manager.run(
+    manager.run(
         groups["aisp"],
         groups["lp"],
         groups["ep"],
@@ -572,43 +573,30 @@ def test_workers_share_one_workspace_via_layout(env: Env) -> None:
     )
     assert (env.dir / f"{DIR_STAGING_PREFIX}{PID}").is_dir()
 
-    OutputWriter(
-        MarkdownResultBoard(), WorkspaceCommitService(env.layout, StringIO())
-    ).run(
+    OutputWriter(WorkspaceCommitService(env.layout, StringIO())).run(
         sessions,
-        results,
         groups["op"],
         prompt,
-        groups["ep"],
-        groups["aisp"],
-        Material([]),
-        Loop(),
-        context_report,
-        resources,
     )
     assert (env.dir / "s1.md.txt").read_text(encoding="utf-8") == "S1.MD"
     assert (env.dir / "s2.md.txt").read_text(encoding="utf-8") == "S2.MD"
     assert env.staging_dirs(env.dir) == []
 
 
-def test_simulate_run_discards_workspace(env: Env) -> None:
+def test_output_writer_commits_regardless_of_content_origin(env: Env) -> None:
+    """
+    OutputWriter no longer distinguishes live from simulate (it takes no `ep` or
+    `ChatResults` to do so): it always commits whatever ChatManager persisted,
+    live reply or a simulate session's board+request alike.
+    """
     groups = _groups("w")
-    groups["ep"].simulate_bool_setting.set(True, ValueOrigin.CLI)
     prompt = _prompt()
     _persist(env, groups, prompt, ["mock"])
-    result = _result("mock")
-    OutputWriter(
-        MarkdownResultBoard(), WorkspaceCommitService(env.layout, StringIO())
-    ).run(
+    out = StringIO()
+    OutputWriter(WorkspaceCommitService(env.layout, out)).run(
         ChatSessions(_sessions(1)),
-        ChatResults([result]),
         groups["op"],
         prompt,
-        groups["ep"],
-        groups["aisp"],
-        Material([]),
-        Loop(),
-        ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0),
-        Resources(),
     )
+    assert out.getvalue() == "mock"
     assert env.staging_dirs(env.user_temp) == []

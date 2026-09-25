@@ -31,3 +31,6 @@ def test_session_with_messages_does_not_raise() -> None:
     result = MockAIService().process_query(groups["aisp"], groups["lp"], session)
 
     assert result.finish_reason == "mock"
+    # MockAIService's own content is never user-facing: ChatManager overwrites it
+    # with the session's board and complete request before persisting.
+    assert result.output_chat_message.content == ""

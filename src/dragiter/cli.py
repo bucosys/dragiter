@@ -91,17 +91,15 @@ def main():
         app.register_worker(
             ChatManager(
                 OpenAIServiceExt(),
-                MockAIService(SimplePayloadEstimator()),
+                MockAIService(),
                 StderrSessionBoard(sys.stderr, interactive=sys.stderr.isatty()),
                 NullSessionBoard(),
                 WorkspacePersistenceService(workspace_layout),
+                MarkdownResultBoard(),
             )
         )  # -> ChatResults
         app.register_worker(
-            OutputWriter(
-                MarkdownResultBoard(),
-                WorkspaceCommitService(workspace_layout, sys.stdout),
-            )
+            OutputWriter(WorkspaceCommitService(workspace_layout, sys.stdout))
         )  # -> ApplicationResult
         app.run()
 

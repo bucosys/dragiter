@@ -12,12 +12,10 @@ while the wiring between pipeline workers is broken.
 
 from __future__ import annotations
 
-import inspect
 import json
 import os
 from pathlib import Path
 import sys
-from typing import Any
 
 from dragiter.application.config.configuration_loader import ConfigurationLoader
 from dragiter.application.config.configuration_validator import ConfigurationValidator
@@ -30,9 +28,6 @@ from dragiter.application.pipeline.message_builder import MessageBuilder
 from dragiter.application.pipeline.output_writer import OutputWriter
 from dragiter.application.pipeline.prompt_creator import PromptCreator
 from dragiter.application.pipeline.resource_collector import ResourceCollector
-from dragiter.domain.models.chat_results import ChatResult
-from dragiter.domain.models.chat_sessions import ChatSession
-from dragiter.domain.models.parameters import AIServiceParameters
 from dragiter.domain.services.chat_sessions_validator import ChatSessionsValidator
 from dragiter.infrastructure.checksum.basic_checksum_generator import BasicChecksumGenerator
 from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
@@ -52,42 +47,6 @@ from dragiter.infrastructure.llm.mockai_service import MockAIService
 from dragiter.infrastructure.llm.simple_payload_estimator import SimplePayloadEstimator
 from dragiter.infrastructure.logging.file_activity_logger import FileActivityLogger
 
-_ORIGINAL_MOCK_PROCESS_QUERY = MockAIService.process_query
-
-
-def _mock_process_query_arity() -> int:
-    """Number of parameters after ``self`` on the unpatched MockAIService."""
-    names = [
-        parameter.name
-        for parameter in inspect.signature(_ORIGINAL_MOCK_PROCESS_QUERY).parameters.values()
-        if parameter.name != "self"
-    ]
-    return len(names)
-
-
-def _compatible_process_query(
-    self: MockAIService,
-    aisp: AIServiceParameters,
-    lp_or_session: Any,
-    chat_session: ChatSession | None = None,
-    progress: Any = None,
-) -> ChatResult:
-    """
-    Accept both the Protocol signature (aisp, lp, session) and the
-    historical MockAIService signature (aisp, session).
-
-    ChatManager always constructs a fresh MockAIService in simulate mode,
-    so this adapter is installed on the class rather than on one instance.
-    """
-    session = chat_session if isinstance(chat_session, ChatSession) else lp_or_session
-    if not isinstance(session, ChatSession):
-        raise TypeError(f"Expected ChatSession, got {type(session).__name__}")
-
-    if _mock_process_query_arity() >= 3:
-        logging_parameters = None if isinstance(lp_or_session, ChatSession) else lp_or_session
-        return _ORIGINAL_MOCK_PROCESS_QUERY(self, aisp, logging_parameters, session)
-    return _ORIGINAL_MOCK_PROCESS_QUERY(self, aisp, session)
-
 
 def _run_simulate_pipeline(flags: list[str]) -> int:
     """
@@ -102,7 +61,6 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
         sys.argv = ["dragiter", *flags]
         # Do not preload stdin. A template without {STDIN} and without -t
         # must not block on an inherited, still-open standard input.
-        MockAIService.process_query = _compatible_process_query  # type: ignore[method-assign]
 
         layout = WorkspaceLayout(pid=os.getpid(), user_temp=user_temp_directory(os.environ))
         app = ApplicationManager(BasicChecksumGenerator(), FileActivityLogger())
@@ -117,15 +75,14 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
         app.register_worker(
             ChatManager(
                 _ForbiddenLiveService(),
-                MockAIService(SimplePayloadEstimator()),
+                MockAIService(),
                 StderrSessionBoard(sys.stderr, interactive=False),
                 NullSessionBoard(),
                 WorkspacePersistenceService(layout),
+                MarkdownResultBoard(),
             )
         )
-        app.register_worker(
-            OutputWriter(MarkdownResultBoard(), WorkspaceCommitService(layout, sys.stdout))
-        )
+        app.register_worker(OutputWriter(WorkspaceCommitService(layout, sys.stdout)))
         app.run()
         return 0
     except SystemExit as exc:
@@ -134,7 +91,6 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
             return 0
         return int(code) if not isinstance(code, int) else code
     finally:
-        MockAIService.process_query = _ORIGINAL_MOCK_PROCESS_QUERY  # type: ignore[method-assign]
         sys.argv = saved_argv
 
 
