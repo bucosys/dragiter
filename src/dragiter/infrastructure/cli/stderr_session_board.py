@@ -122,8 +122,10 @@ class StderrSessionBoard:
         tokens_in = sum(item.input_tokens or 0 for item in results.chat_result_list)
         tokens_out = sum(item.output_tokens or 0 for item in results.chat_result_list)
         duration_ms = sum(item.duration_ms or 0 for item in results.chat_result_list)
+        reused = sum(1 for item in results.chat_result_list if item.finish_reason == "reused")
+        reused_note = f"    ({reused} reused)" if reused else ""
         for line in (
-            f"done {count} replies    {duration_ms / 1000:.1f}s",
+            f"done {count} replies    {duration_ms / 1000:.1f}s{reused_note}",
             f"tokens in={tokens_in} out={tokens_out}",
         ):
             self._stream.write(f"{END_MARK} {line}\n")

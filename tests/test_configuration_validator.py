@@ -204,3 +204,37 @@ class TestConfigurationValidator:
         result = ConfigurationValidator().run(**s)
 
         assert result is None
+
+    def test_resume_without_output_directory_raises(self, tmp_path: Path) -> None:
+        """Covers CONF-34 and STAG-43: --resume only adopts under -O."""
+        s = _minimal_valid(tmp_path)
+        s["ep"].resume_bool_setting.set(True, ValueOrigin.CLI)
+        # deliberately no -O (and no -o): stdout-only
+
+        with pytest.raises(ConfigurationValidatorError) as exc_info:
+            ConfigurationValidator().run(**s)
+
+        msg = _findings(exc_info.value)
+        assert "resume" in msg.lower()
+
+    def test_resume_with_output_file_raises(self, tmp_path: Path) -> None:
+        """Covers CONF-34 and STAG-43: -o alone is not enough for --resume."""
+        s = _minimal_valid(tmp_path)
+        s["ep"].resume_bool_setting.set(True, ValueOrigin.CLI)
+        s["op"].output_file_path_setting.set(tmp_path / "out.md", ValueOrigin.CLI)
+
+        with pytest.raises(ConfigurationValidatorError) as exc_info:
+            ConfigurationValidator().run(**s)
+
+        msg = _findings(exc_info.value)
+        assert "resume" in msg.lower()
+
+    def test_resume_with_output_directory_is_accepted(self, tmp_path: Path) -> None:
+        """Covers CONF-34: --resume together with -O passes this rule."""
+        s = _minimal_valid(tmp_path)
+        s["ep"].resume_bool_setting.set(True, ValueOrigin.CLI)
+        s["op"].output_directory_path_setting.set(tmp_path, ValueOrigin.CLI)
+
+        result = ConfigurationValidator().run(**s)
+
+        assert result is None

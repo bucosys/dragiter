@@ -24,13 +24,14 @@ from typing import TextIO
 
 from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
-from dragiter.domain.models.parameters import OutputParameters
+from dragiter.domain.models.parameters import ExecutionParameters, OutputParameters
 from dragiter.domain.models.prompt_template import PromptTemplate
 from dragiter.domain.ports.output_commit_service import OutputCommitError
 from dragiter.domain.ports.persistence_service import (
     PersistenceConflictError,
     PersistenceError,
 )
+from dragiter.domain.ports.workspace_seeder import WorkspaceSeeder
 from dragiter.infrastructure.io.filename_utils import (
     ensure_path_within_directory,
     format_output_filename,
@@ -58,6 +59,10 @@ EXCLUSIVE_RUNTIME_NOTICE = (
     "output_mode x: early name check skipped because output_filename_schema "
     "contains TIMESTAMP; exclusive create is enforced at commit."
 )
+
+# STAG Section 5.4: printed once, whenever --resume actually adopts a sibling
+# workspace's shards. %s is the source workspace, %d the number of shards moved.
+RESUME_ADOPTION_NOTICE = "--resume: adopted %d shard(s) from %s"
 
 
 class WorkspaceError(PersistenceError):
@@ -185,6 +190,56 @@ def _planned_directory_names(
 
 
 # --------------------------------------------------------------------------- #
+# Resume (STAG Section 5.4)
+# --------------------------------------------------------------------------- #
+
+
+class NullWorkspaceSeeder:
+    """
+    No adoption. The ordinary, ``--resume``-less variant.
+
+    Injected explicitly at the composition root; never an implicit fallback
+    (ADR-0000, rule 1).
+    """
+
+    def seed(self, parent: Path, workspace: Path) -> int:
+        return 0
+
+
+class NewestWorkspaceSeeder:
+    """
+    ``--resume``: adopt the newest sibling ``.tmp_staging_dir_*`` workspace's shards.
+
+    Only ever constructed for ``-O`` (STAG Section 5.4); the caller decides
+    whether it or ``NullWorkspaceSeeder`` is used (ADR-0000, rule 10 — no
+    boolean flag selecting an implementation here, only at the composition
+    root / ``WorkspacePersistenceService.open``).
+    """
+
+    def seed(self, parent: Path, workspace: Path) -> int:
+        candidates = [
+            p
+            for p in parent.iterdir()
+            if p.is_dir() and p.name.startswith(DIR_STAGING_PREFIX) and p != workspace
+        ]
+        if not candidates:
+            return 0
+        source = max(candidates, key=lambda p: p.stat().st_mtime)
+        shards = list_shards(source)
+        for shard in shards:
+            shard.rename(workspace / shard.name)
+        try:
+            source.rmdir()
+        except OSError as exc:
+            # Adoption itself already succeeded; only the empty scratch
+            # directory is left over (mirrors STAG Section 7.4's tolerance).
+            logger.warning("Could not remove source workspace %s: %s", source, exc)
+        if shards:
+            print(RESUME_ADOPTION_NOTICE % (len(shards), source), file=sys.stderr)
+        return len(shards)
+
+
+# --------------------------------------------------------------------------- #
 # Persist (STAG Section 6)
 # --------------------------------------------------------------------------- #
 
@@ -224,18 +279,42 @@ class WorkspaceRun:
             raise WorkspaceError(f"could not persist prefix shard {shard}: {exc}") from exc
         self._count = number
 
+    def reuse(self, index: int) -> bool:
+        # STAG-42: the counter starts at 0 regardless of how many shards were
+        # adopted by Resume, and only advances one step at a time, in dispatch
+        # order — so a gap left by a partially committed predecessor run (STAG
+        # Section 5.4's limits) is re-persisted at exactly its own position,
+        # never shifting every later shard's number.
+        candidate = self._path / shard_name(self._count + 1)
+        if not candidate.is_file():
+            return False
+        self._count += 1
+        return True
+
 
 class WorkspacePersistenceService:
     """PersistenceService backed by one hidden workspace per run and sink."""
 
-    def __init__(self, layout: WorkspaceLayout) -> None:
+    def __init__(
+        self,
+        layout: WorkspaceLayout,
+        null_seeder: WorkspaceSeeder,
+        resume_seeder: WorkspaceSeeder,
+    ) -> None:
+        # Both variants are injected; --resume only picks between them in
+        # open() below, never reassigns either (ADR-0000, rules 5 and 6).
+        _require(null_seeder, WorkspaceSeeder, "null_seeder")
+        _require(resume_seeder, WorkspaceSeeder, "resume_seeder")
         self._layout = layout
+        self._null_seeder = null_seeder
+        self._resume_seeder = resume_seeder
 
     def open(
         self,
         op: OutputParameters,
         prompt_template: PromptTemplate,
         sessions: list[ChatSession],
+        ep: ExecutionParameters,
     ) -> WorkspaceRun:
         location = self._layout.locate(op)
         self._layout.check_parent(location)
@@ -253,6 +332,16 @@ class WorkspacePersistenceService:
             ) from exc
         except OSError as exc:
             raise WorkspaceError(f"could not create workspace {location.path}: {exc}") from exc
+
+        # STAG Section 5.4: only -O ever adopts (CONF-34 rejects --resume for
+        # -o/stdout before this point is ever reached).
+        seeder = (
+            self._resume_seeder
+            if ep.resume_bool_setting.value and location.sink is SinkKind.DIRECTORY
+            else self._null_seeder
+        )
+        seeder.seed(location.parent, location.path)
+
         return WorkspaceRun(location.path)
 
     @staticmethod
@@ -482,3 +571,13 @@ class WorkspaceCommitService:
         except OSError as exc:
             # The sink is already complete; only the scratch copy is left over.
             logger.warning("Could not remove workspace %s: %s", workspace, exc)
+
+
+def _require(value: object, protocol: type, name: str) -> None:
+    # Validate, never substitute (ADR-0000, rule 3). The Protocol check only
+    # verifies method names (rule 13); signatures are covered by mypy.
+    if not isinstance(value, protocol):
+        raise TypeError(
+            f"WorkspacePersistenceService: '{name}' must implement "
+            f"{protocol.__name__}, got {type(value).__name__}."
+        )

@@ -29,6 +29,7 @@ from dragiter.domain.models.settings import (
     PackLimitCharsIntSetting,
     PromptFilePathSetting,
     ResourceFilePathSetting,
+    ResumeBoolSetting,
     RetryDelayIntSetting,
     SequentialProcessingBoolSetting,
     SimulateBoolSetting,
@@ -75,6 +76,7 @@ class ExecutionParameters(ValueSettingsActivityProvider):
     sequential_processing_bool_setting: SequentialProcessingBoolSetting
     pack_limit_chars_int_setting: PackLimitCharsIntSetting
     max_chunks_int_setting: MaxChunksIntSetting
+    resume_bool_setting: ResumeBoolSetting
 
 
 @dataclass(frozen=True)

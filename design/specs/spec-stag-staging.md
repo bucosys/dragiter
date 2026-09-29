@@ -7,8 +7,8 @@
 | Type | technical |
 | Serves | `OUTP` |
 | Product | dragiter |
-| Version | 2.4 (supersedes v2.3, v2.2, v2.1, v2.0 and `dragiter_ap_staging.md`, v1.0) |
-| Status | agreed target state (specification); Resume (Section 5.4, 6.4) is *proposed*, not yet implemented |
+| Version | 2.5 (supersedes v2.4, v2.3, v2.2, v2.1, v2.0 and `dragiter_ap_staging.md`, v1.0) |
+| Status | agreed target state (specification) |
 | Date | 2026-09-29 |
 | Read pin | `eb8097bcdbfd826777b06434fb9b39d11598916a` |
 | Staging commit (baseline) | `534b2cd9faa75aadee5a0b993d52f4dd82a7d6c6` |
@@ -18,6 +18,11 @@
 This profile does not replace the source code. **This target state** governs all future work; the implementation is built against it, not adapted from the current mechanics. Read pin and staging commit only mark the baseline the implementation starts from.
 
 ---
+
+## Change history vs. v2.4
+
+- **Resume implemented; *proposed* dropped from Section 5.4/6.4 and STAG-37 to STAG-43.** Covered by `tests/test_staging_workspace.py` (Phase R), `tests/test_session_board_and_persistence.py` and `tests/e2e/test_e2e_simulate_pipeline.py`. Settles one of Section 12's former open items: adoption is always announced on stderr (source path and shard count), regardless of `-v`; the reused-session count itself is `EXEC`'s board concern.
+- **Section 6.4 corrected — editorial only, no normative change.** The v2.4 wording ("the counter starts already advanced by the number of adopted shards") was ambiguous enough to misread as pre-setting the counter to the adopted count before dispatch begins. It does not: the counter stays at `0` and advances by exactly one, one session at a time, only as `reuse()` is actually asked about each session in dispatch order — the same behaviour STAG-42 already specified. Reworded to say so plainly; the acceptance criterion itself was correct throughout and needed no change.
 
 ## Change history vs. v2.3
 
@@ -71,7 +76,7 @@ Not a purpose: OS temp as the parent of `-o`/`-O`, a shared workspace for multip
 - `output_delimiter`, `output_filename_schema`, the `{TIMESTAMP}` token.
 - Early check before the first completion, where names are determinable without a write timestamp.
 - Shard persist (identical across all three sinks) and Assembly (`-o`/stdout-only only).
-- Resume (`--resume`, `-O` only, *proposed*): adopting the newest sibling
+- Resume (`--resume`, `-O` only): adopting the newest sibling
   workspace's shards into the run's own workspace before the first completion
   (Section 5.4, 6.4).
 
@@ -102,7 +107,7 @@ Not a purpose: OS temp as the parent of `-o`/`-O`, a shared workspace for multip
 | Parent | Directory that hosts the workspace |
 | User temp | User's default temp directory: `$TMPDIR` if set and usable, otherwise the platform default (`tempfile.gettempdir()` / `/tmp` on Unix). Not CWD, not `$XDG_CACHE_HOME`, not `$XDG_RUNTIME_DIR` |
 | Workspace | Hidden child of the parent, scoped to this run and this sink only |
-| Resume | `--resume` (*proposed*): before this run's first persist, adopt the newest sibling workspace's shards into this run's own workspace, then remove that sibling. `-O` only. |
+| Resume | `--resume`: before this run's first persist, adopt the newest sibling workspace's shards into this run's own workspace, then remove that sibling. `-O` only. |
 | Source workspace | The sibling `.tmp_staging_dir_*` directory Resume adopts from — the most recently modified one under `DIR`, other than the run's own |
 | Persist | Writing a **finished** shard file into the workspace after a completion |
 | Shard | Finished single-completion file in the workspace, named by a run-local, sequential number (`res<N>`, fixed width). No relation to the final name, schema, or `FILE.name` |
@@ -146,7 +151,7 @@ Three prefixes, even if `FILE.parent == DIR` or CWD = user temp by coincidence. 
 `-o`/`-O`: the workspace child sits on the target parent's filesystem; rename is the normal case for `x`/`w`. Because the workspace is already a child of the target parent, the Assembly result (for `-o`) is automatically same-FS to the target too — no extra buffer path needed.
 stdout-only: no file target, no rename; same-FS is irrelevant. User temp is correct here.
 
-### 5.4 Resume (`--resume`, `-O` only) — *proposed*
+### 5.4 Resume (`--resume`, `-O` only)
 
 Given `--resume` and `-O DIR`: the run's own workspace is created exactly as in Section 5.2, under its own PID, with no special case in `mkdir` itself. Immediately afterwards, before the first completion is persisted:
 
@@ -189,11 +194,13 @@ Persist is **identical** across all three sinks: every completion — including 
 - If `output_filename_schema` contains `{TIMESTAMP}`, the commit uses exactly that shard's mtime — no new clock read at rename time.
 - Without `{TIMESTAMP}` in the schema, the shard mtime is not needed; the final name is known before the chats (early check, Section 8).
 
-### 6.4 Interaction with Resume — *proposed*
+### 6.4 Interaction with Resume
 
-When shards were adopted (Section 5.4), the workspace's local sequence counter starts already advanced by the number of adopted shards — not at `0`. Concretely: if adoption moved `res000001` through `res000004` into the workspace, the next shard persisted by this run (for whichever session the run loop is currently dispatching) is `res000005`, continuing the same sequence without a gap and without renumbering the adopted shards.
+When shards were adopted (Section 5.4), the workspace's local sequence counter still starts at `0`, exactly as in an ordinary run without `--resume` — adoption does not pre-set it. Instead, the counter advances one step at a time, only as each session in dispatch order is actually checked against the workspace: if a shard for the next number already exists (adopted), that step counts it without writing anything; if it does not, this run's own persist writes it. Either way the count only ever advances by one per session, in the same order sessions are dispatched.
 
-Whether a completion for a given session is even requested from the LLM before being persisted is `EXEC`'s concern (see `EXEC` Section 4.2), not this contract's; this section only describes what happens to the shard *count* once persist for that session is reached. A session whose shard already exists from adoption does not produce a second shard under a new number — persist for it is a no-op here, and the counter is not incremented a second time for it.
+This is what makes the counter track *dispatch position*, not merely "how many shards happen to exist": if adoption moved `res000001`, `res000002` and `res000004` into the workspace — a gap at `res000003`, e.g. because an earlier run had already renamed that one shard onto its final name before aborting mid-commit (Section 5.4's limits) — then sessions 1 and 2 are recognised as already present, session 3's absence is recognised too and this run persists it as `res000003`, and session 4 is then still recognised as already present under its own, correct number. Pre-setting the counter to the adopted count (here: `3`) instead would misnumber every session from that point on; STAG-42 is the normative statement of the one-step-at-a-time rule this paragraph explains.
+
+Whether a completion for a given session is even requested from the LLM before being persisted is `EXEC`'s concern (see `EXEC` Section 4.2), not this contract's; this section only describes what happens to the shard *count* once dispatch for that session is reached. A session whose shard already exists from adoption does not produce a second shard under a new number — persist for it is a no-op here, and the counter is not incremented a second time for it.
 
 ---
 
@@ -365,13 +372,13 @@ Each criterion carries a stable identifier `STAG-NN`. Identifiers are assigned o
 
 ### Resume (`--resume`, `-O` only)
 
-- **STAG-37** *proposed* Given `--resume` and `-O DIR`, when the run's own workspace has just been created and at least one other `.tmp_staging_dir_*` directory exists directly under `DIR`, then the most recently modified one (other than the run's own) is selected as the source workspace.
-- **STAG-38** *proposed* Given a source workspace has been selected, when adoption runs, then every shard from it is moved (not copied) into the run's own workspace, in ascending sequence order, before the first completion of this run is persisted.
-- **STAG-39** *proposed* Given adoption has moved every shard out of the source workspace, when adoption completes, then the now-empty source directory is removed; if removal fails, the run continues and only a warning is logged.
-- **STAG-40** *proposed* Given `--resume` and no `.tmp_staging_dir_*` directory other than the run's own exists under `DIR`, when the run starts, then it proceeds as an ordinary fresh run — no adoption, no error.
-- **STAG-41** *proposed* Given `--resume` and more than one other `.tmp_staging_dir_*` directory under `DIR`, when a source workspace is selected, then only the single most recently modified one is adopted; every other one is left untouched (STAG-29 still applies to them).
-- **STAG-42** *proposed* Given shards were adopted into the run's own workspace, when persist reaches the session whose shard already exists from adoption, then no new shard is written for it and the workspace's local counter is not incremented a second time for it, so the next newly persisted shard continues the sequence without a gap or a collision.
-- **STAG-43** *proposed* Given `--resume` without `-O` (i.e. `-o` or stdout-only, or neither), when the configuration is validated, then the run is rejected before any workspace is created (`CONF`).
+- **STAG-37** Given `--resume` and `-O DIR`, when the run's own workspace has just been created and at least one other `.tmp_staging_dir_*` directory exists directly under `DIR`, then the most recently modified one (other than the run's own) is selected as the source workspace.
+- **STAG-38** Given a source workspace has been selected, when adoption runs, then every shard from it is moved (not copied) into the run's own workspace, in ascending sequence order, before the first completion of this run is persisted.
+- **STAG-39** Given adoption has moved every shard out of the source workspace, when adoption completes, then the now-empty source directory is removed; if removal fails, the run continues and only a warning is logged.
+- **STAG-40** Given `--resume` and no `.tmp_staging_dir_*` directory other than the run's own exists under `DIR`, when the run starts, then it proceeds as an ordinary fresh run — no adoption, no error.
+- **STAG-41** Given `--resume` and more than one other `.tmp_staging_dir_*` directory under `DIR`, when a source workspace is selected, then only the single most recently modified one is adopted; every other one is left untouched (STAG-29 still applies to them).
+- **STAG-42** Given shards were adopted into the run's own workspace, when persist reaches the session whose shard already exists from adoption, then no new shard is written for it and the workspace's local counter is not incremented a second time for it, so the next newly persisted shard continues the sequence without a gap or a collision.
+- **STAG-43** Given `--resume` without `-O` (i.e. `-o` or stdout-only, or neither), when the configuration is validated, then the run is rejected before any workspace is created (`CONF`).
 
 ---
 
@@ -403,7 +410,6 @@ Each criterion carries a stable identifier `STAG-NN`. Identifiers are assigned o
 - The reserved content name `stdout.txt`/`FILE.name` as the Assembly result in the workspace: fixed or arbitrary, as long as it is clearly distinguishable from shards.
 - Exact width of the shard sequence number (proposed here: 6 digits) — to be finally confirmed.
 - Deletion timing of individual shards after successful Assembly: immediately, or only with the whole workspace on commit success (currently: the latter, see 7.0 point 5).
-- Whether Resume's adoption and the resulting per-session reuse should be visible on the `-v` board (source path, count of reused vs. generated sessions) — very likely yes, but the board contract itself lives outside this document (`EXEC`).
 - Whether a later round should detect session-plan drift between the aborted and the resumed run (e.g. a hash of material/loop/prompt) instead of trusting shard position alone — deliberately deferred for this round; see Section 11's Non-goals.
 
 ---
@@ -523,7 +529,7 @@ Stop if `-O` swallows empty slots, or Assembly materialises empty blocks for `-o
 | I4 | Foreign folder `.tmp_staging_dir_1` next to one's own | After one's own success, `_1` remains | STAG-29 |
 | I5 | `{TIMESTAMP}` in the `-O` schema | Early check does not run; final name carries the shard mtime | STAG-26, STAG-27 |
 
-### Phase R — Resume (`--resume`, `-O` only) — *proposed*
+### Phase R — Resume (`--resume`, `-O` only)
 
 Goal: adoption is a location-time operation — it runs once, right after the run's own workspace is created and before its first persist — and it never reaches beyond `-O`.
 

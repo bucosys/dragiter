@@ -144,6 +144,7 @@ All settings that appear in the configuration loader are listed below.
 | `simulate`               | `-s`      | bool   | `false`                   | Simulation mode (no API calls)                                 |
 | `verbose`                | `-v`      | bool   | `false`                   | Verbose output                                                 |
 | `sequential_processing`  | —         | bool   | `false`                   | `--sequential-processing`: one request per chunk               |
+| `resume`                 | —         | bool   | `false`                   | `--resume`: adopt the newest leftover staging workspace under `-O DIR` before the first completion (requires `-O`) |
 | `tcp_keep_alive`         | —         | bool   | `false`                   | `--tcp-keep-alive` on the httpx2 transport                     |
 | `api_key`                | —         | string | (none)                    | API key for the LLM service                                    |
 | `base_url`               | —         | string | (none)                    | Base URL of the OpenAI-compatible endpoint                     |
@@ -514,6 +515,7 @@ dragiter [options]
   --client-key-file PATH
   --tcp-keep-alive
   --sequential-processing
+  --resume
   --output-delimiter TEXT
   --output-filename-schema TEXT
   -h, --help
@@ -614,6 +616,31 @@ Only after every session has completed does dragiter commit:
 If a write conflict occurs (such as an existing file under exclusive mode `-m x`), the commit aborts to
 prevent data corruption, leaving the shards intact inside the staging workspace for recovery. The
 workspace is removed only after a successful commit.
+
+### Resume
+
+`--resume` picks up exactly the staging workspace a previous, aborted `-O` run left behind, instead of
+paying for every session again. It requires `-O`; combined with `-o` or with neither, the run is
+rejected before anything is touched.
+
+Right after the run's own, freshly created workspace exists (same PID-suffixed naming as always — see
+the table above), dragiter looks for other `.tmp_staging_dir_*` directories directly inside the target
+`-O` directory. Finding none is not an error: the run simply proceeds as if `--resume` had not been
+given. Finding one or more, it picks the single most recently modified one, moves every one of its
+shards into the new workspace (same filesystem, so a plain rename — no shard is read or rewritten), and
+removes the now-empty source directory. Any other leftover workspace is left untouched, the same as
+without `--resume`. A line naming the source and the number of shards adopted is always printed to
+stderr, independent of `-v`.
+
+Once a shard already exists for a given session, that session's request is never sent — neither to the
+live endpoint nor to the mock service — and the session is reported as `reused` instead of generating a
+new reply. Every other session runs exactly as in an ordinary run. The final commit does not
+distinguish an adopted shard from a freshly persisted one.
+
+`--resume` trusts the shard sequence positionally: it assumes the material, loop file, prompt and
+`--sequential-processing` are unchanged from the aborted run, so that a shard's position still means the
+same session. There is no manifest or fingerprint checking this — changing those inputs between the
+aborted run and the resumed one will silently attribute an old reply to the wrong session.
 
 ### Simulate boards
 

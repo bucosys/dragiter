@@ -17,6 +17,8 @@ import os
 from pathlib import Path
 import sys
 
+import pytest
+
 from dragiter.application.config.configuration_loader import ConfigurationLoader
 from dragiter.application.config.configuration_validator import ConfigurationValidator
 from dragiter.application.core.xdi import ApplicationManager
@@ -38,9 +40,13 @@ from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileR
 from dragiter.infrastructure.io.workspace_service import (
     DIR_STAGING_PREFIX,
     FILE_STAGING_PREFIX,
+    RESUME_ADOPTION_NOTICE,
+    NewestWorkspaceSeeder,
+    NullWorkspaceSeeder,
     WorkspaceCommitService,
     WorkspaceLayout,
     WorkspacePersistenceService,
+    shard_name,
     user_temp_directory,
 )
 from dragiter.infrastructure.llm.mockai_service import MockAIService
@@ -78,7 +84,9 @@ def _run_simulate_pipeline(flags: list[str]) -> int:
                 MockAIService(),
                 StderrSessionBoard(sys.stderr, interactive=False),
                 NullSessionBoard(),
-                WorkspacePersistenceService(layout),
+                WorkspacePersistenceService(
+                    layout, NullWorkspaceSeeder(), NewestWorkspaceSeeder()
+                ),
                 MarkdownResultBoard(),
             )
         )
@@ -202,3 +210,60 @@ def test_simulate_pipeline_with_activity_log(tiny_example_dir: Path) -> None:
 
     for line in lines:
         json.loads(line)
+
+
+def test_resume_adopts_leftover_shard_and_only_simulates_the_rest(
+    tiny_example_dir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """
+    End-to-end ``--resume``: a shard left over from an aborted earlier run is
+    committed unchanged; only the session without a shard is simulated.
+
+    STAG-37/38/39, EXEC-18.
+    """
+    output_dir = tiny_example_dir / "outputs" / "resume_e2e"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Stand-in for an aborted earlier run's leftover workspace (foreign PID):
+    # session 1's shard already exists, session 2's never got that far.
+    leftover = output_dir / f"{DIR_STAGING_PREFIX}999003"
+    leftover.mkdir()
+    marker = "PRE-EXISTING-SHARD-CONTENT"
+    (leftover / shard_name(1)).write_text(marker, encoding="utf-8")
+
+    flags = [
+        "-s",
+        "-v",
+        "--resume",
+        "-b",
+        str(tiny_example_dir),
+        "-p",
+        str(tiny_example_dir / "01_tiny_prompt.toml"),
+        "-r",
+        str(tiny_example_dir / "01_tiny_resource.toml"),
+        "-l",
+        str(tiny_example_dir / "01_tiny_loop.txt"),
+        "-O",
+        str(output_dir),
+        "-m",
+        "w",
+    ]
+
+    returncode = _run_simulate_pipeline(flags)
+    assert returncode == 0, f"Resume pipeline failed (exit {returncode})."
+    assert (RESUME_ADOPTION_NOTICE % (1, leftover)) in capsys.readouterr().err
+
+    assert not leftover.exists()  # adopted, then removed (STAG-39)
+    assert not (output_dir / f"{DIR_STAGING_PREFIX}{os.getpid()}").exists()  # committed, gone
+
+    created = sorted(
+        p
+        for p in output_dir.iterdir()
+        if p.is_file() and DIR_STAGING_PREFIX not in p.name
+    )
+    assert len(created) == 2, f"Expected 2 output files, got {[p.name for p in created]}"
+
+    # Session 1 (LOOP_NUM_ID=1, sorts first): reused verbatim, never re-simulated.
+    assert created[0].read_text(encoding="utf-8") == marker
+    # Session 2: no adopted shard, so it went through the ordinary simulate path.
+    assert created[1].read_text(encoding="utf-8").lstrip().startswith("***")

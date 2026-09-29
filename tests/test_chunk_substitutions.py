@@ -34,6 +34,7 @@ from dragiter.domain.models.settings import (
     PackLimitCharsIntSetting,
     PromptFilePathSetting,
     ResourceFilePathSetting,
+    ResumeBoolSetting,
     SequentialProcessingBoolSetting,
     SimulateBoolSetting,
     TaskStringSetting,
@@ -59,6 +60,7 @@ def _ep(pack_limit_chars: int | None = None) -> ExecutionParameters:
         SequentialProcessingBoolSetting("sequential_processing"),
         setting,
         MaxChunksIntSetting("max_chunks"),
+        ResumeBoolSetting("resume"),
     )
 
 

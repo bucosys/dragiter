@@ -56,6 +56,7 @@ from dragiter.domain.models.settings import (
     PathSetting,
     PromptFilePathSetting,
     ResourceFilePathSetting,
+    ResumeBoolSetting,
     RetryDelayIntSetting,
     SequentialProcessingBoolSetting,
     SimulateBoolSetting,
@@ -103,6 +104,7 @@ class ConfigurationLoader(Worker):
             SequentialProcessingBoolSetting("sequential_processing"),
             PackLimitCharsIntSetting("pack_limit_chars"),
             MaxChunksIntSetting("max_chunks"),
+            ResumeBoolSetting("resume"),
         )
 
         self._ip: InputParameters = InputParameters(
@@ -143,6 +145,11 @@ class ConfigurationLoader(Worker):
             BoolSettingArgumentDecorator(
                 self._ep.sequential_processing_bool_setting,
                 help="Process chunks sequentially (one by one)",
+            ),
+            BoolSettingArgumentDecorator(
+                self._ep.resume_bool_setting,
+                help="Resume an aborted -O run: adopt the newest leftover staging "
+                "workspace under -O DIR before the first completion (STAG Section 5.4)",
             ),
             APIStringSettingArgumentDecorator(
                 self._aisp.api_key_string_setting, help="API key for the LLM service"

@@ -25,6 +25,7 @@ from dragiter.domain.models.settings import ValueOrigin
 from dragiter.infrastructure.cli.markdown_result_board import MarkdownResultBoard
 from dragiter.infrastructure.cli.null_session_board import NullSessionBoard
 from dragiter.infrastructure.io.workspace_service import (
+    NullWorkspaceSeeder,
     WorkspaceCommitService,
     WorkspaceError,
     WorkspaceLayout,
@@ -57,7 +58,8 @@ def _run(
     result.output_chat_message.content = content
     prompt = PromptTemplate("", "", "", "", 0.0, False, filename_schema, "\n\n")
     layout = WorkspaceLayout(pid=os.getpid(), user_temp=user_temp)
-    run = WorkspacePersistenceService(layout).open(groups["op"], prompt, [session])
+    service = WorkspacePersistenceService(layout, NullWorkspaceSeeder(), NullWorkspaceSeeder())
+    run = service.open(groups["op"], prompt, [session], groups["ep"])
     run.persist(1, session, result)
     OutputWriter(WorkspaceCommitService(layout, sys.stdout)).run(
         ChatSessions([session]), groups["op"], prompt,
@@ -77,7 +79,7 @@ def _run_simulate(groups, user_temp: Path, *, result_board=None) -> None:
         MockAIService(),
         NullSessionBoard(),
         NullSessionBoard(),
-        WorkspacePersistenceService(layout),
+        WorkspacePersistenceService(layout, NullWorkspaceSeeder(), NullWorkspaceSeeder()),
         result_board or MarkdownResultBoard(),
     )
     sessions = ChatSessions([session])

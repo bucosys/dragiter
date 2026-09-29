@@ -5,8 +5,8 @@
 | Document | `design/specs/spec-exec-execution.md` |
 | Code | `EXEC` |
 | Type | functional |
-| Version | 0.4 |
-| Status | draft — initial version, describes current code; 4.2's Resume paragraph and EXEC-18 are *proposed*, not yet implemented |
+| Version | 0.5 |
+| Status | draft — initial version, describes current code |
 | Created | 2026-09-24 |
 | Related | `LIMT`, `OUTP`, `CONF`, `STAG` |
 
@@ -25,7 +25,7 @@ In scope:
 - Choosing the live LLM adapter or the mock adapter per run (`ChatManager`), and the
   live vs. silent progress board.
 - Skipping a session's LLM call entirely when `--resume` already adopted its shard
-  before dispatch reached it (*proposed*; adoption itself is `STAG`'s concern).
+  before dispatch reached it (adoption itself is `STAG`'s concern).
 - Streaming a completion from an OpenAI-compatible endpoint and assembling it into one
   result (`OpenAIServiceExt`).
 - Retrying a failed request and deciding which faults are worth retrying
@@ -50,7 +50,7 @@ settings precedence and provider switching (see `CONF`).
 | Retryable fault | A fault where `CompletionRetryPolicy.is_retryable` returns `True` (4.4). |
 | Terminal fault | A fault that is never retried, regardless of attempts remaining (4.4). |
 | Progress listener | `StreamProgressListener`: `on_stream_chunk()` per streamed chunk, `abandon_session()` before a retry/backoff log line commits the live request line. |
-| Reused session | *proposed*: a session whose shard was already adopted into the workspace via `--resume` (`STAG` Section 5.4) before dispatch reached it. Its `process_query` call is skipped entirely. |
+| Reused session | A session whose shard was already adopted into the workspace via `--resume` (`STAG` Section 5.4) before dispatch reached it. Its `process_query` call is skipped entirely. |
 
 ## 4. Behaviour
 
@@ -79,7 +79,7 @@ afterwards (`ADR-0000`, rule 6):
 Sessions are dispatched one at a time, in order. Each session is persisted immediately
 after its result returns (`sink.persist`, see `STAG`), before the next session starts.
 
-*Proposed:* before calling `process_query` for a session, dispatch checks whether that
+Before calling `process_query` for a session, dispatch checks whether that
 session is already a reused session (`sink.reuse`, `STAG` Section 6.4). If so,
 `process_query` is not called at all for it — no request reaches the LLM adapter, live
 or mock — and dispatch proceeds directly to the next session. This check applies
@@ -200,7 +200,7 @@ is not implemented yet is marked *proposed* directly after its identifier.
 
 ### Resume interaction
 
-- **EXEC-18** *proposed* Given `--resume` and a session whose shard was already
+- **EXEC-18** Given `--resume` and a session whose shard was already
   adopted into the workspace before dispatch reached it, when `ChatManager` dispatches
   that session, then `process_query` is never called for it (neither the live nor the
   mock adapter), and dispatch proceeds directly to the next session.
@@ -226,3 +226,7 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - 0.4 (2026-09-29): *proposed* dispatch-time skip for a reused session (`--resume`,
   `STAG` Section 5.4/6.4) — new "Reused session" term, EXEC-18, and a paragraph in
   4.2. No behaviour change yet; nothing here is implemented.
+- 0.5 (2026-09-29): implemented; *proposed* dropped from 4.2, the "Reused session"
+  term and EXEC-18. Covered by
+  `tests/test_session_board_and_persistence.py::test_resume_skips_llm_call_for_already_adopted_session`
+  and the `--resume` end-to-end test in `tests/e2e/test_e2e_simulate_pipeline.py`.

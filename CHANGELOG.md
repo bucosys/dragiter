@@ -9,6 +9,11 @@ Entries are short and written in British English.
 
 ## [Unreleased]
 
+### Added
+- ``--resume``: adopts the newest leftover ``-O`` staging workspace from
+  an aborted run before the first completion, and skips the LLM call for
+  any session whose shard is already there. Requires ``-O``.
+
 ## [2026.9.26] - 2026-09-26
 
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.9.26](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.26)

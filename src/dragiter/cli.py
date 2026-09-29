@@ -32,6 +32,8 @@ from dragiter.infrastructure.cli.stderr_session_board import StderrSessionBoard
 from dragiter.infrastructure.file.simple_file_checker import SimpleFileChecker
 from dragiter.infrastructure.file.simple_text_file_reader import SimpleTextFileReader
 from dragiter.infrastructure.io.workspace_service import (
+    NewestWorkspaceSeeder,
+    NullWorkspaceSeeder,
     WorkspaceCommitService,
     WorkspaceLayout,
     WorkspacePersistenceService,
@@ -94,7 +96,9 @@ def main():
                 MockAIService(),
                 StderrSessionBoard(sys.stderr, interactive=sys.stderr.isatty()),
                 NullSessionBoard(),
-                WorkspacePersistenceService(workspace_layout),
+                WorkspacePersistenceService(
+                    workspace_layout, NullWorkspaceSeeder(), NewestWorkspaceSeeder()
+                ),
                 MarkdownResultBoard(),
             )
         )  # -> ChatResults

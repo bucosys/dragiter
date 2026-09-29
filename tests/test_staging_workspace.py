@@ -15,6 +15,7 @@ from io import StringIO
 import os
 from pathlib import Path
 import re
+import time
 
 import pytest
 from support import blank_parameter_groups
@@ -42,8 +43,11 @@ from dragiter.infrastructure.io.workspace_service import (
     DIR_STAGING_PREFIX,
     EXCLUSIVE_RUNTIME_NOTICE,
     FILE_STAGING_PREFIX,
+    RESUME_ADOPTION_NOTICE,
     STDOUT_CONTENT_NAME,
     STDOUT_STAGING_PREFIX,
+    NewestWorkspaceSeeder,
+    NullWorkspaceSeeder,
     WorkspaceCommitError,
     WorkspaceCommitService,
     WorkspaceConflictError,
@@ -125,9 +129,16 @@ def _result(text: str) -> ChatResult:
     return result
 
 
-def _persist(env: Env, groups, prompt: PromptTemplate, texts: list[str]) -> WorkspaceRun:
+def _service(layout: WorkspaceLayout) -> WorkspacePersistenceService:
+    """Ordinary, --resume-less service: NullWorkspaceSeeder on both slots."""
+    return WorkspacePersistenceService(layout, NullWorkspaceSeeder(), NullWorkspaceSeeder())
+
+
+def _persist(
+    env: Env, groups, prompt: PromptTemplate, texts: list[str], *, ep=None
+) -> WorkspaceRun:
     sessions = _sessions(len(texts))
-    run = WorkspacePersistenceService(env.layout).open(groups["op"], prompt, sessions)
+    run = _service(env.layout).open(groups["op"], prompt, sessions, ep or groups["ep"])
     for index, (session, text) in enumerate(zip(sessions, texts, strict=True), start=1):
         run.persist(index, session, _result(text))
     return run
@@ -179,8 +190,9 @@ def test_p4_unusable_tmpdir_aborts_stdout(env: Env, tmp_path: Path) -> None:
     user_temp = user_temp_directory({"TMPDIR": str(unusable)})
     assert user_temp == unusable
     layout = WorkspaceLayout(pid=PID, user_temp=user_temp)
+    groups = _groups()
     with pytest.raises(WorkspaceError, match="user temp"):
-        WorkspacePersistenceService(layout).open(_groups()["op"], _prompt(), _sessions(1))
+        _service(layout).open(groups["op"], _prompt(), _sessions(1), groups["ep"])
     assert env.staging_dirs(env.cwd) == []
     assert not unusable.exists()
 
@@ -347,7 +359,7 @@ def test_x3_duplicate_planned_names_abort_in_every_mode(env: Env, mode: str) -> 
     groups = _groups(mode, directory=env.dir)
     sessions = [_session("same.md", 1), _session("same.md", 2)]
     with pytest.raises(WorkspaceConflictError):
-        WorkspacePersistenceService(env.layout).open(groups["op"], _prompt(), sessions)
+        _service(env.layout).open(groups["op"], _prompt(), sessions, groups["ep"])
     assert env.staging_dirs(env.dir) == []
 
 
@@ -536,6 +548,93 @@ def test_i5_timestamp_skips_early_check_and_uses_shard_mtime(
     assert expected.read_text(encoding="utf-8") == "A"
 
 
+# --------------------------------------------------------------------------- #
+# Phase R - Resume (--resume, -O only), independent of P-I
+# --------------------------------------------------------------------------- #
+
+
+def _resume_service(layout: WorkspaceLayout) -> WorkspacePersistenceService:
+    return WorkspacePersistenceService(layout, NullWorkspaceSeeder(), NewestWorkspaceSeeder())
+
+
+def test_r1_adopts_newest_sibling_workspace_shards(
+    env: Env, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """STAG-37, STAG-38, STAG-39."""
+    source = env.dir / f"{DIR_STAGING_PREFIX}999001"
+    source.mkdir()
+    (source / shard_name(1)).write_bytes(b"A")
+    (source / shard_name(2)).write_bytes(b"B")
+
+    groups = _groups("w", directory=env.dir)
+    groups["ep"].resume_bool_setting.set(True, ValueOrigin.CLI)
+    run = _resume_service(env.layout).open(groups["op"], _prompt(), _sessions(2), groups["ep"])
+
+    assert not source.exists()  # STAG-39: emptied source is removed
+    shards = list_shards(run.path)
+    assert [shard.name for shard in shards] == [shard_name(1), shard_name(2)]  # STAG-38: order
+    assert (run.path / shard_name(1)).read_bytes() == b"A"
+    assert (run.path / shard_name(2)).read_bytes() == b"B"
+    assert (RESUME_ADOPTION_NOTICE % (2, source)) in capsys.readouterr().err
+
+
+def test_r2_resume_without_a_candidate_is_an_ordinary_fresh_run(env: Env) -> None:
+    """STAG-40."""
+    groups = _groups("w", directory=env.dir)
+    groups["ep"].resume_bool_setting.set(True, ValueOrigin.CLI)
+    run = _resume_service(env.layout).open(groups["op"], _prompt(), _sessions(1), groups["ep"])
+    assert list_shards(run.path) == []
+
+
+def test_r3_only_the_newest_sibling_workspace_is_adopted(env: Env) -> None:
+    """STAG-41."""
+    older = env.dir / f"{DIR_STAGING_PREFIX}999001"
+    newer = env.dir / f"{DIR_STAGING_PREFIX}999002"
+    older.mkdir()
+    newer.mkdir()
+    (older / shard_name(1)).write_bytes(b"old")
+    (newer / shard_name(1)).write_bytes(b"new")
+    # Force a clear mtime ordering, independent of filesystem timestamp
+    # resolution or the speed of the two mkdir() calls above.
+    now = time.time()
+    os.utime(older, (now - 10, now - 10))
+    os.utime(newer, (now, now))
+
+    groups = _groups("w", directory=env.dir)
+    groups["ep"].resume_bool_setting.set(True, ValueOrigin.CLI)
+    run = _resume_service(env.layout).open(groups["op"], _prompt(), _sessions(1), groups["ep"])
+
+    assert not newer.exists()
+    assert older.is_dir()  # untouched; STAG-29 still applies to it
+    assert (older / shard_name(1)).read_bytes() == b"old"
+    assert (run.path / shard_name(1)).read_bytes() == b"new"
+
+
+def test_r4_reuse_advances_the_counter_one_session_at_a_time(env: Env) -> None:
+    """STAG-42."""
+    source = env.dir / f"{DIR_STAGING_PREFIX}999001"
+    source.mkdir()
+    # Sessions 1, 2 and 4 already have shards - as if a partially committed
+    # predecessor run had already renamed session 3's shard onto its final
+    # name before aborting (STAG Section 5.4's limits): session 3 is a gap.
+    for number in (1, 2, 4):
+        (source / shard_name(number)).write_bytes(f"s{number}".encode())
+
+    groups = _groups("w", directory=env.dir)
+    groups["ep"].resume_bool_setting.set(True, ValueOrigin.CLI)
+    run = _resume_service(env.layout).open(groups["op"], _prompt(), _sessions(5), groups["ep"])
+
+    assert run.reuse(1) is True
+    assert run.reuse(2) is True
+    assert run.reuse(3) is False  # the gap: must be re-persisted, not skipped
+    run.persist(3, _session("s3.md", 3), _result("regenerated"))
+    assert run.reuse(4) is True  # unaffected by the gap: still its own number
+    assert run.reuse(5) is False
+
+    assert (run.path / shard_name(3)).read_bytes() == b"regenerated"
+    assert (run.path / shard_name(4)).read_bytes() == b"s4"
+
+
 def test_file_name_colliding_with_shard_scheme_is_rejected(env: Env) -> None:
     target = env.dir / "res000001"
     groups = _groups("w", file=target)
@@ -567,7 +666,7 @@ def test_workers_share_one_workspace_via_layout(env: Env) -> None:
         MockAIService(),
         StderrSessionBoard(StringIO(), interactive=False),
         NullSessionBoard(),
-        WorkspacePersistenceService(env.layout),
+        _service(env.layout),
         MarkdownResultBoard(),
     )
     context_report = ContextValidationReport(is_valid=True, total_tokens=0, max_tokens_limit=0)

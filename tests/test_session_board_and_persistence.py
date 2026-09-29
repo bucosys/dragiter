@@ -31,9 +31,12 @@ from dragiter.infrastructure.cli.stderr_session_board import (
 from dragiter.infrastructure.io.null_persistence_service import NullPersistenceService
 from dragiter.infrastructure.io.workspace_service import (
     DIR_STAGING_PREFIX,
+    NewestWorkspaceSeeder,
+    NullWorkspaceSeeder,
     WorkspaceLayout,
     WorkspacePersistenceService,
     WorkspaceRun,
+    shard_name,
 )
 from dragiter.infrastructure.llm.mockai_service import MockAIService
 
@@ -231,7 +234,11 @@ def test_chat_manager_persists_before_a_later_failure(tmp_path: Path) -> None:
         MockAIService(),
         StderrSessionBoard(StringIO(), interactive=False),
         NullSessionBoard(),
-        WorkspacePersistenceService(WorkspaceLayout(pid=os.getpid(), user_temp=tmp_path)),
+        WorkspacePersistenceService(
+            WorkspaceLayout(pid=os.getpid(), user_temp=tmp_path),
+            NullWorkspaceSeeder(),
+            NullWorkspaceSeeder(),
+        ),
         MarkdownResultBoard(),
     )
     deps = _pipeline_deps()
@@ -250,6 +257,72 @@ def test_chat_manager_persists_before_a_later_failure(tmp_path: Path) -> None:
     assert staging.is_dir(), list(tmp_path.iterdir())
     assert len(saved) == 1
     assert saved[0].read_text(encoding="utf-8") == "ok-1"
+
+
+class _FailIfCalledForReused:
+    """Live LLM double: explodes if dispatched for an already-adopted session."""
+
+    def __init__(self) -> None:
+        self.calls: list[ChatSession] = []
+
+    def process_query(self, aisp, lp, session, progress=None):
+        self.calls.append(session)
+        if session.chunk.filename == "a.md":
+            raise AssertionError("process_query must not be called for a reused session")
+        result = ChatResult(finish_reason="stop")
+        result.output_chat_message.content = "generated-b"
+        return result
+
+
+def test_resume_skips_llm_call_for_already_adopted_session(tmp_path: Path) -> None:
+    """EXEC-18."""
+    groups = blank_parameter_groups()
+    groups["aisp"].model_name_string_setting.set("test", ValueOrigin.CLI)
+    groups["op"].output_directory_path_setting.set(tmp_path, ValueOrigin.CLI)
+    groups["op"].output_mode_string_setting.set("w", ValueOrigin.CLI)
+    groups["ep"].resume_bool_setting.set(True, ValueOrigin.CLI)
+
+    pid = os.getpid()
+    # A leftover sibling from an aborted earlier run (different PID), holding
+    # session 1's shard. The run's own workspace does not exist yet — open()
+    # creates it fresh and only then adopts this one (STAG Section 5.4).
+    foreign = tmp_path / f"{DIR_STAGING_PREFIX}999999"
+    foreign.mkdir()
+    (foreign / shard_name(1)).write_bytes(b"already-there")
+
+    sessions = ChatSessions(session_list=[_session("a.md"), _session("b.md")])
+    llm = _FailIfCalledForReused()
+    manager = ChatManager(
+        llm,
+        MockAIService(),
+        StderrSessionBoard(StringIO(), interactive=False),
+        NullSessionBoard(),
+        WorkspacePersistenceService(
+            WorkspaceLayout(pid=pid, user_temp=tmp_path),
+            NullWorkspaceSeeder(),
+            NewestWorkspaceSeeder(),
+        ),
+        MarkdownResultBoard(),
+    )
+    deps = _pipeline_deps()
+    deps[4].output_filename_schema = "{CHUNK_FILE_NAME}"
+    results = manager.run(
+        groups["aisp"],
+        groups["lp"],
+        groups["ep"],
+        sessions,
+        groups["op"],
+        *deps,
+    )
+
+    assert [session.chunk.filename for session in llm.calls] == ["b.md"]
+    assert results.chat_result_list[0].finish_reason == "reused"
+    assert results.chat_result_list[1].finish_reason == "stop"
+
+    staging = tmp_path / f"{DIR_STAGING_PREFIX}{pid}"
+    assert not foreign.exists()
+    assert (staging / shard_name(1)).read_bytes() == b"already-there"
+    assert (staging / shard_name(2)).read_text(encoding="utf-8") == "generated-b"
 
 
 def test_mock_does_not_emit_stream_chunks() -> None:

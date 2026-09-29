@@ -3,7 +3,7 @@
 
 from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
-from dragiter.domain.models.parameters import OutputParameters
+from dragiter.domain.models.parameters import ExecutionParameters, OutputParameters
 from dragiter.domain.models.prompt_template import PromptTemplate
 
 
@@ -20,6 +20,7 @@ class NullPersistenceService:
         op: OutputParameters,
         prompt_template: PromptTemplate,
         sessions: list[ChatSession],
+        ep: ExecutionParameters,
     ) -> "NullPersistenceService":
         return self
 
@@ -28,3 +29,6 @@ class NullPersistenceService:
 
     def persist_prefix(self, content: str) -> None:
         return None
+
+    def reuse(self, index: int) -> bool:
+        return False

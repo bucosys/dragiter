@@ -86,7 +86,7 @@ class ChatManager(Worker):
         total = len(sessions)
 
         try:
-            sink = self._persistence.open(op, prompt_template, sessions)
+            sink = self._persistence.open(op, prompt_template, sessions, ep)
 
             # Simulate's -o/stdout output leads with one aggregate board shard.
             # Never for -O: it requires exactly one shard per session (STAG Section 7).
@@ -133,6 +133,14 @@ class ChatManager(Worker):
 
             for index, session in enumerate(sessions, start=1):
                 board.begin_session(index, total, session)
+                if sink.reuse(index):
+                    # EXEC-18: --resume already adopted this session's shard
+                    # (STAG Section 5.4/6.4) — no LLM call at all, live or
+                    # mock, and no re-persist; the shard is already in place.
+                    reused = ChatResult(finish_reason="reused")
+                    board.end_session(reused)
+                    chat_result_list.append(reused)
+                    continue
                 try:
                     result = llm_service.process_query(aisp, lp, session, progress=board)
                 except Exception:

@@ -108,6 +108,18 @@ class ConfigurationValidator:
                     )
                 )
 
+            # CONF-34 / STAG Section 5.4: --resume only adopts a sibling
+            # .tmp_staging_dir_* workspace, which only exists for -O.
+            if ep.resume_bool_setting.value and not op.output_directory_path_setting.is_set:
+                cvfs.append(
+                    CVF(
+                        ep.resume_bool_setting.key,
+                        "--resume requires -O DIR",
+                        "Resume adopts a leftover staging workspace by listing DIR; "
+                        "it is not available for -o or stdout-only.",
+                    )
+                )
+
             # stage 1 check for reading a file or director
             input_path_settings_to_check = [
                 wp.base_directory_path_setting,

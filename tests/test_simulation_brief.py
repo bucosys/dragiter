@@ -30,6 +30,7 @@ from dragiter.infrastructure.cli.simulation_brief import (
     resolve_pack_budget,
 )
 from dragiter.infrastructure.io.workspace_service import (
+    NullWorkspaceSeeder,
     WorkspaceCommitService,
     WorkspaceLayout,
     WorkspacePersistenceService,
@@ -54,7 +55,7 @@ def _run_via_chat_manager(
         MockAIService(),
         NullSessionBoard(),
         NullSessionBoard(),
-        WorkspacePersistenceService(layout),
+        WorkspacePersistenceService(layout, NullWorkspaceSeeder(), NullWorkspaceSeeder()),
         MarkdownResultBoard(),
     )
     manager.run(

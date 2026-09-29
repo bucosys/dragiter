@@ -41,6 +41,7 @@ from dragiter.domain.models.settings import (
     PromptFilePathSetting,
     ResourceFilePathSetting,
     RetryDelayIntSetting,
+    ResumeBoolSetting,
     SequentialProcessingBoolSetting,
     SimulateBoolSetting,
     TaskStringSetting,
@@ -107,6 +108,7 @@ def blank_parameter_groups() -> dict[str, Any]:
         SequentialProcessingBoolSetting("sequential_processing"),
         PackLimitCharsIntSetting("pack_limit_chars"),
         MaxChunksIntSetting("max_chunks"),
+        ResumeBoolSetting("resume"),
     )
     ip = InputParameters(
         TaskStringSetting("task"),

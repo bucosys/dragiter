@@ -27,6 +27,7 @@ from dragiter.domain.models.resources import ResourceSection, Resources
 from dragiter.domain.models.settings import (
     MaxChunksIntSetting,
     PackLimitCharsIntSetting,
+    ResumeBoolSetting,
     SequentialProcessingBoolSetting,
     SimulateBoolSetting,
     ValueOrigin,
@@ -70,7 +71,7 @@ def _ep(*, pack_cli: int | None = None, max_chunks: int | None = None) -> Execut
         pack.set(pack_cli, ValueOrigin.CLI)
     if max_chunks is not None:
         cap.set(max_chunks, ValueOrigin.CLI)
-    return ExecutionParameters(simulate, sequential, pack, cap)
+    return ExecutionParameters(simulate, sequential, pack, cap, ResumeBoolSetting("resume"))
 
 
 def test_shipped_section_budget_is_below_longest_chapter() -> None:

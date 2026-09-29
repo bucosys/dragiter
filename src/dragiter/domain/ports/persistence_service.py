@@ -5,7 +5,7 @@ from typing import Protocol, runtime_checkable
 
 from dragiter.domain.models.chat_results import ChatResult
 from dragiter.domain.models.chat_sessions import ChatSession
-from dragiter.domain.models.parameters import OutputParameters
+from dragiter.domain.models.parameters import ExecutionParameters, OutputParameters
 from dragiter.domain.models.prompt_template import PromptTemplate
 
 
@@ -37,6 +37,15 @@ class ResultSink(Protocol):
         it would make the shard count exceed the session count and abort the commit.
         """
 
+    def reuse(self, index: int) -> bool:
+        """
+        Report whether session *index* (1-based) already has a shard, and count it.
+
+        ``--resume`` only (STAG Section 5.4/6.4, EXEC-18). ``True`` means the
+        caller must skip the LLM call for this session entirely: its shard is
+        already in the workspace. Always ``False`` when nothing was adopted.
+        """
+
 
 @runtime_checkable
 class PersistenceService(Protocol):
@@ -53,10 +62,14 @@ class PersistenceService(Protocol):
         op: OutputParameters,
         prompt_template: PromptTemplate,
         sessions: list[ChatSession],
+        ep: ExecutionParameters,
     ) -> ResultSink:
         """
         Validate the location, run the early check, create the workspace and
         return the sink for this run.
+
+        With ``ep.resume_bool_setting`` set and ``-O`` active, also adopts the
+        newest sibling workspace's shards before returning (STAG Section 5.4).
 
         Raises PersistenceError (or PersistenceConflictError) before any
         completion call, without leaving a workspace behind.
