@@ -9,6 +9,10 @@ Entries are short and written in British English.
 
 ## [Unreleased]
 
+## [2026.9.29] - 2026-09-29
+
+[https://gitlab.com/bucosys/dragiter/-/tags/2026.9.29](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.29)
+
 ### Added
 - ``--resume``: adopts the newest leftover ``-O`` staging workspace from
   an aborted run before the first completion, and skips the LLM call for

@@ -1,10 +1,10 @@
 # dragiter FAQ
 
-**Version:** derived from source (2026.9.26)  
+**Version:** derived from source (2026.9.29)  
 **Language:** British English  
 **Audience:** power users and the maintainer  
 **Scope:** Recurring support questions. Not a second manual and not a second reference.  
-**Sources:** `docs/manual.md`, `docs/reference.md`, `docs/info.txt`, `CHANGELOG.md`, `README.md`, example READMEs, and the 2026.9.26 tree
+**Sources:** `docs/manual.md`, `docs/reference.md`, `docs/info.txt`, `CHANGELOG.md`, `README.md`, example READMEs, and the 2026.9.29 tree
 
 This document answers questions that keep coming back. Complete procedures live in the [Manual](manual.md). Exact flags, schemas, ranges and activity-log records live in the [Technical Reference](reference.md). When those two disagree with this page, name the file and the version and treat this page as uncertain.
 
@@ -60,7 +60,7 @@ If it is unclear, send `dragiter --version` and the exact command line.
 
 It is a CLI. Configuration precedence is CLI, then TOML (`-c` / `DRAGITER_CONFIG_FILE` / `~/.config/dragiter/config.toml`), then `DRAGITER_*` environment variables, then defaults. From 2026.9.9 the singular resource key `regex_pattern` is rejected. Standard input is read only with `-t` / `--task` or the placeholder `{STDIN}`. Results appear on stdout only when neither `-o` nor `-O` is set. `-v` writes the run board to stderr. `-s` simulates with no network and no tokens.
 
-Typical pitfall: documenting flags or breaking changes that are not in the 2026.9.26 sources.
+Typical pitfall: documenting flags or breaking changes that are not in the 2026.9.29 sources.
 
 See README Compatibility and Reference §1.
 
@@ -81,7 +81,7 @@ python3 --version
 
 Typical pitfall: an environment that already pinned openai 1.x will import, then fail when the CLI constructs the streaming client. Tests are not inside the wheel; they live in the sdist.
 
-See README Installation, Reference §1a, and `pyproject.toml` of 2026.9.26.
+See README Installation, Reference §1a, and `pyproject.toml` of 2026.9.29.
 
 If it is unclear, send `pip show dragiter openai httpx2` and `python3 --version`.
 
@@ -521,7 +521,7 @@ When shipped files disagree, name both and stay uncertain. Do not silently pick 
 
 ## 12. Maintainer map
 
-Use this table when the FAQ answer is not enough and the tree must be opened. Paths are relative to the 2026.9.26 layout.
+Use this table when the FAQ answer is not enough and the tree must be opened. Paths are relative to the 2026.9.29 layout.
 
 | Symptom | First file to open |
 |---|---|

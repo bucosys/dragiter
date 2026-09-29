@@ -1,6 +1,6 @@
 # dragiter Technical Reference
 
-**Version:** derived from source (2026.9.26)  
+**Version:** derived from source (2026.9.29)  
 **Language:** British English  
 **Scope:** Configuration, file formats, CLI, defaults, output behaviour and activity log  
 **Sources:** Source code (`src/dragiter/`), in particular `PromptCreator`, `OpenAIServiceExt` and example TOML files under `examples/`
@@ -712,7 +712,7 @@ Every record is enhanced with two envelope fields:
 {
   "TS": "2026-08-11T19:00:00.123456+00:00",
   "RT": "ActivityLogger",
-  "initial_status_message": "dragiter(2026.9.26) process started"
+  "initial_status_message": "dragiter(2026.9.29) process started"
 }
 ```
 
@@ -722,7 +722,7 @@ Every record is enhanced with two envelope fields:
 {
   "TS": "...",
   "RT": "ApplicationResult",
-  "final_status_message": "dragiter(2026.9.26) process finished with SUCCESS"
+  "final_status_message": "dragiter(2026.9.29) process finished with SUCCESS"
 }
 ```
 

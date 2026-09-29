@@ -1,10 +1,10 @@
 # dragiter Glossary
 
-**Version:** derived from source (2026.9.26)  
+**Version:** derived from source (2026.9.29)  
 **Language:** British English  
 **Audience:** readers of the Manual, the Technical Reference and the FAQ  
 **Scope:** Product words. Not a procedure guide and not a flag list.  
-**Sources:** `docs/manual.md`, `docs/reference.md`, `docs/info.txt`, `CHANGELOG.md`, `README.md`, example READMEs, and the 2026.9.26 tree
+**Sources:** `docs/manual.md`, `docs/reference.md`, `docs/info.txt`, `CHANGELOG.md`, `README.md`, example READMEs, and the 2026.9.29 tree
 
 Each entry is the meaning the program actually uses. Board labels are quoted exactly as they appear on stdout and in simulate files. When this page disagrees with the Manual or the Technical Reference, name the file and the version and treat this page as uncertain.
 
