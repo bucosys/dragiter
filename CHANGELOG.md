@@ -18,6 +18,13 @@ Entries are short and written in British English.
   an aborted run before the first completion, and skips the LLM call for
   any session whose shard is already there. Requires ``-O``.
 
+### Changed
+- ``examples/04_staged_regex_sample``: the requirements profile's
+  section 5.2 now carries a pasted-from-a-spreadsheet Markdown table
+  (padded columns, a separator row, a dash run, leftover blank lines),
+  and the resource file's new ``chunk_substitutions`` clean it up -
+  previously the only resource-file feature with no runnable example.
+
 ## [2026.9.26] - 2026-09-26
 
 [https://gitlab.com/bucosys/dragiter/-/tags/2026.9.26](https://gitlab.com/bucosys/dragiter/-/tags/2026.9.26)

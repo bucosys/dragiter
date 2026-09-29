@@ -1,19 +1,28 @@
 # Getting Started with Example 04
 
-This example does two jobs at once.
+This example does three jobs at once.
 
 1. It shows that `regex_patterns` is staged and countable.
 2. It walks the compact requirements profile **one packed chunk at a time**
    (`sequential_processing = true`).
+3. It shows `chunk_substitutions` cleaning a pasted-from-a-spreadsheet
+   Markdown table (section 5.2): padded columns, a separator row, an
+   inline dash run and a leftover blank-line run all get stripped or
+   shortened before that piece becomes a chunk.
 
 The corpus is `04_dragiter_requirements_profile.md`. It states the
 product contract and is no longer padded with dummy text. Overflow is
-produced by a section budget that sits below the longest `##` chapter
-(about 1 300 characters), not by inflating the file.
+produced by a section budget that sits below the longest `##` chapter —
+chapter 5, which carries that pasted table, at well over 2 500
+characters raw — not by inflating the file.
 
 - Pattern 0: `^##\s+` — chapter grain.
 - Pattern 1: `^###\s+` — only when a piece still exceeds `pack_limit_chars`.
 - Pack budget on the section: `500` characters.
+- `chunk_substitutions`: four rules, applied to each split piece in
+  order — collapse `[ \t]{2,}`, drop a Markdown separator/rule line,
+  shorten `-{3,}`, collapse `\n{3,}`. See section 5.2 of the profile and
+  `04_resource_staged_regex.toml`.
 - The default 200-chunk cap is far above this compact file. Demonstrate
   the breaker with `--max-chunks 1` (or any value below the packed count).
 - No loop file. No singular `regex_pattern` key.
@@ -24,6 +33,12 @@ chunk per `##` heading that has body text, plus the title block
 several chapters split on `###`, neighbours pack, `small / over` shows
 leftover pieces above 500, and the session count is no longer 21.
 Counts change if you edit the profile.
+
+Read the chapter-5 chunk either way (`ID` `0006` at `--pack-limit-chars
+0`) and confirm the table inside it has a single-spaced header, no
+`|---` separator row, and no run of three or more dashes — that is
+`chunk_substitutions` having already run, before you ever see the
+piece.
 
 A simulate run now writes the run board **and**, for every session, that
 session's board followed by its complete outgoing request — the same
@@ -124,6 +139,8 @@ before the next live pass.
 - a resource file that still contains `regex_pattern`
 - a resource file whose first pattern does not cut on `## `
 - a glob that also swallows this README
+- a resource file whose `chunk_substitutions` no longer strip the
+  section 5.2 table's separator row, padded columns or dash run
 
 ## Further information
 

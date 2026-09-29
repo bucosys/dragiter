@@ -14,6 +14,7 @@ files; they do not rebuild a synthetic corpus.
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import tomllib
 
 import pytest
@@ -52,6 +53,7 @@ def _section_from_shipped_resource() -> ResourceSection:
         include_filters=[],
         regex_patterns=list(table["regex_patterns"]),
         pack_limit_chars=int(table["pack_limit_chars"]),
+        chunk_substitutions=list(table.get("chunk_substitutions", [])),
     )
 
 
@@ -111,3 +113,26 @@ def test_lowered_max_chunks_aborts_on_shipped_profile() -> None:
     assert len(packed.chunks) > 1
     with pytest.raises(MaterialTokenizerError, match="max_chunks"):
         tokenizer.run(_resources(), _ep(max_chunks=1))
+
+
+def test_shipped_chunk_substitutions_clean_the_pasted_table() -> None:
+    """Covers CHNK-15 on the shipped example: the section 5.2 table arrives
+    with a Markdown separator row, padded columns and a run of blank lines;
+    the resource file's ``chunk_substitutions`` must strip all of it."""
+    spec = tomllib.loads(RESOURCE.read_text(encoding="utf-8"))
+    assert spec["requirements"]["chunk_substitutions"], (
+        "the shipped resource file must define chunk_substitutions for this "
+        "test to be exercising anything"
+    )
+
+    tokenizer = MaterialTokenizer(SimpleTextFileReader())
+    chapter_only = tokenizer.run(_resources(), _ep(pack_cli=0))
+    chapter_5 = next(
+        chunk for chunk in chapter_only.chunks if "## 5. Chunking" in chunk.content
+    )
+
+    assert "| Key | Type | Required | Notes |" in chapter_5.content  # rule 1: spaces collapsed
+    assert "|---" not in chapter_5.content  # rule 2: separator row dropped
+    assert "0 disables packing - and overflow" in chapter_5.content  # rule 3: dash run shortened
+    assert "\n\n\n" not in chapter_5.content  # rule 4: blank-line runs collapsed
+    assert not re.search(r"[ \t]{2,}", chapter_5.content), "no un-collapsed space/tab run"

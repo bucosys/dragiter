@@ -12,3 +12,16 @@
 glob_patterns = ["04_dragiter_requirements_profile.md"]
 regex_patterns = ['^##\s+', '^###\s+']
 pack_limit_chars = 500
+
+# Cleans up the pasted-from-a-spreadsheet table in section 5.2. Applied
+# to each split piece, in order, after the split and before packing.
+# 1. collapse runs of spaces/tabs only - keep line breaks (lists, tables, headings)
+# 2. drop Markdown table separator rows and horizontal rules
+# 3. shorten remaining dash runs
+# 4. collapse surplus blank lines
+chunk_substitutions = [
+  { pattern = '[ \t]{2,}', replacement = " " },
+  { pattern = '^[ \t]*\|?[ \t:|-]*-[ \t:|-]*\|?[ \t]*$', replacement = "" },
+  { pattern = '-{3,}', replacement = "-" },
+  { pattern = '\n{3,}', replacement = "\n\n" },
+]

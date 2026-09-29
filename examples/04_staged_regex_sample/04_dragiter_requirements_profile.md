@@ -151,6 +151,27 @@ tables. Rules run after the split and before filters and packing.
 Replacements are literal. Empty replacement deletes. Whitespace-only
 pieces after substitution are discarded.
 
+The table below is exactly the kind of input those rules target —
+pasted from a spreadsheet, with padded columns, a Markdown separator
+row, and a leftover run of blank lines:
+
+
+| Key                 | Type   | Required  | Notes                                    |
+|----------------------|--------|-----------|--------------------------------------------|
+| glob_patterns        | list   | yes       | relative globs stay under the section root |
+| regex_patterns       | list   | yes       | first pattern always cuts the raw file     |
+| pack_limit_chars     | int    | no        | 0 disables packing ------- and overflow    |
+| chunk_substitutions  | list   | no        | literal search-and-replace, no backrefs    |
+| include_filters      | list   | no        | sets valid, does not rewrite text          |
+| exclude_filters      | list   | no        | sets valid, does not rewrite text          |
+| base_directory       | path   | no        | section-local override                     |
+
+
+Copied as-is, that table would carry its separator row and doubled
+interior spaces into every chunk. This example's own resource file,
+`04_resource_staged_regex.toml`, strips both, shortens the inline dash
+run, and collapses the blank-line runs above and below back to one.
+
 ### 5.3 Filters and packing
 
 Include/exclude set `valid`; they do not rewrite text. Packing joins
