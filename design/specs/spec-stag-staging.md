@@ -7,9 +7,9 @@
 | Type | technical |
 | Serves | `OUTP` |
 | Product | dragiter |
-| Version | 2.3 (supersedes v2.2, v2.1, v2.0 and `dragiter_ap_staging.md`, v1.0) |
-| Status | agreed target state (specification) |
-| Date | 2026-09-24 |
+| Version | 2.4 (supersedes v2.3, v2.2, v2.1, v2.0 and `dragiter_ap_staging.md`, v1.0) |
+| Status | agreed target state (specification); Resume (Section 5.4, 6.4) is *proposed*, not yet implemented |
+| Date | 2026-09-29 |
 | Read pin | `eb8097bcdbfd826777b06434fb9b39d11598916a` |
 | Staging commit (baseline) | `534b2cd9faa75aadee5a0b993d52f4dd82a7d6c6` |
 | Language | English throughout |
@@ -18,6 +18,10 @@
 This profile does not replace the source code. **This target state** governs all future work; the implementation is built against it, not adapted from the current mechanics. Read pin and staging commit only mark the baseline the implementation starts from.
 
 ---
+
+## Change history vs. v2.3
+
+- **Resume added, *proposed*.** `-O` runs can now adopt the shards of the newest sibling workspace left behind by an earlier, aborted run of the same `DIR`, instead of only refusing to mix runs. New Section 5.4 (source selection and adoption) and Section 6.4 (interaction with the shard counter); new Appendix B Phase R; new criteria **STAG-37** to **STAG-43**, all *proposed*. Section 2.3's "PID isolates workspaces" statement is narrowed accordingly — see that section. Behaviour is unchanged unless `--resume` is given (`CONF`).
 
 ## Change history vs. v2.2
 
@@ -67,6 +71,9 @@ Not a purpose: OS temp as the parent of `-o`/`-O`, a shared workspace for multip
 - `output_delimiter`, `output_filename_schema`, the `{TIMESTAMP}` token.
 - Early check before the first completion, where names are determinable without a write timestamp.
 - Shard persist (identical across all three sinks) and Assembly (`-o`/stdout-only only).
+- Resume (`--resume`, `-O` only, *proposed*): adopting the newest sibling
+  workspace's shards into the run's own workspace before the first completion
+  (Section 5.4, 6.4).
 
 ### 2.2 Out of scope
 
@@ -74,14 +81,15 @@ Not a purpose: OS temp as the parent of `-o`/`-O`, a shared workspace for multip
   content looks like (see `SIMU`) — but that content is persisted and
   committed as an ordinary shard like any other completion.
 - Implementation shape (module boundaries, function names beyond the contracts named here). Implementation decisions belong in a separate design-notes document (see `dragiter_design_notes.md`).
-- Cleaning up foreign PIDs.
+- Cleaning up foreign PIDs — except the one adoption Resume performs deliberately (Section 5.4); every other foreign workspace is still left untouched (STAG-29).
 - Shell redirection of stdout (`>`, `>>`, `|`) as a file sink.
+- Deciding, from the caller's inputs (material, loop file, prompt), whether an adopted shard still corresponds to the session it is being reused for. Resume trusts position alone; see Section 5.4's limits and `CONF`'s `--resume` validation.
 
 ### 2.3 Deliberately unchanged
 
 - Early `-m x` and intra-run duplicate-name checks before the chats, when the schema does **not** contain `{TIMESTAMP}`.
 - `{TIMESTAMP}` in the schema skips this pre-check.
-- PID isolates workspaces; cleanup only touches the run's own workspace.
+- PID isolates workspaces; cleanup only touches the run's own workspace — with the one narrow exception of Resume's adoption (Section 5.4), which is the sole operation permitted to move a sibling workspace's contents and remove that sibling directory.
 - stdout echo only when neither `-o` nor `-O` is set.
 
 ---
@@ -94,6 +102,8 @@ Not a purpose: OS temp as the parent of `-o`/`-O`, a shared workspace for multip
 | Parent | Directory that hosts the workspace |
 | User temp | User's default temp directory: `$TMPDIR` if set and usable, otherwise the platform default (`tempfile.gettempdir()` / `/tmp` on Unix). Not CWD, not `$XDG_CACHE_HOME`, not `$XDG_RUNTIME_DIR` |
 | Workspace | Hidden child of the parent, scoped to this run and this sink only |
+| Resume | `--resume` (*proposed*): before this run's first persist, adopt the newest sibling workspace's shards into this run's own workspace, then remove that sibling. `-O` only. |
+| Source workspace | The sibling `.tmp_staging_dir_*` directory Resume adopts from — the most recently modified one under `DIR`, other than the run's own |
 | Persist | Writing a **finished** shard file into the workspace after a completion |
 | Shard | Finished single-completion file in the workspace, named by a run-local, sequential number (`res<N>`, fixed width). No relation to the final name, schema, or `FILE.name` |
 | Assembly | `-o`/stdout-only only: merging all shards of a workspace into one file, immediately before its commit |
@@ -136,6 +146,23 @@ Three prefixes, even if `FILE.parent == DIR` or CWD = user temp by coincidence. 
 `-o`/`-O`: the workspace child sits on the target parent's filesystem; rename is the normal case for `x`/`w`. Because the workspace is already a child of the target parent, the Assembly result (for `-o`) is automatically same-FS to the target too — no extra buffer path needed.
 stdout-only: no file target, no rename; same-FS is irrelevant. User temp is correct here.
 
+### 5.4 Resume (`--resume`, `-O` only) — *proposed*
+
+Given `--resume` and `-O DIR`: the run's own workspace is created exactly as in Section 5.2, under its own PID, with no special case in `mkdir` itself. Immediately afterwards, before the first completion is persisted:
+
+1. List every `.tmp_staging_dir_*` directory directly under `DIR`, excluding the run's own workspace just created.
+2. None found: proceed as an ordinary fresh run. Not an error.
+3. One or more found: pick the single most recently modified one (mtime of the directory) as the source workspace. Any other candidates are left untouched — they remain subject to Section 2.3's "foreign PIDs are not cleaned up".
+4. Move every shard from the source workspace into the run's own workspace via same-FS `rename` (Section 5.3 already guarantees both are children of `DIR`), in ascending sequence order (`res000001`, `res000002`, …). No shard is opened, read, or altered — same bytes, same name, only relocated.
+5. Remove the now-empty source workspace directory. If removal fails, log a warning and continue — the adoption itself already succeeded (mirrors the tolerance already given to commit-success cleanup, Section 7.4).
+
+`-o` and stdout-only never adopt: their workspaces are excluded from Resume entirely (Section 2.1). `--resume` without `-O` is rejected before any workspace exists (`CONF`), not handled here.
+
+**Limits, stated so a later reader does not need to rediscover them by testing:**
+
+- Adoption is positional, not identity-based: a source shard's sequence number is trusted to still belong to the same session it belonged to when it was written. If the material file, loop file, prompt, or `--sequential-processing` differ between the aborted run and the resumed one, the session plan can shift and an adopted shard is silently attributed to the wrong session. Resume does not detect this (Section 2.2).
+- If the aborted run failed *during* commit rather than during persist, some of its shards may already have been renamed onto their final names in `DIR` before the failure (Section 7 Section 7.1–7.3, STAG-21); those are no longer shards and are not adopted. The source workspace then holds only the shards that had not yet been moved — a *suffix* of the original session range, not the run's later shards in the sense of "already done". Resuming such a run still proceeds; the subsequent commit for the re-run sessions may then abort under `-m x` against the targets the earlier partial commit already wrote (STAG-19), same as any other pre-existing target.
+
 ---
 
 ## 6. Persist contract (unified)
@@ -161,6 +188,12 @@ Persist is **identical** across all three sinks: every completion — including 
 - A shard's persist timestamp is its filesystem mtime at the time of writing. No separate metadata sidecar.
 - If `output_filename_schema` contains `{TIMESTAMP}`, the commit uses exactly that shard's mtime — no new clock read at rename time.
 - Without `{TIMESTAMP}` in the schema, the shard mtime is not needed; the final name is known before the chats (early check, Section 8).
+
+### 6.4 Interaction with Resume — *proposed*
+
+When shards were adopted (Section 5.4), the workspace's local sequence counter starts already advanced by the number of adopted shards — not at `0`. Concretely: if adoption moved `res000001` through `res000004` into the workspace, the next shard persisted by this run (for whichever session the run loop is currently dispatching) is `res000005`, continuing the same sequence without a gap and without renumbering the adopted shards.
+
+Whether a completion for a given session is even requested from the LLM before being persisted is `EXEC`'s concern (see `EXEC` Section 4.2), not this contract's; this section only describes what happens to the shard *count* once persist for that session is reached. A session whose shard already exists from adoption does not produce a second shard under a new number — persist for it is a no-op here, and the counter is not incremented a second time for it.
 
 ---
 
@@ -330,6 +363,16 @@ Each criterion carries a stable identifier `STAG-NN`. Identifiers are assigned o
 - **STAG-35** Given only empty shards under stdout-only, when the commit runs, then no reply text appears on stdout and the workspace is gone.
 - **STAG-36** Given an error during the stdout commit, when it occurs, then stop immediately, workspace remains under user temp, message names this workspace.
 
+### Resume (`--resume`, `-O` only)
+
+- **STAG-37** *proposed* Given `--resume` and `-O DIR`, when the run's own workspace has just been created and at least one other `.tmp_staging_dir_*` directory exists directly under `DIR`, then the most recently modified one (other than the run's own) is selected as the source workspace.
+- **STAG-38** *proposed* Given a source workspace has been selected, when adoption runs, then every shard from it is moved (not copied) into the run's own workspace, in ascending sequence order, before the first completion of this run is persisted.
+- **STAG-39** *proposed* Given adoption has moved every shard out of the source workspace, when adoption completes, then the now-empty source directory is removed; if removal fails, the run continues and only a warning is logged.
+- **STAG-40** *proposed* Given `--resume` and no `.tmp_staging_dir_*` directory other than the run's own exists under `DIR`, when the run starts, then it proceeds as an ordinary fresh run — no adoption, no error.
+- **STAG-41** *proposed* Given `--resume` and more than one other `.tmp_staging_dir_*` directory under `DIR`, when a source workspace is selected, then only the single most recently modified one is adopted; every other one is left untouched (STAG-29 still applies to them).
+- **STAG-42** *proposed* Given shards were adopted into the run's own workspace, when persist reaches the session whose shard already exists from adoption, then no new shard is written for it and the workspace's local counter is not incremented a second time for it, so the next newly persisted shard continues the sequence without a gap or a collision.
+- **STAG-43** *proposed* Given `--resume` without `-O` (i.e. `-o` or stdout-only, or neither), when the configuration is validated, then the run is rejected before any workspace is created (`CONF`).
+
 ---
 
 ## 11. Non-goals (explicitly rejected)
@@ -346,6 +389,10 @@ Each criterion carries a stable identifier `STAG-NN`. Identifiers are assigned o
 - Shell redirection of stdout as a substitute for `-o`.
 - A metadata sidecar for shard timestamps (mtime is used instead, Section 6.3).
 - A backup copy (`~` suffix) of an existing target file before commit — evaluated and rejected (redundant given the already-atomic rename operation; a standalone versioning feature outside this contract).
+- An explicit `--resume-directory PATH` (or similar) option — evaluated and rejected; "newest `.tmp_staging_dir_*` under `DIR`" is the only selection rule.
+- Resume for `-o` or stdout-only — evaluated and rejected for this round (Section 5.4); their workspace/Assembly mechanics make session identity ambiguous by shard position alone.
+- Adopting from more than one source workspace, or merging shards from several aborted runs into one resumed run.
+- A manifest or fingerprint verifying that an adopted shard still matches the session it is reused for — evaluated and rejected for this round; Resume trusts position alone (Section 5.4's limits).
 
 ---
 
@@ -356,6 +403,8 @@ Each criterion carries a stable identifier `STAG-NN`. Identifiers are assigned o
 - The reserved content name `stdout.txt`/`FILE.name` as the Assembly result in the workspace: fixed or arbitrary, as long as it is clearly distinguishable from shards.
 - Exact width of the shard sequence number (proposed here: 6 digits) — to be finally confirmed.
 - Deletion timing of individual shards after successful Assembly: immediately, or only with the whole workspace on commit success (currently: the latter, see 7.0 point 5).
+- Whether Resume's adoption and the resulting per-session reuse should be visible on the `-v` board (source path, count of reused vs. generated sessions) — very likely yes, but the board contract itself lives outside this document (`EXEC`).
+- Whether a later round should detect session-plan drift between the aborted and the resumed run (e.g. a hash of material/loop/prompt) instead of trusting shard position alone — deliberately deferred for this round; see Section 11's Non-goals.
 
 ---
 
@@ -474,6 +523,20 @@ Stop if `-O` swallows empty slots, or Assembly materialises empty blocks for `-o
 | I4 | Foreign folder `.tmp_staging_dir_1` next to one's own | After one's own success, `_1` remains | STAG-29 |
 | I5 | `{TIMESTAMP}` in the `-O` schema | Early check does not run; final name carries the shard mtime | STAG-26, STAG-27 |
 
+### Phase R — Resume (`--resume`, `-O` only) — *proposed*
+
+Goal: adoption is a location-time operation — it runs once, right after the run's own workspace is created and before its first persist — and it never reaches beyond `-O`.
+
+| Step | Given | When | Then | Criteria |
+|---|---|---|---|---|
+| R1 | `--resume`, one older `.tmp_staging_dir_*` under `DIR` holding two shards | The new run's own workspace has just been created | Both shards moved into the new workspace, ascending order, before its first persist; the old directory is removed | STAG-37, STAG-38, STAG-39 |
+| R2 | `--resume`, no `.tmp_staging_dir_*` under `DIR` other than the new one | Run starts | Ordinary fresh run: no adoption, no error | STAG-40 |
+| R3 | `--resume`, two older `.tmp_staging_dir_*` under `DIR` with different mtimes | The new run's own workspace has just been created | Only the more recently modified one is adopted; the older one is left untouched | STAG-41 |
+| R4 | Shards adopted for sessions 1–2, sessions 3+ still to run | Persist reaches session 1 or 2 | No new shard written, no second counter increment for it | STAG-42 |
+| R5 | `--resume` given without `-O` | Configuration validated | Rejected before any workspace is created | STAG-43 |
+
+Stop if adoption starts before the new run's own workspace exists, if more than one source directory is touched per run, or if an adopted shard is overwritten rather than left as-is.
+
 ### Phase order (binding)
 
 ```
@@ -482,6 +545,7 @@ G  Happy path per sink (G1 → G2 → G3)
 X  Exclusive and move failures
 L  Empty
 I  Isolation and TIMESTAMP
+R  Resume (independent of P–I; only exercised with --resume)
 ```
 
 (Phase D is removed; see above.)
@@ -489,7 +553,8 @@ I  Isolation and TIMESTAMP
 P before G, because otherwise happy paths would mask missing parents.
 G before X, because move failures are only meaningful against a known, full workspace.
 L after X, because empty-value rules would otherwise interact with exclusivity edge cases.
-I last: isolation is only credible once all parents and prefixes are individually correct.
+I last among P–I: isolation is only credible once all parents and prefixes are individually correct.
+R stands apart from P–I: none of them exercise `--resume`, and R's own precondition (a leftover sibling workspace) is itself the product of an earlier, separately validated run.
 
 ### Assessment
 

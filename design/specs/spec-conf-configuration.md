@@ -5,8 +5,8 @@
 | Document | `design/specs/spec-conf-configuration.md` |
 | Code | `CONF` |
 | Type | functional |
-| Version | 0.4 |
-| Status | draft — initial version, describes current code |
+| Version | 0.5 |
+| Status | draft — initial version, describes current code; the `--resume`/`-O` cross-field rule and CONF-34 are *proposed*, not yet implemented |
 | Created | 2026-09-24 |
 | Related | `ADR-0001`, `AUDT` |
 
@@ -128,6 +128,9 @@ immediately (`STAG-06`) before any other rule is evaluated:
 - `max_chunks` must be `>= 1`.
 - `client_key_file` set without `client_cert_file` → error (a private key needs its
   certificate).
+- *Proposed:* `--resume` set without `-O` → error. Resume (`STAG` Section 5.4) adopts
+  a sibling workspace's shards by directory listing, which only exists for the `-O
+  DIR` sink; `-o` and stdout-only are excluded by design, not merely unimplemented.
 
 ## 5. Error cases
 
@@ -242,6 +245,10 @@ is not implemented yet is marked *proposed* directly after its identifier.
   exactly `0`, then validation passes.
 - **CONF-32** Given `max_chunks` set to `0`, when validated, then it raises naming
   `max_chunks`; given a positive value, then validation passes.
+- **CONF-34** *proposed* Given `--resume` set and neither `-o` nor `-O` set, or
+  `--resume` set together with `-o`, when `ConfigurationValidator.run()` runs, then it
+  raises naming `--resume` and `-O` as the required combination; given `--resume`
+  together with `-O`, then validation passes for this rule.
 
 ### Secrets in logs
 
@@ -271,3 +278,6 @@ is not implemented yet is marked *proposed* directly after its identifier.
 - 0.4 (2026-09-25): fixed a real secret-leak found during a test-quality audit —
   `_get_args()` logged a CLI-supplied API key in clear text at `DEBUG` level, bypassing
   `APIStringSetting.__repr__`'s existing masking. New CONF-33, with a regression test.
+- 0.5 (2026-09-29): *proposed* cross-field rule for the new `--resume` setting
+  (`--resume` requires `-O`, `STAG` Section 5.4) — new CONF-34. No behaviour change
+  yet; nothing here is implemented.
