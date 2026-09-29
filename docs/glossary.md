@@ -221,6 +221,14 @@ Sections do not share packing across their boundary.
 
 See Reference §6.
 
+### Resume
+
+`--resume`: before the first completion of a new `-O` run, adopt the shards of the most recently modified other `.tmp_staging_dir_*` workspace left behind under the same `DIR` (a same-filesystem rename, not a copy), then remove that now-empty source directory. A session whose shard is already there is reported `reused` on the board and never sent to the LLM, live or mock.
+
+It is not a manifest or a fingerprint check — a changed material file, loop file, prompt or `--sequential-processing` since the aborted run is not detected; adoption trusts shard position alone. It is not available for `-o` or stdout-only, and it never touches more than the one, newest sibling workspace.
+
+See [Shard](#shard). See [Staging](#staging). See Reference §9. See CHANGELOG 2026.9.29.
+
 ### Run board
 
 The aggregate simulate summary: sessions, mode, chunks/files, valid/loops, chars, pack, small/over, window, peak, output. Persisted as one leading shard for `-o` and stdout-only, ahead of every session's own board and request; never produced for `-O`, which persists one shard per session with no separate aggregate file.
@@ -337,6 +345,6 @@ See Reference §9. See CHANGELOG 2026.9.13.
 
 The hidden directory that holds one run's shards: `.tmp_staging_dir_<PID>/` for `-O`, `.tmp_staging_file_<PID>/` for `-o`, `.tmp_staging_stdout_<PID>/` (under the user's default temp directory) for stdout-only. Created after the early `-m x` check and before the first completion; removed after a successful commit; left in place if a later call fails.
 
-It is not `.dragiter-partial/`, which is gone, and it is never shared between sinks or between runs.
+It is not `.dragiter-partial/`, which is gone, and it is never shared between sinks. Two runs' workspaces stay separate too — `--resume` adopts a previous run's leftover shards into the new run's own workspace rather than reusing that workspace itself, and only ever for `-O`.
 
-See [Shard](#shard). See [Staging](#staging). See Reference §1a and §9.
+See [Shard](#shard). See [Staging](#staging). See [Resume](#resume). See Reference §1a and §9.

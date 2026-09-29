@@ -389,6 +389,20 @@ See Reference §1a and CHANGELOG 2026.9.26.
 
 If it is unclear, send the workspace listing and the failing attempt message (`Attempt n/m`).
 
+### How do I resume an aborted -O run?
+
+Add `--resume`. It requires `-O`; with `-o` or stdout-only, the run is rejected before anything starts. Right after the new run's own workspace is created, dragiter looks for other `.tmp_staging_dir_*` directories directly inside the same `-O` directory (none is not an error), picks the most recently modified one, moves its shards into the new workspace (a same-filesystem rename, not a copy), and removes the emptied source directory. A session whose shard is already there is never sent to the LLM — live or simulate — and is reported as `reused` on the board instead of generating a new reply; the final commit does not distinguish an adopted shard from a freshly persisted one.
+
+```bash
+dragiter -p prompt.toml -r resource.toml -l loop.jsonl -O out -m w --resume
+```
+
+Typical pitfall: expecting `--resume` to notice that the material, loop file, prompt or `--sequential-processing` changed since the aborted run. It does not — there is no manifest or fingerprint, only shard position — so a changed run resumed this way silently attributes an old reply to the wrong session. Re-run without `--resume` after changing inputs.
+
+See Reference §9 “Resume” and CHANGELOG 2026.9.29.
+
+If it is unclear, send the adoption line from stderr (printed regardless of `-v`, naming the source workspace and shard count), the `-v` board if it was used, and the staging directory listing before and after the resumed run.
+
 ---
 
 ## 8. Context window, tokens and circuit breakers
@@ -563,6 +577,9 @@ dragiter -s --pack-limit-chars 0 -p prompt.toml -r resource.toml
 
 # audit trail
 dragiter -s -v -a activity.jsonl -p prompt.toml -r resource.toml
+
+# resume an aborted -O run instead of paying for every session again
+dragiter -p prompt.toml -r resource.toml -l loop.txt -O out -m w --resume
 
 # user config
 mkdir -p ~/.config/dragiter
